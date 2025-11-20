@@ -12,8 +12,9 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
     const insets = useSafeAreaInsets();
 
     const tabs = [
-        { id: 'search', icon: 'home', label: 'さがす' },
+        { id: 'search', icon: 'search', label: 'さがす' },
         { id: 'likes', icon: 'heart', label: 'いいね' },
+        { id: 'challenge', icon: 'pricetags', label: '挑戦カード' },
         { id: 'talk', icon: 'chatbubble', label: 'トーク' },
         { id: 'profile', icon: 'person', label: 'マイページ' },
     ];

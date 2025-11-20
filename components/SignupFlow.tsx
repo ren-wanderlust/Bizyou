@@ -8,7 +8,9 @@ import {
     ScrollView,
     SafeAreaView,
     KeyboardAvoidingView,
-    Platform
+    Platform,
+    TouchableWithoutFeedback,
+    Keyboard
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,13 +32,11 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     // Step 2: Profile data
     const [nickname, setNickname] = useState('');
     const [age, setAge] = useState('');
-    const [university, setUniversity] = useState('');
-    const [grade, setGrade] = useState('');
+    const [university, setUniversity] = useState(''); // Used for University/Company
+    const [bio, setBio] = useState('');
     const [seekingFor, setSeekingFor] = useState<string[]>([]);
     const [skills, setSkills] = useState<string[]>([]);
-    const [skillDetails, setSkillDetails] = useState('');
     const [seekingRoles, setSeekingRoles] = useState<string[]>([]);
-    const [requirementDetails, setRequirementDetails] = useState('');
 
     const skillOptions = [
         'エンジニア', 'デザイナー', 'マーケター', 'セールス',
@@ -87,112 +87,113 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         }
     };
 
+    const renderHeader = (title: string, stepNum: number) => (
+        <View style={styles.header}>
+            <TouchableOpacity onPress={stepNum === 1 ? onCancel : () => setStep('auth')} style={styles.backButton}>
+                <Ionicons name="arrow-back" size={24} color="#374151" />
+            </TouchableOpacity>
+            <View style={styles.progressContainer}>
+                <View style={styles.progressHeader}>
+                    <Text style={styles.headerTitle}>{title}</Text>
+                    <Text style={styles.stepText}>Step {stepNum}/2</Text>
+                </View>
+                <View style={styles.progressBarBg}>
+                    <LinearGradient
+                        colors={['#0d9488', '#2563eb']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[styles.progressBarFill, { width: stepNum === 1 ? '50%' : '100%' }]}
+                    />
+                </View>
+            </View>
+        </View>
+    );
+
     if (step === 'auth') {
         return (
             <SafeAreaView style={styles.container}>
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
                 >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={onCancel} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color="#374151" />
-                        </TouchableOpacity>
-                        <View style={styles.progressContainer}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.headerTitle}>アカウント作成</Text>
-                                <Text style={styles.stepText}>Step 1/2</Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={['#0d9488', '#2563eb']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[styles.progressBarFill, { width: '50%' }]}
-                                />
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={{ flex: 1 }}>
+                            {renderHeader('アカウント作成', 1)}
+
+                            <ScrollView contentContainerStyle={styles.scrollContent}>
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>メールアドレス</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={email}
+                                        onChangeText={setEmail}
+                                        placeholder="example@bizyou.com"
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>パスワード</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={password}
+                                        onChangeText={setPassword}
+                                        placeholder="8文字以上"
+                                        secureTextEntry
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>パスワード（確認）</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={passwordConfirm}
+                                        onChangeText={setPasswordConfirm}
+                                        placeholder="もう一度入力してください"
+                                        secureTextEntry
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <TouchableOpacity
+                                    style={styles.termsContainer}
+                                    onPress={() => setAgreedToTerms(!agreedToTerms)}
+                                >
+                                    <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
+                                        {agreedToTerms && <Ionicons name="checkmark" size={16} color="white" />}
+                                    </View>
+                                    <Text style={styles.termsText}>
+                                        <Text style={styles.linkText}>利用規約</Text>と
+                                        <Text style={styles.linkText}>プライバシーポリシー</Text>に同意します
+                                    </Text>
+                                </TouchableOpacity>
+                            </ScrollView>
+
+                            <View style={styles.footer}>
+                                <TouchableOpacity
+                                    onPress={handleAuthSubmit}
+                                    disabled={!email || !password || password !== passwordConfirm || !agreedToTerms}
+                                    style={[
+                                        styles.nextButtonContainer,
+                                        (!email || !password || password !== passwordConfirm || !agreedToTerms) && styles.disabledButton
+                                    ]}
+                                >
+                                    <LinearGradient
+                                        colors={['#0d9488', '#2563eb']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.nextButton}
+                                    >
+                                        <Text style={styles.nextButtonText}>次へ</Text>
+                                        <Ionicons name="chevron-forward" size={20} color="white" />
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             </View>
                         </View>
-                    </View>
-
-                    <ScrollView contentContainerStyle={styles.scrollContent}>
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>メールアドレス</Text>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="mail-outline" size={20} color="#9ca3af" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={email}
-                                    onChangeText={setEmail}
-                                    placeholder="example@bizyou.com"
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>パスワード</Text>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="lock-closed-outline" size={20} color="#9ca3af" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={password}
-                                    onChangeText={setPassword}
-                                    placeholder="8文字以上"
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>パスワード（確認）</Text>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="lock-closed-outline" size={20} color="#9ca3af" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={passwordConfirm}
-                                    onChangeText={setPasswordConfirm}
-                                    placeholder="もう一度入力してください"
-                                    secureTextEntry
-                                />
-                            </View>
-                        </View>
-
-                        <TouchableOpacity
-                            style={styles.termsContainer}
-                            onPress={() => setAgreedToTerms(!agreedToTerms)}
-                        >
-                            <View style={[styles.checkbox, agreedToTerms && styles.checkboxChecked]}>
-                                {agreedToTerms && <Ionicons name="checkmark" size={16} color="white" />}
-                            </View>
-                            <Text style={styles.termsText}>
-                                <Text style={styles.linkText}>利用規約</Text>と
-                                <Text style={styles.linkText}>プライバシーポリシー</Text>に同意します
-                            </Text>
-                        </TouchableOpacity>
-                    </ScrollView>
-
-                    <View style={styles.footer}>
-                        <TouchableOpacity
-                            onPress={handleAuthSubmit}
-                            disabled={!email || !password || password !== passwordConfirm || !agreedToTerms}
-                            style={[
-                                styles.nextButtonContainer,
-                                (!email || !password || password !== passwordConfirm || !agreedToTerms) && styles.disabledButton
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={['#0d9488', '#2563eb']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.nextButton}
-                            >
-                                <Text style={styles.nextButtonText}>次へ</Text>
-                                <Ionicons name="chevron-forward" size={20} color="white" />
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
+                    </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         );
@@ -202,167 +203,163 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return (
             <SafeAreaView style={styles.container}>
                 <KeyboardAvoidingView
-                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                     style={{ flex: 1 }}
                 >
-                    {/* Header */}
-                    <View style={styles.header}>
-                        <TouchableOpacity onPress={() => setStep('auth')} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color="#374151" />
-                        </TouchableOpacity>
-                        <View style={styles.progressContainer}>
-                            <View style={styles.progressHeader}>
-                                <Text style={styles.headerTitle}>プロフィール基本情報</Text>
-                                <Text style={styles.stepText}>Step 2/2</Text>
-                            </View>
-                            <View style={styles.progressBarBg}>
-                                <LinearGradient
-                                    colors={['#0d9488', '#2563eb']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={[styles.progressBarFill, { width: '100%' }]}
-                                />
-                            </View>
-                        </View>
-                    </View>
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View style={{ flex: 1 }}>
+                            {renderHeader('プロフィール基本情報', 2)}
 
-                    <ScrollView contentContainerStyle={styles.scrollContent}>
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>ニックネーム</Text>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="person-outline" size={20} color="#9ca3af" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={nickname}
-                                    onChangeText={setNickname}
-                                    placeholder="例: タロウ"
-                                />
-                            </View>
-                        </View>
+                            <ScrollView contentContainerStyle={styles.scrollContent}>
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>ニックネーム</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={nickname}
+                                        onChangeText={setNickname}
+                                        placeholder="例: タロウ"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>年齢</Text>
-                            <TextInput
-                                style={[styles.input, { paddingLeft: 16 }]}
-                                value={age}
-                                onChangeText={setAge}
-                                placeholder="例: 20"
-                                keyboardType="numeric"
-                            />
-                        </View>
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>年齢</Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={age}
+                                        onChangeText={setAge}
+                                        placeholder="例: 20"
+                                        keyboardType="numeric"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
 
-                        <View style={styles.formGroup}>
-                            <Text style={styles.label}>所属大学名 <Text style={styles.optionalText}>（任意）</Text></Text>
-                            <View style={styles.inputWrapper}>
-                                <Ionicons name="school-outline" size={20} color="#9ca3af" style={styles.inputIcon} />
-                                <TextInput
-                                    style={styles.input}
-                                    value={university}
-                                    onChangeText={setUniversity}
-                                    placeholder="例: 東京大学"
-                                />
-                            </View>
-                        </View>
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>職種 / 大学名 <Text style={styles.optionalText}>（任意）</Text></Text>
+                                    <TextInput
+                                        style={styles.input}
+                                        value={university}
+                                        onChangeText={setUniversity}
+                                        placeholder="例: 東京大学 / 株式会社〇〇"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
 
-                        <View style={styles.sectionBox}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="search" size={20} color="#0d9488" />
-                                <Text style={styles.sectionTitle}>今、何を探していますか？</Text>
-                            </View>
-                            <View style={styles.chipContainer}>
-                                {seekingForOptions.map((option) => (
-                                    <TouchableOpacity
-                                        key={option}
-                                        onPress={() => handleSeekingForToggle(option)}
-                                        style={[
-                                            styles.chip,
-                                            seekingFor.includes(option) ? styles.chipSelected : styles.chipUnselected
-                                        ]}
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>自己紹介文</Text>
+                                    <TextInput
+                                        style={[styles.input, styles.textArea]}
+                                        value={bio}
+                                        onChangeText={setBio}
+                                        placeholder="例: 現在は大学でAIを専攻しています。将来はエンジニアとして起業したいと考えており、一緒にハッカソンに出られる仲間を探しています！"
+                                        multiline
+                                        numberOfLines={4}
+                                        textAlignVertical="top"
+                                        placeholderTextColor="#9ca3af"
+                                    />
+                                </View>
+
+                                <View style={styles.sectionBox}>
+                                    <View style={styles.sectionHeader}>
+                                        <Ionicons name="search" size={20} color="#0d9488" />
+                                        <Text style={styles.sectionTitle}>今、何を探していますか？</Text>
+                                    </View>
+                                    <View style={styles.chipContainer}>
+                                        {seekingForOptions.map((option) => (
+                                            <TouchableOpacity
+                                                key={option}
+                                                onPress={() => handleSeekingForToggle(option)}
+                                                style={[
+                                                    styles.chip,
+                                                    seekingFor.includes(option) ? styles.chipSelected : styles.chipUnselected
+                                                ]}
+                                            >
+                                                {seekingFor.includes(option) && (
+                                                    <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
+                                                )}
+                                                <Text style={seekingFor.includes(option) ? styles.chipTextSelected : styles.chipTextUnselected}>
+                                                    {option}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <View style={styles.sectionHeader}>
+                                        <Ionicons name="flash-outline" size={20} color="#0d9488" />
+                                        <Text style={styles.label}>持っているスキル</Text>
+                                    </View>
+                                    <Text style={styles.helperText}>あなたが提供できる役割を選んでください</Text>
+                                    <View style={styles.chipContainer}>
+                                        {skillOptions.map((skill) => (
+                                            <TouchableOpacity
+                                                key={skill}
+                                                onPress={() => handleSkillToggle(skill)}
+                                                style={[
+                                                    styles.chip,
+                                                    skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
+                                                ]}
+                                            >
+                                                {skills.includes(skill) && (
+                                                    <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
+                                                )}
+                                                <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
+                                                    {skill}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <View style={styles.sectionHeader}>
+                                        <Ionicons name="people-outline" size={20} color="#0d9488" />
+                                        <Text style={styles.label}>求める仲間や条件等</Text>
+                                    </View>
+                                    <View style={styles.chipContainer}>
+                                        {seekingOptions.map((role) => (
+                                            <TouchableOpacity
+                                                key={role}
+                                                onPress={() => handleSeekingToggle(role)}
+                                                style={[
+                                                    styles.chip,
+                                                    seekingRoles.includes(role) ? styles.chipOrangeSelected : styles.chipUnselected
+                                                ]}
+                                            >
+                                                {seekingRoles.includes(role) && (
+                                                    <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
+                                                )}
+                                                <Text style={seekingRoles.includes(role) ? styles.chipTextSelected : styles.chipTextUnselected}>
+                                                    {role}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                            </ScrollView>
+
+                            <View style={styles.footer}>
+                                <TouchableOpacity
+                                    onPress={handleProfileSubmit}
+                                    disabled={!nickname || !age || seekingFor.length === 0 || skills.length === 0 || seekingRoles.length === 0}
+                                    style={[
+                                        styles.nextButtonContainer,
+                                        (!nickname || !age || seekingFor.length === 0 || skills.length === 0 || seekingRoles.length === 0) && styles.disabledButton
+                                    ]}
+                                >
+                                    <LinearGradient
+                                        colors={['#f97316', '#ea580c']}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 0 }}
+                                        style={styles.nextButton}
                                     >
-                                        {seekingFor.includes(option) && (
-                                            <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
-                                        )}
-                                        <Text style={seekingFor.includes(option) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                            {option}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
+                                        <Text style={styles.nextButtonText}>BizYouを始める</Text>
+                                    </LinearGradient>
+                                </TouchableOpacity>
                             </View>
                         </View>
-
-                        <View style={styles.formGroup}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="flash-outline" size={20} color="#0d9488" />
-                                <Text style={styles.label}>持っているスキル</Text>
-                            </View>
-                            <Text style={styles.helperText}>あなたが提供できる役割を選んでください</Text>
-                            <View style={styles.chipContainer}>
-                                {skillOptions.map((skill) => (
-                                    <TouchableOpacity
-                                        key={skill}
-                                        onPress={() => handleSkillToggle(skill)}
-                                        style={[
-                                            styles.chip,
-                                            skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
-                                        ]}
-                                    >
-                                        {skills.includes(skill) && (
-                                            <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
-                                        )}
-                                        <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                            {skill}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <View style={styles.sectionHeader}>
-                                <Ionicons name="people-outline" size={20} color="#0d9488" />
-                                <Text style={styles.label}>求める仲間や条件等</Text>
-                            </View>
-                            <View style={styles.chipContainer}>
-                                {seekingOptions.map((role) => (
-                                    <TouchableOpacity
-                                        key={role}
-                                        onPress={() => handleSeekingToggle(role)}
-                                        style={[
-                                            styles.chip,
-                                            seekingRoles.includes(role) ? styles.chipOrangeSelected : styles.chipUnselected
-                                        ]}
-                                    >
-                                        {seekingRoles.includes(role) && (
-                                            <Ionicons name="checkmark" size={14} color="white" style={{ marginRight: 4 }} />
-                                        )}
-                                        <Text style={seekingRoles.includes(role) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                            {role}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                        </View>
-                    </ScrollView>
-
-                    <View style={styles.footer}>
-                        <TouchableOpacity
-                            onPress={handleProfileSubmit}
-                            disabled={!nickname || !age || seekingFor.length === 0 || skills.length === 0 || seekingRoles.length === 0}
-                            style={[
-                                styles.nextButtonContainer,
-                                (!nickname || !age || seekingFor.length === 0 || skills.length === 0 || seekingRoles.length === 0) && styles.disabledButton
-                            ]}
-                        >
-                            <LinearGradient
-                                colors={['#f97316', '#ea580c']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.nextButton}
-                            >
-                                <Text style={styles.nextButtonText}>BizYouを始める</Text>
-                            </LinearGradient>
-                        </TouchableOpacity>
-                    </View>
+                    </TouchableWithoutFeedback>
                 </KeyboardAvoidingView>
             </SafeAreaView>
         );
@@ -458,25 +455,19 @@ const styles = StyleSheet.create({
         color: '#374151',
         marginBottom: 8,
     },
-    inputWrapper: {
-        position: 'relative',
-    },
-    inputIcon: {
-        position: 'absolute',
-        left: 12,
-        top: 12,
-        zIndex: 1,
-    },
     input: {
-        backgroundColor: 'white',
+        backgroundColor: '#F5F5F5', // Light gray background as requested
         borderWidth: 1,
-        borderColor: '#d1d5db',
+        borderColor: '#e5e7eb',
         borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
-        paddingLeft: 40,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
         fontSize: 16,
         color: '#111827',
+    },
+    textArea: {
+        height: 120,
+        textAlignVertical: 'top',
     },
     termsContainer: {
         flexDirection: 'row',

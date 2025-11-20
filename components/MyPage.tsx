@@ -3,7 +3,10 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaVi
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { Profile } from '../types';
+
 interface MyPageProps {
+    profile: Profile;
     onLogout?: () => void;
     onEditProfile?: () => void;
 }
@@ -15,7 +18,7 @@ interface MenuItem {
     badge?: number;
 }
 
-export function MyPage({ onLogout, onEditProfile }: MyPageProps) {
+export function MyPage({ profile, onLogout, onEditProfile }: MyPageProps) {
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card', label: '課金・プラン管理' },
         { id: 'notifications', icon: 'notifications', label: 'お知らせ', badge: 3 },
@@ -25,14 +28,8 @@ export function MyPage({ onLogout, onEditProfile }: MyPageProps) {
         { id: 'help', icon: 'help-circle', label: 'ヘルプ・ガイドライン' },
     ];
 
-    // Mock user data
-    const user = {
-        name: 'ユウキ',
-        age: 22,
-        university: '東京工業大学',
-        image: 'https://images.unsplash.com/photo-1543132220-e7fef0b974e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGVudHJlcHJlbmV1ciUyMHBvcnRyYWl0fGVufDF8fHx8MTc2MzQ4NTI0MXww&ixlib=rb-4.1.0&q=80&w=1080',
-        nextBillingDate: '2025年12月19日',
-    };
+    // Mock billing date for now as it's not in Profile
+    const nextBillingDate = '2025年12月19日';
 
     return (
         <View style={styles.container}>
@@ -54,7 +51,7 @@ export function MyPage({ onLogout, onEditProfile }: MyPageProps) {
                         <View style={styles.profileInfo}>
                             <View style={styles.imageWrapper}>
                                 <Image
-                                    source={{ uri: user.image }}
+                                    source={{ uri: profile.image }}
                                     style={styles.profileImage}
                                 />
                                 <View style={styles.verifiedBadge}>
@@ -62,8 +59,8 @@ export function MyPage({ onLogout, onEditProfile }: MyPageProps) {
                                 </View>
                             </View>
                             <View style={styles.textInfo}>
-                                <Text style={styles.userName}>{user.name}</Text>
-                                <Text style={styles.userDetails}>{user.age}歳 · {user.university}</Text>
+                                <Text style={styles.userName}>{profile.name}</Text>
+                                <Text style={styles.userDetails}>{profile.age}歳 · {profile.university || profile.company || ''}</Text>
                             </View>
                         </View>
 
@@ -99,7 +96,7 @@ export function MyPage({ onLogout, onEditProfile }: MyPageProps) {
                                     <Text style={styles.statusText}>月額 ¥500 参加中</Text>
                                 </View>
                             </View>
-                            <Text style={styles.statusSubText}>次月更新日：{user.nextBillingDate}</Text>
+                            <Text style={styles.statusSubText}>次月更新日：{nextBillingDate}</Text>
                         </LinearGradient>
                     </View>
                 </View>

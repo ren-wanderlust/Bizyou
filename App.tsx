@@ -12,8 +12,10 @@ import { MyPage } from './components/MyPage';
 import { LikesPage } from './components/LikesPage';
 import { TalkPage } from './components/TalkPage';
 import { ChatRoom } from './components/ChatRoom';
+import { ChallengeCardPage } from './components/ChallengeCardPage';
 import { SignupFlow } from './components/SignupFlow';
 import { FilterModal, FilterCriteria } from './components/FilterModal';
+import { ProfileEdit } from './components/ProfileEdit';
 import { Profile } from './types';
 
 // Placeholder component for tabs under development
@@ -36,6 +38,7 @@ export default function App() {
   } | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria | null>(null);
+  const [showProfileEdit, setShowProfileEdit] = useState(false);
 
   // Mock profiles
   const profiles: Profile[] = [
@@ -47,6 +50,7 @@ export default function App() {
       university: '東京大学',
       image: 'https://images.unsplash.com/photo-1543132220-e7fef0b974e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGVudHJepreneur%20portraitfGVufDF8fHx8MTc2MzQ4NTI0MXww&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'AIチャットボット開発',
+      bio: '現在は大学でAIを専攻しています。将来はエンジニアとして起業したいと考えており、一緒にハッカソンに出られる仲間を探しています！趣味はカフェ巡りです。',
       skills: ['React', 'Python', 'AI/ML'],
       isStudent: true,
     },
@@ -58,6 +62,7 @@ export default function App() {
       university: '大阪大学',
       image: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'サステナブルファッションブランド立ち上げ',
+      bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。マーケティングやブランディングが得意な方と繋がりたいです。',
       skills: ['マーケティング', 'デザイン', 'SNS運用'],
       isStudent: true,
     },
@@ -69,6 +74,7 @@ export default function App() {
       company: '株式会社テクノロジー',
       image: 'https://images.unsplash.com/photo-1760536928911-40831dacdbc3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxjcmVhdGl2ZSUyMGRldmVsb3BlciUyMHdvcmtzcGFjZXxlbnwxfHx8fDE3NjM1MjAzMzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'EdTechアプリ開発（学習効率化）',
+      bio: '教育×テクノロジーで新しい学習体験を作りたいと考えています。Flutterでのアプリ開発経験があります。教育に興味がある方、ぜひお話ししましょう！',
       skills: ['Flutter', 'Firebase', 'UI/UX'],
       isStudent: false,
     },
@@ -80,6 +86,7 @@ export default function App() {
       university: '京都大学',
       image: 'https://images.unsplash.com/photo-1752937326758-f130e633b422?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxidXNpbmVzcyUyMHN0dWRlbnQlMjBjb25maWRlbnR8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'ビジコン優勝を目指す地域活性化プロジェクト',
+      bio: '地元の京都を盛り上げるためのビジネスプランを考えています。ビジネスコンテストでの優勝を目指して、一緒に頑張れるメンバーを募集中です！',
       skills: ['企画力', 'プレゼン', 'データ分析'],
       isStudent: true,
     },
@@ -91,6 +98,7 @@ export default function App() {
       company: '株式会社ブロックチェーン',
       image: 'https://images.unsplash.com/photo-1762341116674-784c5dbedeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwZW50cmVwcmVuZXVyJTIweY91bmd8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'ブロックチェーンゲーム開発',
+      bio: 'Web3領域に興味があり、ブロックチェーンゲームの開発を行っています。SolidityやUnityが触れるエンジニアの方、またはゲームデザインに興味がある方を探しています。',
       skills: ['Solidity', 'Web3', 'Unity'],
       isStudent: false,
     },
@@ -102,10 +110,13 @@ export default function App() {
       university: '東京大学',
       image: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
       challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
+      bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。UIデザインやブランディングにこだわりがあります。',
       skills: ['Figma', 'デザインシステム', 'ブランディング'],
       isStudent: true,
     },
   ];
+
+  const [currentUser, setCurrentUser] = useState<Profile>(profiles[0]);
 
   // Filtering logic
   const filteredProfiles = profiles.filter(profile => {
@@ -143,6 +154,15 @@ export default function App() {
       }
       return newSet;
     });
+  };
+
+  const handleEditProfile = () => {
+    setShowProfileEdit(true);
+  };
+
+  const handleSaveProfile = (updatedProfile: Profile) => {
+    setCurrentUser(updatedProfile);
+    setShowProfileEdit(false);
   };
 
   // Show login screen if not logged in
@@ -196,6 +216,19 @@ export default function App() {
     );
   }
 
+  // Show profile edit screen if active
+  if (showProfileEdit) {
+    return (
+      <SafeAreaProvider>
+        <ProfileEdit
+          initialProfile={currentUser}
+          onSave={handleSaveProfile}
+          onCancel={() => setShowProfileEdit(false)}
+        />
+      </SafeAreaProvider>
+    );
+  }
+
   // Authenticated View - Main Screen
   return (
     <SafeAreaProvider>
@@ -213,13 +246,16 @@ export default function App() {
               onPress={() => setIsFilterOpen(true)}
               style={styles.filterButton}
             >
-              <Ionicons name="options-outline" size={24} color="#374151" />
+              <Ionicons name="search-outline" size={24} color="#374151" />
             </TouchableOpacity>
           </View>
         )}
 
         {/* Main Content Area */}
         <View style={styles.contentArea}>
+          {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'profile' && activeTab !== 'challenge' && (
+            <PlaceholderScreen title={activeTab} />
+          )}
           {activeTab === 'search' && (
             <FlatList
               data={filteredProfiles}
@@ -266,10 +302,15 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'challenge' && (
+            <ChallengeCardPage />
+          )}
+
           {activeTab === 'profile' && (
             <MyPage
+              profile={currentUser}
               onLogout={() => setIsLoggedIn(false)}
-              onEditProfile={() => console.log('Edit Profile')}
+              onEditProfile={handleEditProfile}
             />
           )}
         </View>
@@ -305,7 +346,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    paddingBottom: 60, // Space for BottomNav
+    // paddingBottom handled in FlatList contentContainerStyle
   },
   placeholderTitle: {
     fontSize: 24,
@@ -348,9 +389,11 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
+    paddingBottom: 100,
   },
   columnWrapper: {
     justifyContent: 'space-between',
+    gap: 12,
   },
   gridItem: {
     // width is handled in ProfileCard

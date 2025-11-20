@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 
@@ -12,101 +11,58 @@ interface ProfileCardProps {
 }
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = (width - 32) / 2; // 2 columns with padding
+// Calculate card width based on 2 columns with 16px padding on sides and 12px gap
+const GAP = 12;
+const PADDING = 16;
+const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
 export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardProps) {
     return (
         <TouchableOpacity
             style={styles.cardContainer}
-            onPress={() => {
-                console.log('ProfileCard pressed');
-                if (onSelect) onSelect();
-            }}
-            activeOpacity={0.7}
+            onPress={onSelect}
+            activeOpacity={0.8}
         >
-            {/* Image Section */}
+            {/* Image Container - Square-ish with rounded corners */}
             <View style={styles.imageContainer}>
                 <Image
                     source={{ uri: profile.image }}
                     style={styles.image}
                     resizeMode="cover"
                 />
-                {profile.isStudent && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>学生</Text>
-                    </View>
-                )}
+
+                {/* Top Left Badge: Common Points (Mock) */}
+                <View style={styles.commonPointsBadge}>
+                    <Text style={styles.commonPointsText}>共通点 5</Text>
+                </View>
+
+                {/* Bottom Right Badge: Photo Count (Mock) */}
+                <View style={styles.photoCountBadge}>
+                    <Ionicons name="camera" size={12} color="white" />
+                    <Text style={styles.photoCountText}>3</Text>
+                </View>
             </View>
 
-            {/* Content Section */}
+            {/* Text Content - Left Aligned */}
             <View style={styles.content}>
-                {/* Basic Info */}
-                <View style={styles.basicInfo}>
-                    <Text style={styles.name} numberOfLines={1}>{profile.name}</Text>
-                    <Text style={styles.details} numberOfLines={1}>
-                        {profile.age} · {profile.location}
+                {/* Line 1: Age + Location */}
+                <View style={styles.infoRow}>
+                    <Text style={styles.primaryText}>
+                        {profile.age}歳 {profile.location}
                     </Text>
                 </View>
 
-                {/* Challenge Theme */}
-                <View style={styles.themeContainer}>
-                    <LinearGradient
-                        colors={['#fff7ed', '#fefce8']} // orange-50 to yellow-50
-                        style={styles.themeGradient}
-                    >
-                        <Text style={styles.fireIcon}>🔥</Text>
-                        <Text style={styles.themeText} numberOfLines={2}>
-                            {profile.challengeTheme}
-                        </Text>
-                    </LinearGradient>
-                </View>
+                {/* Line 2: University or Company */}
+                {(profile.university || profile.company) && (
+                    <Text style={styles.secondaryText} numberOfLines={1}>
+                        {profile.university ? `🏫 ${profile.university}` : `🏢 ${profile.company}`}
+                    </Text>
+                )}
 
-                {/* Skills */}
-                <View style={styles.skillsContainer}>
-                    <View style={styles.skillsHeader}>
-                        <Text style={styles.muscleIcon}>💪</Text>
-                        <Text style={styles.skillsLabel}>スキル</Text>
-                    </View>
-                    <View style={styles.skillsList}>
-                        {profile.skills.slice(0, 2).map((skill, index) => (
-                            <View key={index} style={styles.skillTag}>
-                                <Text style={styles.skillText}>{skill}</Text>
-                            </View>
-                        ))}
-                    </View>
-                </View>
-
-                {/* Actions */}
-                <View style={styles.actions}>
-                    <TouchableOpacity
-                        style={[
-                            styles.likeButton,
-                            isLiked ? styles.likeButtonActive : styles.likeButtonInactive
-                        ]}
-                        onPress={(e) => {
-                            // e.stopPropagation() is not directly available in RN TouchableOpacity onPress like web
-                            // But since the parent is also a TouchableOpacity, we need to handle this carefully if needed.
-                            // However, in RN, nested touchables usually handle the touch event of the child first.
-                            onLike();
-                        }}
-                    >
-                        <Ionicons
-                            name={isLiked ? "heart" : "heart-outline"}
-                            size={14}
-                            color={isLiked ? "white" : "#374151"}
-                        />
-                        <Text style={[
-                            styles.actionText,
-                            isLiked ? styles.actionTextActive : styles.actionTextInactive
-                        ]}>
-                            いいね
-                        </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.messageButton} onPress={onSelect}>
-                        <Ionicons name="chatbubble-ellipses-outline" size={14} color="white" />
-                    </TouchableOpacity>
-                </View>
+                {/* Line 3: Bio */}
+                <Text style={styles.commentText} numberOfLines={3}>
+                    {profile.bio}
+                </Text>
             </View>
         </TouchableOpacity>
     );
@@ -115,151 +71,77 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
-        backgroundColor: 'white',
-        borderRadius: 12,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 2,
-        },
-        shadowOpacity: 0.1,
-        shadowRadius: 3.84,
-        elevation: 3,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
+        backgroundColor: 'transparent',
+        marginBottom: 16,
+        // No shadow for a clean, flat look
     },
     imageContainer: {
-        height: CARD_WIDTH * 1.33, // Aspect ratio 3:4
         width: '100%',
+        aspectRatio: 1, // Square aspect ratio
+        borderRadius: 12,
+        overflow: 'hidden',
         position: 'relative',
+        marginBottom: 8,
+        backgroundColor: '#f3f4f6',
     },
     image: {
         width: '100%',
         height: '100%',
     },
-    badge: {
+    commonPointsBadge: {
         position: 'absolute',
-        top: 6,
-        right: 6,
-        backgroundColor: '#f97316', // orange-500
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 999,
+        top: 8,
+        left: 8,
+        backgroundColor: '#ec4899', // Pink accent color
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
     },
-    badgeText: {
+    commonPointsText: {
         color: 'white',
         fontSize: 10,
         fontWeight: 'bold',
+    },
+    photoCountBadge: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 3,
+        borderRadius: 12,
+        gap: 4,
+    },
+    photoCountText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: '600',
     },
     content: {
-        padding: 8,
+        paddingHorizontal: 2,
     },
-    basicInfo: {
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 4,
-        marginBottom: 6,
-    },
-    name: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    details: {
-        fontSize: 10,
-        color: '#6b7280',
-        flex: 1,
-    },
-    themeContainer: {
-        marginBottom: 6,
-        borderWidth: 1,
-        borderColor: '#fed7aa', // orange-200
-        borderRadius: 4,
-        overflow: 'hidden',
-    },
-    themeGradient: {
-        flexDirection: 'row',
-        padding: 4,
-        alignItems: 'flex-start',
-        gap: 4,
-    },
-    fireIcon: {
-        fontSize: 12,
-    },
-    themeText: {
-        fontSize: 10,
-        color: '#9a3412', // orange-800
-        flex: 1,
-        lineHeight: 14,
-    },
-    skillsContainer: {
-        marginBottom: 8,
-    },
-    skillsHeader: {
+    infoRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 2,
+        marginBottom: 2,
+        gap: 6,
+    },
+    primaryText: {
+        fontSize: 15,
+        fontWeight: 'bold',
+        color: '#1f2937',
+    },
+    secondaryText: {
+        fontSize: 11,
+        color: '#6b7280', // Gray-500
         marginBottom: 4,
     },
-    muscleIcon: {
+    commentText: {
         fontSize: 12,
-    },
-    skillsLabel: {
-        fontSize: 9,
-        color: '#4b5563',
-    },
-    skillsList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 4,
-    },
-    skillTag: {
-        backgroundColor: '#f3f4f6',
-        paddingHorizontal: 4,
-        paddingVertical: 2,
-        borderRadius: 4,
-    },
-    skillText: {
-        fontSize: 9,
-        color: '#374151',
-    },
-    actions: {
-        flexDirection: 'row',
-        gap: 4,
-    },
-    likeButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 6,
-        borderRadius: 8,
-        gap: 2,
-    },
-    likeButtonActive: {
-        backgroundColor: '#ec4899', // pink-500
-    },
-    likeButtonInactive: {
-        backgroundColor: '#f3f4f6', // gray-100
-    },
-    actionText: {
-        fontSize: 10,
-        fontWeight: '500',
-    },
-    actionTextActive: {
-        color: 'white',
-    },
-    actionTextInactive: {
-        color: '#374151',
-    },
-    messageButton: {
-        padding: 6,
-        backgroundColor: '#0d9488', // teal-600 (approx gradient start)
-        borderRadius: 8,
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 32,
+        color: '#333',
+        lineHeight: 16,
+        marginTop: 2,
     },
 });

@@ -7,6 +7,9 @@ export interface Profile {
     company?: string;
     image: string;
     challengeTheme: string;
+    bio: string;
     skills: string[];
+    seekingFor?: string[];
+    seekingRoles?: string[];
     isStudent: boolean;
 }
