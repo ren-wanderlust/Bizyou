@@ -357,6 +357,7 @@ export default function App() {
               profile={currentUser}
               onLogout={() => setIsLoggedIn(false)}
               onEditProfile={handleEditProfile}
+              onOpenNotifications={() => setShowNotifications(true)}
             />
           )}
         </View>

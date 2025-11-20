@@ -9,6 +9,7 @@ interface MyPageProps {
     profile: Profile;
     onLogout?: () => void;
     onEditProfile?: () => void;
+    onOpenNotifications?: () => void;
 }
 
 interface MenuItem {
@@ -18,7 +19,7 @@ interface MenuItem {
     badge?: number;
 }
 
-export function MyPage({ profile, onLogout, onEditProfile }: MyPageProps) {
+export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications }: MyPageProps) {
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card', label: '課金・プラン管理' },
         { id: 'notifications', icon: 'notifications', label: 'お知らせ', badge: 3 },
@@ -113,6 +114,11 @@ export function MyPage({ profile, onLogout, onEditProfile }: MyPageProps) {
                                         styles.menuItem,
                                         !isLast && styles.menuItemBorder
                                     ]}
+                                    onPress={() => {
+                                        if (item.id === 'notifications' && onOpenNotifications) {
+                                            onOpenNotifications();
+                                        }
+                                    }}
                                 >
                                     <View style={styles.menuIconWrapper}>
                                         <Ionicons name={item.icon} size={20} color="#0d9488" />
