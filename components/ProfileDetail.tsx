@@ -5,12 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
 
 interface ProfileDetailProps {
-    profile: Profile & {
-        seekingFor?: string[];
-        techDetails?: string;
-        seekingRoles?: string[];
-        requirementDetails?: string;
-    };
+    profile: Profile;
     onBack: () => void;
     onLike: () => void;
     isLiked: boolean;
@@ -19,9 +14,7 @@ interface ProfileDetailProps {
 export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetailProps) {
     // Mock data for demonstration if not present
     const seekingFor = profile.seekingFor || ['ビジネスパートナーを探す', 'ビジネスメンバーを探す'];
-    const techDetails = profile.techDetails || 'React, TypeScript, Node.js, Firebase, Figma, UI/UX設計、データ分析';
     const seekingRoles = profile.seekingRoles || ['エンジニア', 'デザイナー', 'マーケター'];
-    const requirementDetails = profile.requirementDetails || '週10時間以上コミット可能な方、スタートアップ経験がある方を優遇します。オンラインでの打ち合わせに対応できる方を希望。';
 
     return (
         <SafeAreaView style={styles.container}>
@@ -89,14 +82,14 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                     </View>
                 </View>
 
-                {/* Challenge Theme Section */}
+                {/* Bio Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="flame" size={24} color="#f97316" />
-                        <Text style={styles.sectionTitle}>現在の挑戦テーマ</Text>
+                        <Ionicons name="document-text-outline" size={24} color="#374151" />
+                        <Text style={styles.sectionTitle}>自己紹介</Text>
                     </View>
-                    <View style={styles.themeBox}>
-                        <Text style={styles.themeText}>{profile.challengeTheme}</Text>
+                    <View style={styles.detailBox}>
+                        <Text style={styles.detailText}>{profile.bio}</Text>
                     </View>
                 </View>
 
@@ -113,16 +106,6 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                                     <Text style={styles.skillTagText}>{skill}</Text>
                                 </View>
                             ))}
-                        </View>
-                    </View>
-
-                    <View style={styles.subSection}>
-                        <View style={styles.sectionHeader}>
-                            <Ionicons name="code-slash" size={20} color="#0d9488" />
-                            <Text style={styles.subSectionTitle}>得意な技術/ツール</Text>
-                        </View>
-                        <View style={styles.detailBox}>
-                            <Text style={styles.detailText}>{techDetails}</Text>
                         </View>
                     </View>
                 </View>
@@ -142,17 +125,20 @@ export function ProfileDetail({ profile, onBack, onLike, isLiked }: ProfileDetai
                             ))}
                         </View>
                     </View>
+                </View>
 
-                    <View style={styles.subSection}>
+                {/* Details Section */}
+                {profile.details && (
+                    <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="document-text" size={20} color="#f97316" />
-                            <Text style={styles.subSectionTitle}>募集要項の詳細</Text>
+                            <Ionicons name="document-text-outline" size={20} color="#0d9488" />
+                            <Text style={styles.sectionTitle}>詳細・補足</Text>
                         </View>
-                        <View style={styles.roleDetailBox}>
-                            <Text style={styles.detailText}>{requirementDetails}</Text>
+                        <View style={styles.detailBox}>
+                            <Text style={styles.detailText}>{profile.details}</Text>
                         </View>
                     </View>
-                </View>
+                )}
             </ScrollView>
 
             {/* Fixed Action Footer */}
