@@ -23,6 +23,8 @@ const receivedLikesMock: Profile[] = [
         challengeTheme: 'サステナブルファッションブランド立ち上げ',
         skills: ['マーケティング', 'デザイン', 'SNS運用'],
         isStudent: true,
+        bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。',
+        createdAt: '2023-11-19',
     },
     {
         id: 'r2',
@@ -34,6 +36,8 @@ const receivedLikesMock: Profile[] = [
         challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
         skills: ['Figma', 'デザインシステム', 'ブランディング'],
         isStudent: true,
+        bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。',
+        createdAt: '2023-11-18',
     },
 ];
 
@@ -177,19 +181,20 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: '#f3f4f6', // gray-100
+        height: 44, // Fixed height
     },
     tabButtonActive: {
         backgroundColor: 'transparent',
     },
     tabGradient: {
-        paddingVertical: 10,
+        flex: 1, // Fill the fixed height
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
         gap: 4,
     },
     tabContentInactive: {
-        paddingVertical: 10,
+        flex: 1, // Fill the fixed height
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
@@ -206,15 +211,13 @@ const styles = StyleSheet.create({
         fontWeight: '500',
     },
     badge: {
-        backgroundColor: '#f97316', // orange-500
-        width: 18,
-        height: 18,
-        borderRadius: 9,
+        backgroundColor: '#FF7F11',
+        height: 20,
+        minWidth: 20,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
-        position: 'absolute',
-        top: -4,
-        right: -4,
+        marginLeft: 6,
     },
     badgeText: {
         color: 'white',

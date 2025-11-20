@@ -36,12 +36,19 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
     const [location, setLocation] = useState(initialCriteria?.location || '');
     const [isStudentOnly, setIsStudentOnly] = useState(initialCriteria?.isStudentOnly || false);
 
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
+
     const handleReset = () => {
+        setShowResetConfirm(true);
+    };
+
+    const confirmReset = () => {
         setKeyword('');
         setAgeMin('18');
         setAgeMax('25');
         setLocation('');
         setIsStudentOnly(false);
+        setShowResetConfirm(false);
     };
 
     const handleApply = () => {
@@ -167,6 +174,35 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                     </View>
                 </View>
             </View>
+
+            {/* Reset Confirmation Modal */}
+            <Modal
+                visible={showResetConfirm}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowResetConfirm(false)}
+            >
+                <View style={styles.confirmOverlay}>
+                    <View style={styles.confirmDialog}>
+                        <Text style={styles.confirmTitle}>検索条件をリセット</Text>
+                        <Text style={styles.confirmMessage}>全てリセットしてもよろしいですか？</Text>
+                        <View style={styles.confirmButtons}>
+                            <TouchableOpacity
+                                style={styles.confirmCancelButton}
+                                onPress={() => setShowResetConfirm(false)}
+                            >
+                                <Text style={styles.confirmCancelText}>キャンセル</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.confirmResetButton}
+                                onPress={confirmReset}
+                            >
+                                <Text style={styles.confirmResetText}>リセット</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </Modal>
     );
 }
@@ -330,6 +366,60 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     applyButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    confirmOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    confirmDialog: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 24,
+        width: '80%',
+        alignItems: 'center',
+    },
+    confirmTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    confirmMessage: {
+        fontSize: 14,
+        color: '#4b5563',
+        marginBottom: 24,
+        textAlign: 'center',
+    },
+    confirmButtons: {
+        flexDirection: 'row',
+        gap: 12,
+        width: '100%',
+    },
+    confirmCancelButton: {
+        flex: 1,
+        backgroundColor: '#9ca3af', // gray-400
+        paddingVertical: 12,
+        borderRadius: 24,
+        alignItems: 'center',
+    },
+    confirmCancelText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    confirmResetButton: {
+        flex: 1,
+        backgroundColor: '#ef4444', // red-500
+        paddingVertical: 12,
+        borderRadius: 24,
+        alignItems: 'center',
+    },
+    confirmResetText: {
         color: 'white',
         fontWeight: 'bold',
         fontSize: 14,

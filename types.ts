@@ -12,4 +12,5 @@ export interface Profile {
     seekingFor?: string[];
     seekingRoles?: string[];
     isStudent: boolean;
+    createdAt: string;
 }

@@ -13,6 +13,7 @@ import { LikesPage } from './components/LikesPage';
 import { TalkPage } from './components/TalkPage';
 import { ChatRoom } from './components/ChatRoom';
 import { ChallengeCardPage } from './components/ChallengeCardPage';
+import { NotificationsPage } from './components/NotificationsPage';
 import { SignupFlow } from './components/SignupFlow';
 import { FilterModal, FilterCriteria } from './components/FilterModal';
 import { ProfileEdit } from './components/ProfileEdit';
@@ -39,6 +40,7 @@ export default function App() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria | null>(null);
   const [showProfileEdit, setShowProfileEdit] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // Mock profiles
   const profiles: Profile[] = [
@@ -53,6 +55,7 @@ export default function App() {
       bio: '現在は大学でAIを専攻しています。将来はエンジニアとして起業したいと考えており、一緒にハッカソンに出られる仲間を探しています！趣味はカフェ巡りです。',
       skills: ['React', 'Python', 'AI/ML'],
       isStudent: true,
+      createdAt: '2023-11-15',
     },
     {
       id: '2',
@@ -65,6 +68,7 @@ export default function App() {
       bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。マーケティングやブランディングが得意な方と繋がりたいです。',
       skills: ['マーケティング', 'デザイン', 'SNS運用'],
       isStudent: true,
+      createdAt: '2023-10-20',
     },
     {
       id: '3',
@@ -77,6 +81,7 @@ export default function App() {
       bio: '教育×テクノロジーで新しい学習体験を作りたいと考えています。Flutterでのアプリ開発経験があります。教育に興味がある方、ぜひお話ししましょう！',
       skills: ['Flutter', 'Firebase', 'UI/UX'],
       isStudent: false,
+      createdAt: '2023-11-05',
     },
     {
       id: '4',
@@ -89,6 +94,7 @@ export default function App() {
       bio: '地元の京都を盛り上げるためのビジネスプランを考えています。ビジネスコンテストでの優勝を目指して、一緒に頑張れるメンバーを募集中です！',
       skills: ['企画力', 'プレゼン', 'データ分析'],
       isStudent: true,
+      createdAt: '2023-11-18',
     },
     {
       id: '5',
@@ -101,6 +107,7 @@ export default function App() {
       bio: 'Web3領域に興味があり、ブロックチェーンゲームの開発を行っています。SolidityやUnityが触れるエンジニアの方、またはゲームデザインに興味がある方を探しています。',
       skills: ['Solidity', 'Web3', 'Unity'],
       isStudent: false,
+      createdAt: '2023-09-30',
     },
     {
       id: '6',
@@ -113,10 +120,14 @@ export default function App() {
       bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。UIデザインやブランディングにこだわりがあります。',
       skills: ['Figma', 'デザインシステム', 'ブランディング'],
       isStudent: true,
+      createdAt: '2023-11-10',
     },
   ];
 
   const [currentUser, setCurrentUser] = useState<Profile>(profiles[0]);
+
+  const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
+  const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
   // Filtering logic
   const filteredProfiles = profiles.filter(profile => {
@@ -142,6 +153,14 @@ export default function App() {
     if (filterCriteria.isStudentOnly && !profile.isStudent) return false;
 
     return true;
+  });
+
+  // Sorting logic
+  const sortedProfiles = [...filteredProfiles].sort((a, b) => {
+    if (sortOrder === 'newest') {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }
+    return 0; // Recommended order (default)
   });
 
   const handleLike = (profileId: string) => {
@@ -229,6 +248,15 @@ export default function App() {
     );
   }
 
+  // Show notifications page if active
+  if (showNotifications) {
+    return (
+      <SafeAreaProvider>
+        <NotificationsPage onBack={() => setShowNotifications(false)} />
+      </SafeAreaProvider>
+    );
+  }
+
   // Authenticated View - Main Screen
   return (
     <SafeAreaProvider>
@@ -237,17 +265,39 @@ export default function App() {
 
         {/* Header - Only show on search tab */}
         {activeTab === 'search' && (
-          <View style={styles.header}>
-            <View>
+          <View style={styles.headerContainer}>
+            {/* Top Header */}
+            <View style={styles.headerTop}>
+              <View style={styles.headerLeft} />
               <Text style={styles.headerTitle}>BizYou</Text>
-              <Text style={styles.headerSubtitle}>おすすめの仲間</Text>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={() => setShowNotifications(true)}
+              >
+                <Ionicons name="notifications-outline" size={24} color="#374151" />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => setIsFilterOpen(true)}
-              style={styles.filterButton}
-            >
-              <Ionicons name="search-outline" size={24} color="#374151" />
-            </TouchableOpacity>
+
+            {/* Search Control Bar */}
+            <View style={styles.searchControlBar}>
+              <TouchableOpacity
+                onPress={() => setIsFilterOpen(true)}
+                style={styles.controlButton}
+              >
+                <Ionicons name="search" size={16} color="#555" />
+                <Text style={styles.controlButtonText}>絞り込み</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => setIsSortModalOpen(true)}
+                style={styles.controlButton}
+              >
+                <Text style={styles.controlButtonText}>
+                  {sortOrder === 'recommended' ? 'おすすめ順' : '登録日が新しい順'}
+                </Text>
+                <Ionicons name="chevron-down" size={16} color="#555" />
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -258,7 +308,7 @@ export default function App() {
           )}
           {activeTab === 'search' && (
             <FlatList
-              data={filteredProfiles}
+              data={sortedProfiles}
               renderItem={({ item }) => (
                 <View style={styles.gridItem}>
                   <ProfileCard
@@ -284,7 +334,6 @@ export default function App() {
               }
             />
           )}
-
           {activeTab === 'likes' && (
             <LikesPage
               likedProfileIds={likedProfiles}
@@ -292,7 +341,6 @@ export default function App() {
               onProfileSelect={(profile) => setSelectedProfile(profile)}
             />
           )}
-
           {activeTab === 'talk' && (
             <TalkPage
               onOpenChat={(room) => setActiveChatRoom({
@@ -301,11 +349,9 @@ export default function App() {
               })}
             />
           )}
-
           {activeTab === 'challenge' && (
             <ChallengeCardPage />
           )}
-
           {activeTab === 'profile' && (
             <MyPage
               profile={currentUser}
@@ -328,12 +374,50 @@ export default function App() {
           }}
           initialCriteria={filterCriteria || undefined}
         />
+
+        {/* Sort Modal */}
+        {isSortModalOpen && (
+          <View style={styles.modalOverlay}>
+            <TouchableOpacity
+              style={styles.modalBackdrop}
+              onPress={() => setIsSortModalOpen(false)}
+            />
+            <View style={styles.sortModalContent}>
+              <Text style={styles.sortModalTitle}>並び替え</Text>
+              <TouchableOpacity
+                style={styles.sortOption}
+                onPress={() => {
+                  setSortOrder('recommended');
+                  setIsSortModalOpen(false);
+                }}
+              >
+                <Text style={[styles.sortOptionText, sortOrder === 'recommended' && styles.sortOptionTextActive]}>
+                  おすすめ順
+                </Text>
+                {sortOrder === 'recommended' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.sortOption}
+                onPress={() => {
+                  setSortOrder('newest');
+                  setIsSortModalOpen(false);
+                }}
+              >
+                <Text style={[styles.sortOptionText, sortOrder === 'newest' && styles.sortOptionTextActive]}>
+                  登録日が新しい順
+                </Text>
+                {sortOrder === 'newest' && <Ionicons name="checkmark" size={20} color="#0d9488" />}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </SafeAreaView>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  // ... (existing styles)
   container: {
     flex: 1,
     backgroundColor: '#f9fafb', // gray-50
@@ -363,29 +447,58 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     padding: 10,
   },
-  header: {
+  headerContainer: {
+    backgroundColor: 'white',
+    paddingBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    zIndex: 10,
+  },
+  headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+  },
+  headerLeft: {
+    width: 24, // To balance the right icon
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#009688',
+    letterSpacing: 1,
   },
-  headerSubtitle: {
+  notificationButton: {
+    padding: 4,
+  },
+  searchControlBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    marginTop: 4,
+  },
+  controlButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F8FA',
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    gap: 8,
+    minWidth: 120,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  controlButtonText: {
     fontSize: 14,
-    color: '#6b7280',
-  },
-  filterButton: {
-    padding: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
+    color: '#374151',
+    fontWeight: '500',
   },
   listContent: {
     padding: 16,
@@ -397,5 +510,52 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     // width is handled in ProfileCard
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'flex-end',
+    zIndex: 1000,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  sortModalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  sortModalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#111827',
+  },
+  sortOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  sortOptionTextActive: {
+    color: '#0d9488',
+    fontWeight: 'bold',
   },
 });
