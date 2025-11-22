@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, LayoutAnimation, Platform, UIManager, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 if (Platform.OS === 'android') {
@@ -72,6 +72,12 @@ const AccordionItem = ({ item }: { item: FAQItem }) => {
 };
 
 export function HelpPage({ onBack }: HelpPageProps) {
+    const handleOpenURL = async (url: string) => {
+        // In a real app, you would use Linking.openURL(url)
+        // For now, we'll just show an alert with the URL
+        Alert.alert("外部リンク", `${url} を開きます`);
+    };
+
     return (
         <View style={styles.container}>
             {/* Header */}
@@ -98,17 +104,17 @@ export function HelpPage({ onBack }: HelpPageProps) {
                 {/* Other Links Section */}
                 <Text style={styles.sectionTitle}>規約・その他</Text>
                 <View style={styles.linksSection}>
-                    <TouchableOpacity style={styles.linkRow} onPress={() => console.log('Terms')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('https://example.com/terms')}>
                         <Text style={styles.linkText}>利用規約</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     <View style={styles.separator} />
-                    <TouchableOpacity style={styles.linkRow} onPress={() => console.log('Tokushoho')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('https://example.com/tokushoho')}>
                         <Text style={styles.linkText}>特定商取引法に基づく表記</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>
                     <View style={styles.separator} />
-                    <TouchableOpacity style={styles.linkRow} onPress={() => console.log('Contact')}>
+                    <TouchableOpacity style={styles.linkRow} onPress={() => handleOpenURL('mailto:support@bizyou.app')}>
                         <Text style={styles.linkText}>お問い合わせ</Text>
                         <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
                     </TouchableOpacity>

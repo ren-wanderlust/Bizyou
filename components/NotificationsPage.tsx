@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export interface Notification {
@@ -66,10 +66,14 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
         }
     };
 
+    const handleNotificationPress = (item: Notification) => {
+        Alert.alert(item.title, "詳細情報はここに表示されます。\n\n(現在はデモ用のため、リンク先はありません)");
+    };
+
     const renderItem = ({ item }: { item: Notification }) => {
         const badge = getBadgeStyle(item.type);
         return (
-            <TouchableOpacity style={styles.itemContainer}>
+            <TouchableOpacity style={styles.itemContainer} onPress={() => handleNotificationPress(item)}>
                 {/* Icon/Image */}
                 <View style={styles.iconContainer}>
                     {item.imageUrl ? (
