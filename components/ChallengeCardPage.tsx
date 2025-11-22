@@ -53,7 +53,7 @@ const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍',
 const INITIAL_THEMES = [
     { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127, image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80' },
     { id: 2, icon: '📱', title: 'モバイルアプリ開発', count: 203, image: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?auto=format&fit=crop&w=800&q=80' },
-    { id: 3, icon: '🚀', title: 'スタートアップ企業', count: 342, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80' },
+    { id: 3, icon: '🚀', title: 'スタートアップ起業', count: 342, image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80' },
     { id: 4, icon: '⛓️', title: 'Web3 / ブロックチェーン', count: 78, image: 'https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80' },
     { id: 5, icon: '🏙️', title: '地方創生 / まちづくり', count: 85, image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80' },
     { id: 6, icon: '👗', title: 'D2C / ブランド立ち上げ', count: 94, image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=800&q=80' },
@@ -61,6 +61,8 @@ const INITIAL_THEMES = [
     { id: 8, icon: '📚', title: 'EdTech / 教育', count: 62, image: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80' },
     { id: 9, icon: '🤝', title: '学生団体 / コミュニティ', count: 156, image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80' },
     { id: 10, icon: '💻', title: 'Vibeコーディング', count: 42, image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80' },
+    { id: 11, icon: '🎮', title: 'ゲーム制作 / エンタメ', count: 45, image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?auto=format&fit=crop&w=800&q=80' },
+    { id: 12, icon: '📹', title: '動画・メディア運営', count: 68, image: 'https://images.unsplash.com/photo-1586899028174-e7098604235b?auto=format&fit=crop&w=800&q=80' },
 ];
 
 export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCardPageProps) {
