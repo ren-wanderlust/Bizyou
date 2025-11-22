@@ -159,45 +159,65 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             <View style={styles.formGroup}>
                 <Text style={styles.label}>ニックネーム</Text>
                 <TextInput
-                    style={styles.input}
                     value={nickname}
                     onChangeText={setNickname}
                     placeholder="例: タロウ"
                     autoCapitalize="none"
+                    textContentType="none"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>メールアドレス</Text>
                 <TextInput
-                    style={styles.input}
                     value={email}
                     onChangeText={setEmail}
                     placeholder="example@email.com"
                     keyboardType="email-address"
                     autoCapitalize="none"
+                    textContentType="emailAddress"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>パスワード</Text>
                 <TextInput
-                    style={styles.input}
                     value={password}
                     onChangeText={setPassword}
                     placeholder="8文字以上"
-                    secureTextEntry
+                    secureTextEntry={true}
+                    textContentType="oneTimeCode"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>パスワード（確認）</Text>
                 <TextInput
-                    style={styles.input}
                     value={passwordConfirm}
                     onChangeText={setPasswordConfirm}
                     placeholder="もう一度入力してください"
-                    secureTextEntry
+                    secureTextEntry={true}
+                    textContentType="oneTimeCode"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
         </View>
@@ -211,34 +231,49 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             <View style={styles.formGroup}>
                 <Text style={styles.label}>年齢</Text>
                 <TextInput
-                    style={styles.input}
                     value={age}
                     onChangeText={setAge}
                     placeholder="例: 20"
                     keyboardType="numeric"
+                    textContentType="none"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>職種 / 大学名</Text>
                 <TextInput
-                    style={styles.input}
                     value={university}
                     onChangeText={setUniversity}
                     placeholder="例: 東京大学 / 株式会社〇〇"
+                    textContentType="none"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, { backgroundColor: '#ffffff' }]}
                 />
             </View>
 
             <View style={styles.formGroup}>
                 <Text style={styles.label}>自己紹介文</Text>
                 <TextInput
-                    style={[styles.input, styles.textArea]}
                     value={bio}
                     onChangeText={setBio}
                     placeholder="自己紹介を入力してください"
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
+                    textContentType="none"
+                    autoComplete="off"
+                    importantForAutofill="no"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    style={[styles.input, styles.textArea, { backgroundColor: '#ffffff' }]}
                 />
             </View>
         </View>
@@ -469,7 +504,7 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         paddingHorizontal: 16,
         fontSize: 16,
-        color: '#111827',
+        color: '#000',
     },
     textArea: {
         height: 100,
