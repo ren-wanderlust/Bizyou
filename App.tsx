@@ -170,6 +170,20 @@ export default function App() {
     }, 1500);
   }, [displayProfiles]);
 
+  // Determine if filter is active
+  const isFilterActive = React.useMemo(() => {
+    if (!filterCriteria) return false;
+    const { ageMin, ageMax, location, isStudentOnly, statuses, keyword } = filterCriteria;
+    return (
+      (ageMin && ageMin !== '18') ||
+      (ageMax && ageMax !== '25') ||
+      (location && location !== '') ||
+      isStudentOnly ||
+      (statuses && statuses.length > 0) ||
+      (keyword && keyword !== '')
+    );
+  }, [filterCriteria]);
+
   // Filtering logic
   const filteredProfiles = displayProfiles.filter(profile => {
     if (!filterCriteria) return true;
@@ -336,10 +350,22 @@ export default function App() {
             <View style={styles.searchControlBar}>
               <TouchableOpacity
                 onPress={() => setIsFilterOpen(true)}
-                style={styles.filterButton}
+                style={[
+                  styles.filterButton,
+                  isFilterActive && styles.filterButtonActive
+                ]}
               >
-                <Ionicons name="search" size={18} color="#666" />
-                <Text style={styles.controlButtonText}>絞り込み</Text>
+                <Ionicons
+                  name="search"
+                  size={18}
+                  color={isFilterActive ? "#FF5252" : "#666"}
+                />
+                <Text style={[
+                  styles.controlButtonText,
+                  isFilterActive && styles.controlButtonTextActive
+                ]}>
+                  {isFilterActive ? "絞り込み中" : "絞り込み"}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -571,6 +597,11 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'flex-start', // Left aligned content
   },
+  filterButtonActive: {
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#FF8A80',
+  },
   sortButton: {
     flex: 4, // 40% (approx 35% requested, adjusted for gap)
     flexDirection: 'row',
@@ -586,6 +617,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#374151',
     fontWeight: '500',
+  },
+  controlButtonTextActive: {
+    color: '#FF5252',
+    fontWeight: 'bold',
   },
   listContent: {
     padding: 16,
