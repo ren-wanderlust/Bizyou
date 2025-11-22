@@ -450,7 +450,10 @@ export default function App() {
                 likedProfileIds={likedProfiles}
               />
             ) : (
-              <ChallengeCardPage onThemeSelect={setSelectedTheme} />
+              <ChallengeCardPage 
+                onThemeSelect={setSelectedTheme} 
+                profiles={displayProfiles}
+              />
             )
           )}
           {activeTab === 'profile' && (

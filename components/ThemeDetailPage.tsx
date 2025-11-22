@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
 
+import { isProfileMatchingTheme } from '../utils/themeMatching';
+
 interface ThemeDetailPageProps {
     themeTitle: string;
     onBack: () => void;
@@ -16,21 +18,7 @@ interface ThemeDetailPageProps {
 export function ThemeDetailPage({ themeTitle, onBack, profiles, onProfileSelect, onLike, likedProfileIds }: ThemeDetailPageProps) {
     // Filter profiles based on the selected theme title
     const filteredProfiles = React.useMemo(() => {
-        // Split theme title into keywords (e.g., "SDGs・社会課題" -> ["SDGs", "社会課題"])
-        const keywords = themeTitle.split(/・|\s+/).filter(k => k.length > 0);
-
-        return profiles.filter(profile => {
-            // Check if any keyword matches relevant profile fields
-            return keywords.some(keyword => {
-                const lowerKeyword = keyword.toLowerCase();
-                return (
-                    profile.challengeTheme.toLowerCase().includes(lowerKeyword) ||
-                    profile.theme.toLowerCase().includes(lowerKeyword) ||
-                    profile.bio.toLowerCase().includes(lowerKeyword) ||
-                    (profile.skills && profile.skills.some(skill => skill.toLowerCase().includes(lowerKeyword)))
-                );
-            });
-        });
+        return profiles.filter(profile => isProfileMatchingTheme(profile, themeTitle));
     }, [themeTitle, profiles]);
 
     return (

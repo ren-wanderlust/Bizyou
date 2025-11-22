@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { Profile } from '../types';
+import { isProfileMatchingTheme } from '../utils/themeMatching';
+
 interface ThemeCardProps {
     icon: string;
     title: string;
@@ -42,6 +45,7 @@ const ThemeCard = ({ icon, title, count, image, onPress }: ThemeCardProps) => (
 
 interface ChallengeCardPageProps {
     onThemeSelect?: (themeName: string) => void;
+    profiles?: Profile[];
 }
 
 const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍', '❤️', '📚', '🎮', '🎵', '⚽️'];
@@ -59,7 +63,7 @@ const INITIAL_THEMES = [
     { id: 10, icon: '💻', title: 'Vibeコーディング', count: 42, image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80' },
 ];
 
-export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
+export function ChallengeCardPage({ onThemeSelect, profiles = [] }: ChallengeCardPageProps) {
     const [themes, setThemes] = useState(INITIAL_THEMES);
 
     const DEFAULT_IMAGES = [
@@ -79,6 +83,12 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
     const filteredThemes = themes.filter(theme =>
         theme.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
+
+    // 参加人数を集計するロジック
+    const countParticipants = (themeTitle: string) => {
+        if (!profiles || profiles.length === 0) return 0;
+        return profiles.filter(profile => isProfileMatchingTheme(profile, themeTitle)).length;
+    };
 
     const handleCreateTheme = () => {
         if (!newThemeTitle.trim()) {
@@ -136,7 +146,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                 key={item.id}
                                 icon={item.icon}
                                 title={item.title}
-                                count={item.count}
+                                count={countParticipants(item.title)} // 動的に計算した人数を表示
                                 image={item.image}
                                 onPress={() => onThemeSelect?.(item.title)}
                             />
@@ -248,7 +258,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                             key={item.id}
                                             icon={item.icon}
                                             title={item.title}
-                                            count={item.count}
+                                            count={countParticipants(item.title)}
                                             image={item.image}
                                             onPress={() => {
                                                 onThemeSelect?.(item.title);
