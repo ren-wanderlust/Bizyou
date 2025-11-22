@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, Switch, Alert, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SettingsPageProps {
@@ -25,142 +25,171 @@ export function SettingsPage({ onBack, onLogout }: SettingsPageProps) {
         );
     };
 
+    const renderSectionHeader = (title: string) => (
+        <Text style={styles.sectionHeader}>{title}</Text>
+    );
+
+    const renderItem = (
+        icon: keyof typeof Ionicons.glyphMap,
+        label: string,
+        rightElement: React.ReactNode,
+        onPress?: () => void,
+        isLast: boolean = false,
+        iconColor: string = '#009688'
+    ) => (
+        <TouchableOpacity
+            style={styles.itemContainer}
+            onPress={onPress}
+            disabled={!onPress}
+            activeOpacity={onPress ? 0.7 : 1}
+        >
+            <View style={styles.itemContent}>
+                <View style={styles.itemLeft}>
+                    <Ionicons name={icon} size={22} color={iconColor} style={styles.itemIcon} />
+                    <Text style={styles.itemLabel}>{label}</Text>
+                </View>
+                {rightElement}
+            </View>
+            {!isLast && <View style={styles.separator} />}
+        </TouchableOpacity>
+    );
+
     return (
-        <View style={styles.container}>
-            {/* Header */}
+        <SafeAreaView style={styles.container}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
+                    <Ionicons name="chevron-back" size={28} color="#007AFF" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>各種設定</Text>
-                <View style={styles.placeholder} />
+                <View style={{ width: 28 }} />
             </View>
 
-            <ScrollView style={styles.content}>
-                {/* Notification Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>通知</Text>
-                    <View style={styles.row}>
-                        <Text style={styles.rowLabel}>プッシュ通知</Text>
+            <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+                {/* Notifications */}
+                {renderSectionHeader('通知')}
+                <View style={styles.sectionContainer}>
+                    {renderItem('notifications-outline', 'プッシュ通知', (
                         <Switch
                             value={notificationsEnabled}
                             onValueChange={setNotificationsEnabled}
-                            trackColor={{ false: "#767577", true: "#0d9488" }}
-                            thumbColor={notificationsEnabled ? "#fff" : "#f4f3f4"}
+                            trackColor={{ false: "#767577", true: "#34C759" }}
+                            thumbColor={"#fff"}
                         />
-                    </View>
+                    ), undefined, true, '#FF9500')}
                 </View>
 
-                {/* Account Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>アカウント</Text>
-                    <TouchableOpacity style={styles.row} onPress={() => console.log('Account Settings')}>
-                        <Text style={styles.rowLabel}>アカウント設定</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                    <View style={styles.separator} />
-                    <TouchableOpacity style={styles.row} onPress={() => console.log('Block List')}>
-                        <Text style={styles.rowLabel}>ブロックリスト</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
+                {/* Account */}
+                {renderSectionHeader('アカウント')}
+                <View style={styles.sectionContainer}>
+                    {renderItem('person-outline', 'アカウント設定', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, false, '#007AFF')}
+                    {renderItem('ban-outline', 'ブロックリスト', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, true, '#FF3B30')}
                 </View>
 
-                {/* Legal Section */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>法的事項</Text>
-                    <TouchableOpacity style={styles.row} onPress={() => console.log('Privacy Policy')}>
-                        <Text style={styles.rowLabel}>プライバシーポリシー</Text>
-                        <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
+                {/* Legal */}
+                {renderSectionHeader('サポート・規約')}
+                <View style={styles.sectionContainer}>
+                    {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, false, '#8E8E93')}
+                    {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => { }, true, '#8E8E93')}
                 </View>
 
-                {/* Logout Section */}
-                <View style={styles.section}>
-                    <TouchableOpacity style={styles.logoutRow} onPress={handleLogout}>
+                {/* Logout */}
+                <View style={styles.logoutContainer}>
+                    <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
                         <Text style={styles.logoutText}>ログアウト</Text>
                     </TouchableOpacity>
                 </View>
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
+        backgroundColor: '#F2F2F7',
     },
     header: {
+        height: 44,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: 8,
         backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#C6C6C8',
     },
     backButton: {
-        padding: 4,
+        padding: 8,
     },
     headerTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#1F2937',
-    },
-    placeholder: {
-        width: 32,
-    },
-    content: {
-        flex: 1,
-        padding: 16,
-    },
-    section: {
-        backgroundColor: 'white',
-        borderRadius: 12,
-        marginBottom: 24,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-    },
-    sectionTitle: {
-        fontSize: 13,
+        fontSize: 17,
         fontWeight: '600',
-        color: '#6B7280',
-        marginBottom: 8,
-        marginLeft: 4,
-        marginTop: 0, // Adjust if outside section
+        color: '#000',
     },
-    // Actually, let's put title outside or inside. Inside looks like iOS grouped.
-    // Let's move title outside for better grouped look.
-    // Wait, I put it inside in the JSX above. Let's adjust styles to match structure.
-    // The structure above has title INSIDE the section view but it usually looks better outside.
-    // I will stick to the code I wrote but adjust padding.
-
-    row: {
+    scrollView: {
+        flex: 1,
+    },
+    scrollContent: {
+        paddingBottom: 40,
+    },
+    sectionHeader: {
+        fontSize: 13,
+        color: '#6D6D72',
+        marginLeft: 16,
+        marginBottom: 6,
+        marginTop: 24,
+        textTransform: 'uppercase',
+    },
+    sectionContainer: {
+        backgroundColor: 'white',
+        borderTopWidth: 0.5,
+        borderBottomWidth: 0.5,
+        borderColor: '#C6C6C8',
+    },
+    itemContainer: {
+        backgroundColor: 'white',
+    },
+    itemContent: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: 'white',
+        paddingVertical: 11,
+        paddingHorizontal: 16,
+        minHeight: 44,
     },
-    rowLabel: {
-        fontSize: 16,
-        color: '#1F2937',
+    itemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    itemIcon: {
+        marginRight: 12,
+        width: 24,
+        textAlign: 'center',
+    },
+    itemLabel: {
+        fontSize: 17,
+        color: '#000',
     },
     separator: {
-        height: 1,
-        backgroundColor: '#F3F4F6',
-        marginLeft: 16,
+        height: 0.5,
+        backgroundColor: '#C6C6C8',
+        marginLeft: 52,
     },
-    logoutRow: {
-        padding: 16,
+    logoutContainer: {
+        marginTop: 32,
+        borderTopWidth: 0.5,
+        borderBottomWidth: 0.5,
+        borderColor: '#C6C6C8',
+    },
+    logoutButton: {
+        backgroundColor: 'white',
+        height: 44,
         alignItems: 'center',
         justifyContent: 'center',
     },
     logoutText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#EF4444',
+        fontSize: 17,
+        color: '#FF3B30',
+        fontWeight: '400',
     },
 });
