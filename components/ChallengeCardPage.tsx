@@ -1,27 +1,42 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal, TextInput, Alert, TouchableWithoutFeedback, Keyboard, ImageBackground } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ThemeCardProps {
     icon: string;
     title: string;
     count: number;
+    imageUrl: string;
     onPress: () => void;
 }
 
-const ThemeCard = ({ icon, title, count, onPress }: ThemeCardProps) => (
-    <TouchableOpacity style={styles.card} onPress={onPress}>
-        <View style={styles.cardIconContainer}>
-            <Text style={styles.cardIcon}>{icon}</Text>
-        </View>
-        <Text style={styles.cardTitle} numberOfLines={2}>{title}</Text>
-        <View style={styles.cardFooter}>
-            <Ionicons name="people-outline" size={12} color="#6b7280" />
-            <Text style={styles.cardCount}>{count}人が挑戦中</Text>
-        </View>
-        <View style={styles.actionLink}>
-            <Text style={styles.actionLinkText}>👉 参加者を見る</Text>
-        </View>
+const ThemeCard = ({ icon, title, count, imageUrl, onPress }: ThemeCardProps) => (
+    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
+        <ImageBackground
+            source={{ uri: imageUrl }}
+            style={styles.cardBackground}
+            imageStyle={{ borderRadius: 16 }}
+        >
+            <View style={styles.cardOverlay}>
+                <View style={styles.cardHeader}>
+                    <Text style={styles.cardIcon}>{icon}</Text>
+                </View>
+
+                <View style={styles.cardContent}>
+                    <Text style={styles.cardTitle} numberOfLines={2}>{title}</Text>
+                </View>
+
+                <View style={styles.cardFooter}>
+                    <View style={styles.countContainer}>
+                        <Ionicons name="people" size={14} color="white" />
+                        <Text style={styles.cardCount}>{count}人が挑戦中</Text>
+                    </View>
+                    <View style={styles.actionLink}>
+                        <Text style={styles.actionLinkText}>👉 参加者を見る</Text>
+                    </View>
+                </View>
+            </View>
+        </ImageBackground>
     </TouchableOpacity>
 );
 
@@ -33,15 +48,22 @@ const ICON_OPTIONS = ['🚀', '💻', '🎨', '🗣️', '💼', '💰', '🌍',
 
 export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
     const [themes, setThemes] = useState([
-        { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127 },
-        { id: 2, icon: '🌍', title: 'SDGs・社会課題', count: 85 },
-        { id: 3, icon: '📱', title: 'モバイルアプリ', count: 203 },
-        { id: 4, icon: '🎨', title: 'UI/UXデザイン', count: 94 },
-        { id: 5, icon: '🚀', title: 'スタートアップ', count: 342 },
-        { id: 6, icon: '💰', title: 'FinTech', count: 156 },
-        { id: 7, icon: '🎮', title: 'GameFi / Web3', count: 78 },
-        { id: 8, icon: '📢', title: 'マーケティング', count: 112 },
+        { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127, imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80' },
+        { id: 2, icon: '🌍', title: 'SDGs・社会課題', count: 85, imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400&q=80' },
+        { id: 3, icon: '📱', title: 'モバイルアプリ', count: 203, imageUrl: 'https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&q=80' },
+        { id: 4, icon: '🎨', title: 'UI/UXデザイン', count: 94, imageUrl: 'https://images.unsplash.com/photo-1561070791-2526d30994b5?w=400&q=80' },
+        { id: 5, icon: '🚀', title: 'スタートアップ', count: 342, imageUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&q=80' },
+        { id: 6, icon: '💰', title: 'FinTech', count: 156, imageUrl: 'https://images.unsplash.com/photo-1611974765270-ca1258634369?w=400&q=80' },
+        { id: 7, icon: '🎮', title: 'GameFi / Web3', count: 78, imageUrl: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&q=80' },
+        { id: 8, icon: '📢', title: 'マーケティング', count: 112, imageUrl: 'https://images.unsplash.com/photo-1557838923-2985c318be48?w=400&q=80' },
     ]);
+
+    const DEFAULT_IMAGES = [
+        'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=400&q=80',
+        'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&q=80',
+        'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&q=80',
+        'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=400&q=80',
+    ];
 
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [newThemeTitle, setNewThemeTitle] = useState('');
@@ -64,7 +86,8 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
             id: Date.now(),
             icon: selectedIcon,
             title: newThemeTitle,
-            count: 0
+            count: 0,
+            imageUrl: DEFAULT_IMAGES[Math.floor(Math.random() * DEFAULT_IMAGES.length)]
         };
         setThemes([newTheme, ...themes]);
 
@@ -97,6 +120,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                 icon={item.icon}
                                 title={item.title}
                                 count={item.count}
+                                imageUrl={item.imageUrl}
                                 onPress={() => onThemeSelect?.(item.title)}
                             />
                         ))}
@@ -208,6 +232,7 @@ export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
                                             icon={item.icon}
                                             title={item.title}
                                             count={item.count}
+                                            imageUrl={item.imageUrl}
                                             onPress={() => {
                                                 onThemeSelect?.(item.title);
                                                 setIsSearchModalVisible(false);
@@ -268,55 +293,72 @@ const styles = StyleSheet.create({
     },
     card: {
         width: (Dimensions.get('window').width - 32 - 12) / 2,
-        backgroundColor: 'white',
+        height: (Dimensions.get('window').width - 32 - 12) / 2 * 1.1, // Slightly taller
         borderRadius: 16,
-        padding: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.04,
-        shadowRadius: 12,
-        elevation: 2,
-        borderWidth: 0,
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 4,
+        marginBottom: 4,
     },
-    cardIconContainer: {
-        width: 52,
-        height: 52,
-        backgroundColor: '#F5F7FA',
-        borderRadius: 26,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 16,
+    cardBackground: {
+        flex: 1,
+        borderRadius: 16,
+        overflow: 'hidden',
+    },
+    cardOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.35)', // Dark overlay for readability
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+    cardHeader: {
+        alignItems: 'flex-start',
     },
     cardIcon: {
-        fontSize: 26,
+        fontSize: 24,
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    cardContent: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     cardTitle: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 8,
-        height: 44,
-        lineHeight: 22,
+        color: 'white',
+        textAlign: 'center',
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
+        width: '100%',
     },
     cardFooter: {
+        width: '100%',
+    },
+    countContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 4,
+        marginBottom: 6,
     },
     cardCount: {
-        fontSize: 12,
-        color: '#9CA3AF',
-        fontWeight: '500',
+        fontSize: 11,
+        color: '#E5E7EB',
+        fontWeight: '600',
     },
     actionLink: {
-        marginTop: 12,
-        paddingTop: 8,
         borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        borderTopColor: 'rgba(255,255,255,0.3)',
+        paddingTop: 6,
     },
     actionLinkText: {
-        fontSize: 12,
-        color: '#009688',
+        fontSize: 11,
+        color: '#FFD700', // Gold/Yellow accent
         fontWeight: 'bold',
     },
     fab: {
