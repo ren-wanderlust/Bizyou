@@ -19,6 +19,7 @@ import { FilterModal, FilterCriteria } from './components/FilterModal';
 import { ProfileEdit } from './components/ProfileEdit';
 import { SettingsPage } from './components/SettingsPage';
 import { HelpPage } from './components/HelpPage';
+import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { Profile } from './types';
 
 // Placeholder component for tabs under development
@@ -159,6 +160,7 @@ export default function App() {
 
   const [displayProfiles, setDisplayProfiles] = useState<Profile[]>(INITIAL_PROFILES);
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
@@ -438,7 +440,18 @@ export default function App() {
             />
           )}
           {activeTab === 'challenge' && (
-            <ChallengeCardPage />
+            selectedTheme ? (
+              <ThemeDetailPage
+                themeTitle={selectedTheme}
+                onBack={() => setSelectedTheme(null)}
+                profiles={displayProfiles}
+                onProfileSelect={(profile) => setSelectedProfile(profile)}
+                onLike={handleLike}
+                likedProfileIds={likedProfiles}
+              />
+            ) : (
+              <ChallengeCardPage onThemeSelect={setSelectedTheme} />
+            )
           )}
           {activeTab === 'profile' && (
             <>

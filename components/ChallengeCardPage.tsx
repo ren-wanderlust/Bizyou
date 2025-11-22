@@ -6,10 +6,11 @@ interface ThemeCardProps {
     icon: string;
     title: string;
     count: number;
+    onPress: () => void;
 }
 
-const ThemeCard = ({ icon, title, count }: ThemeCardProps) => (
-    <TouchableOpacity style={styles.card}>
+const ThemeCard = ({ icon, title, count, onPress }: ThemeCardProps) => (
+    <TouchableOpacity style={styles.card} onPress={onPress}>
         <View style={styles.cardIconContainer}>
             <Text style={styles.cardIcon}>{icon}</Text>
         </View>
@@ -18,10 +19,17 @@ const ThemeCard = ({ icon, title, count }: ThemeCardProps) => (
             <Ionicons name="people-outline" size={12} color="#6b7280" />
             <Text style={styles.cardCount}>{count}人が挑戦中</Text>
         </View>
+        <View style={styles.actionLink}>
+            <Text style={styles.actionLinkText}>👉 参加者を見る</Text>
+        </View>
     </TouchableOpacity>
 );
 
-export function ChallengeCardPage() {
+interface ChallengeCardPageProps {
+    onThemeSelect?: (themeName: string) => void;
+}
+
+export function ChallengeCardPage({ onThemeSelect }: ChallengeCardPageProps) {
     const recommended = [
         { id: 1, icon: '🤖', title: 'AIプロダクト開発', count: 127 },
         { id: 2, icon: '🌍', title: 'SDGs・社会課題', count: 85 },
@@ -62,6 +70,7 @@ export function ChallengeCardPage() {
                                 icon={item.icon}
                                 title={item.title}
                                 count={item.count}
+                                onPress={() => onThemeSelect?.(item.title)}
                             />
                         ))}
                     </View>
@@ -79,6 +88,7 @@ export function ChallengeCardPage() {
                                 icon={item.icon}
                                 title={item.title}
                                 count={item.count}
+                                onPress={() => onThemeSelect?.(item.title)}
                             />
                         ))}
                     </View>
@@ -184,5 +194,16 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9CA3AF',
         fontWeight: '500',
+    },
+    actionLink: {
+        marginTop: 12,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    actionLinkText: {
+        fontSize: 12,
+        color: '#009688',
+        fontWeight: 'bold',
     },
 });
