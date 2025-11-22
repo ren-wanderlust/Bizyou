@@ -10,7 +10,9 @@ import {
     KeyboardAvoidingView,
     Platform,
     TouchableWithoutFeedback,
-    Keyboard
+    Keyboard,
+    Image,
+    Alert
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
@@ -22,6 +24,7 @@ interface ProfileEditProps {
 }
 
 export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditProps) {
+    const [image, setImage] = useState(initialProfile.image);
     const [name, setName] = useState(initialProfile.name);
     const [age, setAge] = useState(initialProfile.age.toString());
     const [university, setUniversity] = useState(initialProfile.university || initialProfile.company || '');
@@ -100,9 +103,24 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
         }
     };
 
+    const handleImageChange = () => {
+        Alert.alert(
+            "プロフィール画像の変更",
+            "画像を選択してください（現在はモック機能です）",
+            [
+                { text: "キャンセル", style: "cancel" },
+                {
+                    text: "ライブラリから選択",
+                    onPress: () => Alert.alert("完了", "画像の選択機能はバックエンド連携後に実装されます。")
+                }
+            ]
+        );
+    };
+
     const handleSave = () => {
         const updatedProfile: Profile = {
             ...initialProfile,
+            image,
             name,
             age: parseInt(age, 10) || 0,
             university: university,
@@ -136,6 +154,14 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                         <View>
                             {/* Basic Info */}
                             <View style={styles.section}>
+                                <View style={styles.imageEditContainer}>
+                                    <Image source={{ uri: image }} style={styles.profileImage} />
+                                    <TouchableOpacity style={styles.changeImageButton} onPress={handleImageChange}>
+                                        <Ionicons name="camera" size={20} color="white" />
+                                        <Text style={styles.changeImageText}>写真を変更</Text>
+                                    </TouchableOpacity>
+                                </View>
+
                                 <Text style={styles.sectionTitle}>基本情報</Text>
 
                                 <View style={styles.formGroup}>
@@ -375,5 +401,30 @@ const styles = StyleSheet.create({
         color: '#6b7280',
         marginTop: 16,
         marginBottom: 8,
+    },
+    imageEditContainer: {
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    profileImage: {
+        width: 100,
+        height: 100,
+        borderRadius: 50,
+        marginBottom: 12,
+        backgroundColor: '#e5e7eb',
+    },
+    changeImageButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#4b5563',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 8,
+    },
+    changeImageText: {
+        color: 'white',
+        fontSize: 14,
+        fontWeight: 'bold',
     },
 });
