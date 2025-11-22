@@ -15,6 +15,36 @@ const GAP = 12;
 const PADDING = 16;
 const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
+const TAG_COLORS: Record<string, { bg: string; text: string }> = {
+    // エンジニア系 (Blue)
+    'フロントエンド': { bg: '#E3F2FD', text: '#1565C0' },
+    'バックエンド': { bg: '#E3F2FD', text: '#1565C0' },
+    'モバイルアプリ': { bg: '#E3F2FD', text: '#1565C0' },
+    'ゲーム開発': { bg: '#E3F2FD', text: '#1565C0' },
+    'AI / データ': { bg: '#E3F2FD', text: '#1565C0' },
+    'ノーコード': { bg: '#E3F2FD', text: '#1565C0' },
+    // デザイナー系 (Purple)
+    'UI / UXデザイン': { bg: '#F3E5F5', text: '#7B1FA2' },
+    'グラフィック / イラスト': { bg: '#F3E5F5', text: '#7B1FA2' },
+    // マーケ系 (Orange)
+    'マーケティング': { bg: '#FFF3E0', text: '#E65100' },
+    'SNS運用': { bg: '#FFF3E0', text: '#E65100' },
+    'ライター': { bg: '#FFF3E0', text: '#E65100' },
+    // ビジネス系 (Green)
+    'セールス (営業)': { bg: '#E8F5E9', text: '#2E7D32' },
+    '事業開発 (BizDev)': { bg: '#E8F5E9', text: '#2E7D32' },
+    // クリエイター系 (Red)
+    '動画編集': { bg: '#FFEBEE', text: '#C62828' },
+    '3D / CG': { bg: '#FFEBEE', text: '#C62828' },
+    // PM系 (Indigo)
+    'PM / ディレクター': { bg: '#E8EAF6', text: '#283593' },
+    'コミュニティ運営': { bg: '#E8EAF6', text: '#283593' },
+    // その他 (Gray/Teal)
+    '財務 / 会計': { bg: '#E0F2F1', text: '#00695C' },
+    '法務 / 知財': { bg: '#E0F2F1', text: '#00695C' },
+    '英語 / 語学': { bg: '#F5F5F5', text: '#424242' },
+};
+
 // タグの種類に応じて色とアイコンを返す関数
 function getTagStyle(tagText: string): { color: string; icon: string } {
     if (tagText.includes('ビジネスメンバー探し') || tagText.includes('メンバー募集中')) {
@@ -68,13 +98,15 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
             </View>
 
             {/* Skills */}
-            {/* Skills */}
             <View style={styles.skillsContainer}>
-                {profile.skills.slice(0, 3).map((skill, index) => (
-                    <View key={index} style={styles.skillTag}>
-                        <Text style={styles.skillText} numberOfLines={1}># {skill}</Text>
-                    </View>
-                ))}
+                {profile.skills.slice(0, 3).map((skill, index) => {
+                    const tagColor = TAG_COLORS[skill] || { bg: '#F5F5F5', text: '#666666' };
+                    return (
+                        <View key={index} style={[styles.skillTag, { backgroundColor: tagColor.bg }]}>
+                            <Text style={[styles.skillText, { color: tagColor.text }]} numberOfLines={1}># {skill}</Text>
+                        </View>
+                    );
+                })}
                 {profile.skills.length > 3 && (
                     <View style={styles.skillTag}>
                         <Text style={styles.skillText}>+{profile.skills.length - 3}</Text>
