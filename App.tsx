@@ -23,6 +23,8 @@ import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { Profile } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
+import { Alert } from 'react-native';
 
 // Placeholder component for tabs under development
 const PlaceholderScreen = ({ title }: { title: string }) => (
@@ -63,130 +65,106 @@ function AppContent() {
   const [showHelp, setShowHelp] = useState(false);
   const [legalDocument, setLegalDocument] = useState<{ title: string; content: string } | null>(null);
 
-  // Mock profiles
-  const INITIAL_PROFILES: Profile[] = [
-    {
-      id: '1',
-      name: 'ユウキ',
-      age: 22,
-      location: '東京',
-      university: '東京大学',
-      image: 'https://images.unsplash.com/photo-1543132220-e7fef0b974e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx5b3VuZyUyMGVudHJepreneur%20portraitfGVufDF8fHx8MTc2MzQ4NTI0MXww&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'AIチャットボット開発',
-      theme: '生成AIを活用したSaaSで、中小企業のDXを加速させたい！',
-      bio: '現在は大学でAIを専攻しています。将来はエンジニアとして起業したいと考えており、一緒にハッカソンに出られる仲間を探しています！趣味はカフェ巡りです。',
-      skills: ['フロントエンド', 'バックエンド', 'AI / データ'],
-      seekingFor: ['起業に興味あり', 'ビジネスメンバー探し'],
-      seekingRoles: ['💻 エンジニア', '🎨 デザイナー'],
-      statusTags: ['ビジネスメンバー探し'],
-      isStudent: true,
-      createdAt: '2023-11-15',
-    },
-    {
-      id: '2',
-      name: 'アヤカ',
-      age: 21,
-      location: '大阪',
-      university: '大阪大学',
-      image: 'https://images.unsplash.com/photo-1553484771-6e117b648d45?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxzdGFydHVwJTIwZm91bmRlciUyMHByb2Zlc3Npb25hbHxlbnwxfHx8fDE3NjM0NTI1MjJ8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'サステナブルファッションブランド立ち上げ',
-      theme: 'サステナブルなD2Cブランドを立ち上げ、グローバル展開を目指す',
-      bio: '環境問題に関心があり、サステナブルなファッションブランドを立ち上げたいです。マーケティングやブランディングが得意な方と繋がりたいです。',
-      skills: ['マーケティング', 'SNS運用', 'グラフィック / イラスト'],
-      seekingFor: ['ビジネスメンバー探し', 'まずは話してみたい'],
-      seekingRoles: ['📣 マーケ / 広報', '💼 セールス / BizDev'],
-      statusTags: ['まずは話してみたい'],
-      isStudent: true,
-      createdAt: '2023-10-20',
-    },
-    {
-      id: '3',
-      name: 'ケンタ',
-      age: 24,
-      location: '福岡',
-      company: '株式会社テクノロジー',
-      image: 'https://images.unsplash.com/photo-1760536928911-40831dacdbc3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxjcmVhdGl2ZSUyMGRldmVsb3BlciUyMHdvcmtzcGFjZXxlbnwxfHx8fDE3NjM1MjAzMzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'EdTechアプリ開発（学習効率化）',
-      theme: 'Web3技術を使った新しいコミュニティプラットフォームを作る',
-      bio: '教育×テクノロジーで新しい学習体験を作りたいと考えています。Flutterでのアプリ開発経験があります。教育に興味がある方、ぜひお話ししましょう！',
-      skills: ['モバイルアプリ', 'UI / UXデザイン'],
-      seekingFor: ['ビジネスメンバー探し', 'アイデア模索中'],
-      seekingRoles: ['💻 エンジニア', '🤔 まだ分からない'],
-      statusTags: ['アイデア模索中'],
-      isStudent: false,
-      createdAt: '2023-11-05',
-    },
-    {
-      id: '4',
-      name: 'ミオ',
-      age: 20,
-      location: '京都',
-      university: '京都大学',
-      image: 'https://images.unsplash.com/photo-1752937326758-f130e633b422?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHxidXNpbmVzcyUyMHN0dWRlbnQlMjBjb25maWRlbnR8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'ビジコン優勝を目指す地域活性化プロジェクト',
-      theme: '地元の観光資源を活かしたインバウンド向け体験サービスを開発したい',
-      bio: '地元の京都を盛り上げるためのビジネスプランを考えています。ビジネスコンテストでの優勝を目指して、一緒に頑張れるメンバーを募集中です！',
-      skills: ['マーケティング', 'PM / ディレクター'],
-      seekingFor: ['ビジネスメンバー探し', 'コミュニティ形成'],
-      seekingRoles: ['💻 エンジニア', '📣 マーケ / 広報', '1️⃣ PM / ディレクター'],
-      statusTags: ['メンバー募集中'],
-      isStudent: true,
-      createdAt: '2023-11-18',
-    },
-    {
-      id: '5',
-      name: 'リョウ',
-      age: 23,
-      location: '神奈川',
-      company: '株式会社ブロックチェーン',
-      image: 'https://images.unsplash.com/photo-1762341116674-784c5dbedeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwZW50cmVwcmVuZXVyJTIweY91bmd8ZW58MXx8fHwxNzYzNTIwMzM1fDA&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'ブロックチェーンゲーム開発',
-      theme: 'ブロックチェーン技術でゲーム内アイテムの所有権を革命する',
-      bio: 'Web3領域に興味があり、ブロックチェーンゲームの開発を行っています。SolidityやUnityが触れるエンジニアの方、またはゲームデザインに興味がある方を探しています。',
-      skills: ['フロントエンド', 'ゲーム開発', 'AI / データ'],
-      seekingFor: ['ビジネスメンバー探し', '壁打ち相手募集'],
-      seekingRoles: ['💻 エンジニア', '🗣️ 壁打ち相手'],
-      statusTags: ['壁打ち相手募集'],
-      isStudent: false,
-      createdAt: '2023-09-30',
-    },
-    {
-      id: '6',
-      name: 'サクラ',
-      age: 22,
-      location: '東京',
-      university: '東京大学',
-      image: 'https://images.unsplash.com/photo-1709803312782-0c3b175875ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkZXNpZ25lciUyMGNyZWF0aXZlJTIwcHJvZmVzc2lvbmFsfGVufDF8fHx8MTc2MzUyMDMzNXww&ixlib=rb-4.1.0&q=80&w=1080',
-      challengeTheme: 'クリエイター向けポートフォリオプラットフォーム',
-      theme: 'クリエイターが正当に評価されるポートフォリオプラットフォームを創る',
-      bio: 'クリエイターが自分の作品をより魅力的に発信できるプラットフォームを作りたいです。UIデザインやブランディングにこだわりがあります。',
-      skills: ['UI / UXデザイン', 'グラフィック / イラスト'],
-      seekingFor: ['アイデア模索中', 'まずは話してみたい'],
-      seekingRoles: ['💻 エンジニア', '🎥 動画 / クリエイター'],
-      statusTags: ['情報収集中'],
-      isStudent: true,
-      createdAt: '2023-11-10',
-    },
-  ];
-
-  const [currentUser, setCurrentUser] = useState<Profile>(INITIAL_PROFILES[0]);
+  const [currentUser, setCurrentUser] = useState<Profile | null>(null);
 
   const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
 
-  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>(INITIAL_PROFILES);
+  const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
 
-  const onRefresh = React.useCallback(() => {
+  // Fetch profiles from Supabase
+  const fetchProfiles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (error) throw error;
+
+      if (data) {
+        // Map Supabase data to Profile type if necessary (snake_case to camelCase)
+        // Assuming the table columns match the Profile type or we map them here
+        const mappedProfiles: Profile[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          age: item.age,
+          location: item.location || '', // Handle optional fields
+          university: item.university,
+          company: item.company,
+          image: item.image,
+          challengeTheme: item.challenge_theme || '', // Map snake_case
+          theme: item.theme || '',
+          bio: item.bio,
+          skills: item.skills || [],
+          seekingFor: item.seeking_for || [],
+          seekingRoles: item.seeking_roles || [],
+          statusTags: item.status_tags || [],
+          isStudent: item.is_student,
+          createdAt: item.created_at,
+        }));
+        setDisplayProfiles(mappedProfiles);
+      }
+    } catch (error) {
+      console.error('Error fetching profiles:', error);
+      Alert.alert('エラー', 'データの取得に失敗しました');
+    }
+  };
+
+  // Fetch current user profile
+  const fetchCurrentUser = async () => {
+    if (!session?.user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const mappedUser: Profile = {
+          id: data.id,
+          name: data.name,
+          age: data.age,
+          location: data.location || '',
+          university: data.university,
+          company: data.company,
+          image: data.image,
+          challengeTheme: data.challenge_theme || '',
+          theme: data.theme || '',
+          bio: data.bio,
+          skills: data.skills || [],
+          seekingFor: data.seeking_for || [],
+          seekingRoles: data.seeking_roles || [],
+          statusTags: data.status_tags || [],
+          isStudent: data.is_student,
+          createdAt: data.created_at,
+        };
+        setCurrentUser(mappedUser);
+      }
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchProfiles();
+  }, []);
+
+  React.useEffect(() => {
+    if (session?.user) {
+      fetchCurrentUser();
+    }
+  }, [session]);
+
+  const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      // Shuffle profiles
-      const shuffled = [...displayProfiles].sort(() => 0.5 - Math.random());
-      setDisplayProfiles(shuffled);
-      setRefreshing(false);
-    }, 1500);
-  }, [displayProfiles]);
+    await fetchProfiles();
+    setRefreshing(false);
+  }, []);
 
   // Determine if filter is active
   const isFilterActive = React.useMemo(() => {
@@ -255,9 +233,35 @@ function AppContent() {
     });
   };
 
-  const handleSaveProfile = (updatedProfile: Profile) => {
-    setCurrentUser(updatedProfile);
-    setShowProfileEdit(false);
+  const handleSaveProfile = async (updatedProfile: Profile) => {
+    if (!session?.user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: updatedProfile.name,
+          age: updatedProfile.age,
+          university: updatedProfile.university,
+          company: updatedProfile.company,
+          bio: updatedProfile.bio,
+          skills: updatedProfile.skills,
+          seeking_for: updatedProfile.seekingFor,
+          seeking_roles: updatedProfile.seekingRoles,
+          // status_tags: updatedProfile.statusTags, // Assuming this is derived or editable
+        })
+        .eq('id', session.user.id);
+
+      if (error) throw error;
+
+      setCurrentUser(updatedProfile);
+      setShowProfileEdit(false);
+      Alert.alert('完了', 'プロフィールを更新しました');
+      fetchProfiles(); // Refresh list to show updates
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      Alert.alert('エラー', 'プロフィールの更新に失敗しました');
+    }
   };
 
   const handleEditProfile = () => {
@@ -334,7 +338,7 @@ function AppContent() {
     return (
       <SafeAreaProvider>
         <ProfileEdit
-          initialProfile={currentUser}
+          initialProfile={currentUser!}
           onSave={handleSaveProfile}
           onCancel={() => setShowProfileEdit(false)}
         />
@@ -506,20 +510,24 @@ function AppContent() {
                   onBack={() => setShowHelp(false)}
                 />
               ) : (
-                <MyPage
-                  profile={currentUser}
-                  onLogout={signOut}
-                  onEditProfile={handleEditProfile}
-                  onOpenNotifications={() => setShowNotifications(true)}
-                  onSettingsPress={() => setShowSettings(true)}
-                  onHelpPress={() => setShowHelp(true)}
-                />
+                currentUser ? (
+                  <MyPage
+                    profile={currentUser}
+                    onLogout={signOut}
+                    onEditProfile={handleEditProfile}
+                    onOpenNotifications={() => setShowNotifications(true)}
+                    onSettingsPress={() => setShowSettings(true)}
+                    onHelpPress={() => setShowHelp(true)}
+                  />
+                ) : (
+                  <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color="#009688" />
+                  </View>
+                )
               )}
             </>
           )}
         </View>
-
-        {/* Bottom Navigation */}
         <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Filter Modal */}

@@ -15,6 +15,8 @@ import {
     ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 
 interface ProfileEditProps {
@@ -45,9 +47,17 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 
     const seekingOptions = ['💻 エンジニア', '🎨 デザイナー', '📣 マーケ / 広報', '💼 セールス / BizDev', '1️⃣ PM / ディレクター', '💰 ファイナンス', '🗣️ 壁打ち相手', '🤔 まだ分からない'];
 
-    const handleImageChange = () => {
-        // Placeholder for image change functionality
-        alert('画像変更機能は未実装です');
+    const handleImageChange = async () => {
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 0.8,
+        });
+
+        if (!result.canceled) {
+            setImage(result.assets[0].uri);
+        }
     };
 
     const handleToggle = (item: string, list: string[], setList: (l: string[]) => void) => {
@@ -58,24 +68,69 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
         }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         setIsSubmitting(true);
-        // Simulate network request
-        setTimeout(() => {
+        try {
+            let uploadedImageUrl = image;
+
+            // Upload image if it's a local URI (changed)
+            if (image && image !== initialProfile.image && !image.startsWith('http')) {
+                try {
+                    const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                        const xhr = new XMLHttpRequest();
+                        xhr.onload = function () {
+                            resolve(xhr.response);
+                        };
+                        xhr.onerror = function (e) {
+                            console.log(e);
+                            reject(new TypeError('Network request failed'));
+                        };
+                        xhr.responseType = 'arraybuffer';
+                        xhr.open('GET', image, true);
+                        xhr.send(null);
+                    });
+
+                    const fileExt = image.split('.').pop()?.toLowerCase() ?? 'jpg';
+                    const fileName = `${initialProfile.id}/${Date.now()}.${fileExt}`;
+                    const filePath = `${fileName}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('avatars')
+                        .upload(filePath, arrayBuffer, {
+                            contentType: `image/${fileExt}`,
+                            upsert: true,
+                        });
+
+                    if (uploadError) {
+                        console.error('Image upload error:', uploadError);
+                    } else {
+                        const { data: { publicUrl } } = supabase.storage
+                            .from('avatars')
+                            .getPublicUrl(filePath);
+                        uploadedImageUrl = publicUrl;
+                    }
+                } catch (uploadErr) {
+                    console.error('Error uploading image:', uploadErr);
+                }
+            }
+
             const updatedProfile: Profile = {
                 ...initialProfile,
                 name,
                 age: parseInt(age) || 0,
-                university: university, // Simplified: assuming university field for now
+                university: university,
                 bio,
                 seekingFor,
                 skills,
                 seekingRoles,
-                image
+                image: uploadedImageUrl
             };
-            setIsSubmitting(false);
             onSave(updatedProfile);
-        }, 1500);
+        } catch (error) {
+            console.error('Error saving profile:', error);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (

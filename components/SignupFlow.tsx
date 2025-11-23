@@ -296,8 +296,51 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 if (signUpError) throw signUpError;
 
                 if (user) {
-                    // 2. Insert profile
-                    // Note: This requires the 'profiles' table to exist.
+                    let uploadedImageUrl = imageUri;
+
+                    // 2. Upload image if exists
+                    if (imageUri) {
+                        try {
+                            const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
+                                const xhr = new XMLHttpRequest();
+                                xhr.onload = function () {
+                                    resolve(xhr.response);
+                                };
+                                xhr.onerror = function (e) {
+                                    console.log(e);
+                                    reject(new TypeError('Network request failed'));
+                                };
+                                xhr.responseType = 'arraybuffer';
+                                xhr.open('GET', imageUri, true);
+                                xhr.send(null);
+                            });
+
+                            const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                            const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+                            const filePath = `${fileName}`;
+
+                            const { error: uploadError } = await supabase.storage
+                                .from('avatars')
+                                .upload(filePath, arrayBuffer, {
+                                    contentType: `image/${fileExt}`,
+                                    upsert: true,
+                                });
+
+                            if (uploadError) {
+                                console.error('Image upload error:', uploadError);
+                                // Continue with local URI if upload fails, or handle error
+                            } else {
+                                const { data: { publicUrl } } = supabase.storage
+                                    .from('avatars')
+                                    .getPublicUrl(filePath);
+                                uploadedImageUrl = publicUrl;
+                            }
+                        } catch (uploadErr) {
+                            console.error('Error uploading image:', uploadErr);
+                        }
+                    }
+
+                    // 3. Insert profile
                     const { error: profileError } = await supabase
                         .from('profiles')
                         .insert([
@@ -307,7 +350,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                                 age: parseInt(age, 10),
                                 university: university, // or company
                                 bio: bio,
-                                image: imageUri, // TODO: Upload to Storage
+                                image: uploadedImageUrl,
                                 skills: skills,
                                 seeking_for: seekingFor,
                                 seeking_roles: seekingRoles,
@@ -318,7 +361,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
                     if (profileError) {
                         console.error('Profile creation error:', profileError);
-                        Alert.alert('注意', 'ユーザー登録は完了しましたが、プロフィールの保存に失敗しました。データベースの設定が必要です。');
+                        Alert.alert('注意', 'ユーザー登録は完了しましたが、プロフィールの保存に失敗しました。');
                     }
                 }
 
