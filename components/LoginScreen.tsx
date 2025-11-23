@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, SafeAreaView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Image, Dimensions, SafeAreaView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 
@@ -14,7 +14,7 @@ export function LoginScreen({ onCreateAccount, onLogin }: LoginScreenProps) {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      
+
       {/* Background Image with Overlay */}
       <View style={styles.backgroundContainer}>
         <Image
@@ -31,7 +31,7 @@ export function LoginScreen({ onCreateAccount, onLogin }: LoginScreenProps) {
       {/* Content */}
       <SafeAreaView style={styles.contentContainer}>
         <View style={styles.innerContainer}>
-          
+
           {/* Logo */}
           <View style={styles.logoContainer}>
             <View style={styles.logoWrapper}>
@@ -74,6 +74,17 @@ export function LoginScreen({ onCreateAccount, onLogin }: LoginScreenProps) {
             {/* Login Button - Secondary */}
             <TouchableOpacity onPress={onLogin} activeOpacity={0.8} style={styles.secondaryButton}>
               <Text style={styles.secondaryButtonText}>アカウントをお持ちの方</Text>
+            </TouchableOpacity>
+
+            {/* Forgot Password */}
+            <TouchableOpacity
+              onPress={() => Alert.alert('パスワードリセット', 'パスワード再設定用のメールを送信しますか？', [
+                { text: 'キャンセル', style: 'cancel' },
+                { text: '送信', onPress: () => Alert.alert('送信完了', '再設定用メールを送信しました。') }
+              ])}
+              style={styles.forgotPasswordContainer}
+            >
+              <Text style={styles.forgotPasswordText}>パスワードを忘れた場合</Text>
             </TouchableOpacity>
 
             {/* Terms */}
@@ -214,5 +225,14 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     textDecorationLine: 'underline',
     marginHorizontal: 4,
+  },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  forgotPasswordText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 14,
+    textDecorationLine: 'underline',
   },
 });
