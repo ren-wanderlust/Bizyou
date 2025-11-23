@@ -99,6 +99,14 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
         );
     };
 
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Ionicons name="notifications-off-outline" size={64} color="#d1d5db" />
+            <Text style={styles.emptyText}>まだお知らせはありません</Text>
+            <Text style={styles.emptySubText}>新しいお知らせが届くまでお待ちください</Text>
+        </View>
+    );
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -112,7 +120,11 @@ export function NotificationsPage({ onBack }: NotificationsPageProps) {
                 data={mockNotifications}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
+                contentContainerStyle={[
+                    styles.listContent,
+                    mockNotifications.length === 0 && styles.flexGrow
+                ]}
+                ListEmptyComponent={renderEmpty}
             />
         </SafeAreaView>
     );
@@ -142,6 +154,9 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: 20,
+    },
+    flexGrow: {
+        flexGrow: 1,
     },
     itemContainer: {
         flexDirection: 'row',
@@ -194,5 +209,24 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#333',
         lineHeight: 20,
+    },
+    emptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 32,
+        marginTop: 60,
+    },
+    emptyText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#6b7280',
+        marginTop: 16,
+        marginBottom: 8,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#9ca3af',
+        textAlign: 'center',
     },
 });
