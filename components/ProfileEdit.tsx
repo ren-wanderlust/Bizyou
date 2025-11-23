@@ -118,6 +118,23 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     };
 
     const handleSave = () => {
+        if (!name.trim()) {
+            Alert.alert('エラー', 'ニックネームを入力してください。');
+            return;
+        }
+        if (!age.trim()) {
+            Alert.alert('エラー', '年齢を入力してください。');
+            return;
+        }
+        if (!university.trim()) {
+            Alert.alert('エラー', '職種 / 大学名を入力してください。');
+            return;
+        }
+        if (!bio.trim()) {
+            Alert.alert('エラー', '自己紹介文を入力してください。');
+            return;
+        }
+
         const updatedProfile: Profile = {
             ...initialProfile,
             image,
