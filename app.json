@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "BizYouApp",
-    "slug": "BizYouApp",
+    "name": "Nakama",
+    "slug": "nakama",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",

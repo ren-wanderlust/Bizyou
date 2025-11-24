@@ -102,7 +102,7 @@ export function SettingsPage({ onBack, onLogout, onOpenTerms, onOpenPrivacy }: S
                 <View style={styles.sectionContainer}>
                     {renderItem('document-text-outline', '利用規約', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenTerms, false, '#8E8E93')}
                     {renderItem('shield-checkmark-outline', 'プライバシーポリシー', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, onOpenPrivacy, false, '#8E8E93')}
-                    {renderItem('mail-outline', 'お問い合わせ', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('mailto:support@bizyou.app'), true, '#007AFF')}
+                    {renderItem('mail-outline', 'お問い合わせ', <Ionicons name="chevron-forward" size={20} color="#C7C7CC" />, () => handleOpenURL('mailto:support@nakama-app.com'), true, '#007AFF')}
                 </View>
 
                 {/* Logout */}

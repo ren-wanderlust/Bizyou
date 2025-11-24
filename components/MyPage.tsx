@@ -134,7 +134,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
                     {/* App Version */}
                     <View style={styles.versionContainer}>
-                        <Text style={styles.versionText}>BizYou v1.0.0</Text>
+                        <Text style={styles.versionText}>Nakama v1.0.0</Text>
                     </View>
                 </ScrollView>
             </SafeAreaView>

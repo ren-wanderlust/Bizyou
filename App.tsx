@@ -418,7 +418,7 @@ function AppContent() {
       <View style={styles.headerContainer}>
         <View style={styles.headerTop}>
           <View style={styles.headerLeft} />
-          <Text style={styles.headerTitle}>BizYou</Text>
+          <Text style={styles.headerTitle}>Nakama</Text>
           <TouchableOpacity
             style={styles.notificationButton}
             onPress={() => setShowNotifications(true)}

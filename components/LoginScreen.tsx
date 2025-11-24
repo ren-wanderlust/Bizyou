@@ -81,9 +81,9 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
               >
-                <Text style={styles.logoText}>B</Text>
+                <Text style={styles.logoText}>N</Text>
               </LinearGradient>
-              <Text style={styles.appName}>BizYou</Text>
+              <Text style={styles.appName}>Nakama</Text>
             </View>
           </View>
 
@@ -93,7 +93,7 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               あなたの挑戦の{'\n'}相棒を見つけよう
             </Text>
             <Text style={styles.subtitle}>
-              25歳以下の起業・ビジコン・スモビジに{'\n'}挑戦する仲間と出会う
+              学生・若手のための共創マッチング
             </Text>
           </View>
 

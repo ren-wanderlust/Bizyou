@@ -28,7 +28,7 @@ const slides: OnboardingSlide[] = [
     {
         id: '3',
         title: 'アイデアを形にする場所',
-        description: 'チャットで気軽に壁打ちしたり、\nプロジェクトを開始したり。\nBizYouは、挑戦するすべての人のための\nプラットフォームです。',
+        description: 'チャットで気軽に壁打ちしたり、\nプロジェクトを開始したり。\nNakamaは、挑戦するすべての人のための\nプラットフォームです。',
         image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
     },
 ];
