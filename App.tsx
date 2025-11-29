@@ -301,6 +301,7 @@ function AppContent() {
           skills: updatedProfile.skills,
           seeking_for: updatedProfile.seekingFor,
           seeking_roles: updatedProfile.seekingRoles,
+          image: updatedProfile.image,
           // status_tags: updatedProfile.statusTags, // Assuming this is derived or editable
         })
         .eq('id', session.user.id);
