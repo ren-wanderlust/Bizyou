@@ -185,6 +185,9 @@ function AppContent() {
 
   // Filtering logic
   const filteredProfiles = displayProfiles.filter(profile => {
+    // Exclude current user
+    if (session?.user && profile.id === session.user.id) return false;
+
     if (!filterCriteria) return true;
 
     // Keyword filter
@@ -416,16 +419,18 @@ function AppContent() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="auto" />
       <View style={styles.headerContainer}>
-        <View style={styles.headerTop}>
-          <View style={styles.headerLeft} />
-          <Text style={styles.headerTitle}>Nakama</Text>
-          <TouchableOpacity
-            style={styles.notificationButton}
-            onPress={() => setShowNotifications(true)}
-          >
-            <Ionicons name="notifications-outline" size={24} color="#374151" />
-          </TouchableOpacity>
-        </View>
+        {activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
+          <View style={styles.headerTop}>
+            <View style={styles.headerLeft} />
+            <Text style={styles.headerTitle}>Nakama</Text>
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => setShowNotifications(true)}
+            >
+              <Ionicons name="notifications-outline" size={24} color="#374151" />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {activeTab === 'search' && (
           <View style={styles.searchControlBar}>

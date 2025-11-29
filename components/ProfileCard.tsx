@@ -90,11 +90,16 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                 </View>
             </View>
 
-            {/* Main Content: Theme */}
+            {/* Main Content: Theme & Bio */}
             <View style={styles.mainContent}>
-                <Text style={styles.themeText} numberOfLines={3}>
+                <Text style={styles.themeText} numberOfLines={2}>
                     {profile.theme || profile.challengeTheme}
                 </Text>
+                {profile.bio && (
+                    <Text style={styles.bioText} numberOfLines={2}>
+                        {profile.bio}
+                    </Text>
+                )}
             </View>
 
             {/* Skills */}
@@ -113,32 +118,6 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                     </View>
                 )}
             </View>
-
-            {/* Action Buttons */}
-            <View style={styles.actionButtons}>
-                <TouchableOpacity
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        // Chat logic would go here
-                    }}
-                    style={styles.iconButton}
-                >
-                    <Ionicons name="chatbubble-outline" size={20} color="#9CA3AF" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    onPress={(e) => {
-                        e.stopPropagation();
-                        onLike();
-                    }}
-                    style={styles.iconButton}
-                >
-                    <Ionicons
-                        name={isLiked ? "heart" : "heart-outline"}
-                        size={22}
-                        color={isLiked ? "#E91E63" : "#9CA3AF"}
-                    />
-                </TouchableOpacity>
-            </View>
         </TouchableOpacity>
     );
 }
@@ -146,7 +125,7 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
-        height: 280, // Fixed height
+        height: 240, // Adjusted height since buttons are removed
         backgroundColor: '#FFFFFF',
         borderRadius: 16,
         padding: 16,
@@ -213,16 +192,22 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     themeText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: 'bold',
         color: '#111827',
-        lineHeight: 20,
+        lineHeight: 18,
+        marginBottom: 6,
+    },
+    bioText: {
+        fontSize: 11,
+        color: '#6B7280',
+        lineHeight: 16,
     },
     skillsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 6,
-        marginBottom: 12,
+        marginBottom: 0, // Removed bottom margin as it's the last element
     },
     skillTag: {
         backgroundColor: '#F3F4F6',
@@ -235,17 +220,5 @@ const styles = StyleSheet.create({
         fontSize: 10,
         color: '#4B5563',
         fontWeight: '500',
-    },
-    actionButtons: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 12,
-        marginTop: 'auto', // Push to bottom if flex container
-        paddingTop: 8,
-        borderTopWidth: 1,
-        borderTopColor: '#F9FAFB',
-    },
-    iconButton: {
-        padding: 4,
     },
 });
