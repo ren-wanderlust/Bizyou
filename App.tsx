@@ -22,7 +22,7 @@ import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
-import { Profile } from './types';
+import { Profile, Theme } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
@@ -74,7 +74,7 @@ function AppContent() {
 
   const [displayProfiles, setDisplayProfiles] = useState<Profile[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
 
   // Fetch profiles from Supabase
@@ -301,6 +301,7 @@ function AppContent() {
           skills: updatedProfile.skills,
           seeking_for: updatedProfile.seekingFor,
           seeking_roles: updatedProfile.seekingRoles,
+          image: updatedProfile.image,
           // status_tags: updatedProfile.statusTags, // Assuming this is derived or editable
         })
         .eq('id', session.user.id);
@@ -350,6 +351,23 @@ function AppContent() {
       <LoginScreen
         onCreateAccount={() => setShowSignup(true)}
       />
+    );
+  }
+
+  // Show theme detail if selected
+  if (selectedTheme) {
+    return (
+      <SafeAreaProvider>
+        <ThemeDetailPage
+          theme={selectedTheme}
+          onBack={() => setSelectedTheme(null)}
+          profiles={displayProfiles}
+          onProfileSelect={setSelectedProfile}
+          onLike={handleLike}
+          likedProfileIds={likedProfiles}
+          currentUser={currentUser}
+        />
+      </SafeAreaProvider>
     );
   }
 
@@ -488,7 +506,9 @@ function AppContent() {
             onProfileSelect={setSelectedProfile}
           />
         )}
-        {activeTab === 'challenge' && <ChallengeCardPage />}
+        {activeTab === 'challenge' && (
+          <ChallengeCardPage onThemeSelect={setSelectedTheme} />
+        )}
         {activeTab === 'talk' && (
           <TalkPage
             onOpenChat={(room) => setActiveChatRoom({
