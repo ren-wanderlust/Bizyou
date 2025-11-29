@@ -36,6 +36,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
                     {/* Header Area */}
                     <View style={styles.headerContainer}>
+                        <Text style={styles.pageTitle}>マイページ</Text>
                         <View style={styles.profileImageContainer}>
                             <Image
                                 source={{ uri: profile.image }}
@@ -152,9 +153,15 @@ const styles = StyleSheet.create({
     },
     headerContainer: {
         alignItems: 'center',
-        paddingVertical: 32,
+        paddingVertical: 20,
         paddingHorizontal: 20,
         backgroundColor: '#FAFAFA',
+    },
+    pageTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 24,
     },
     profileImageContainer: {
         shadowColor: '#000',
