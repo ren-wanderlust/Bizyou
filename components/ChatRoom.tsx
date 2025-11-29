@@ -16,6 +16,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import * as Haptics from 'expo-haptics';
 
 interface Message {
     id: string;
@@ -24,6 +27,11 @@ interface Message {
     timestamp: string;
     date: string; // ISO date string for grouping (YYYY-MM-DD)
     created_at: string;
+    replyTo?: {
+        id: string;
+        text: string;
+        senderName: string;
+    };
 }
 
 interface MessageItem {
@@ -63,12 +71,111 @@ const getDateLabel = (dateString: string): string => {
     }
 };
 
+// Message Bubble Component with Swipeable
+const MessageBubble = ({
+    message,
+    onReply,
+    onPartnerProfilePress
+}: {
+    message: Message,
+    onReply: (msg: Message) => void,
+    onPartnerProfilePress: () => void
+}) => {
+    const isMe = message.sender === 'me';
+    const swipeableRef = useRef<any>(null);
+
+    const renderLeftActions = (_progress: any, dragX: any) => {
+        return (
+            <View style={styles.replyActionContainer}>
+                <Ionicons name="arrow-undo" size={24} color="#0d9488" />
+            </View>
+        );
+    };
+
+    const handleSwipeOpen = () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onReply(message);
+        swipeableRef.current?.close();
+    };
+
+    const handleLongPress = () => {
+        Alert.alert(
+            'メニュー',
+            '',
+            [
+                {
+                    text: '返信する',
+                    onPress: () => onReply(message)
+                },
+                { text: 'キャンセル', style: 'cancel' }
+            ],
+            { cancelable: true }
+        );
+    };
+
+    return (
+        <Swipeable
+            ref={swipeableRef}
+            renderLeftActions={renderLeftActions}
+            onSwipeableOpen={handleSwipeOpen}
+            friction={2}
+            enableTrackpadTwoFingerGesture
+            leftThreshold={40}
+            containerStyle={styles.swipeableContainer}
+        >
+            <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
+                <TouchableOpacity
+                    style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}
+                    onLongPress={handleLongPress}
+                    activeOpacity={0.8}
+                >
+                    {isMe ? (
+                        <LinearGradient
+                            colors={['#0d9488', '#2563eb']} // teal-600 to blue-600
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={styles.bubbleGradient}
+                        >
+                            {message.replyTo && (
+                                <View style={styles.replyContainerMe}>
+                                    <View style={styles.replyBarMe} />
+                                    <View style={styles.replyContent}>
+                                        <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
+                                        <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            <Text style={styles.messageTextMe}>{message.text}</Text>
+                        </LinearGradient>
+                    ) : (
+                        <View style={styles.bubbleOther}>
+                            {message.replyTo && (
+                                <View style={styles.replyContainerOther}>
+                                    <View style={styles.replyBarOther} />
+                                    <View style={styles.replyContent}>
+                                        <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
+                                        <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                    </View>
+                                </View>
+                            )}
+                            <Text style={styles.messageTextOther}>{message.text}</Text>
+                        </View>
+                    )}
+                    <Text style={styles.timestamp}>{message.timestamp}</Text>
+                </TouchableOpacity>
+            </View>
+        </Swipeable>
+    );
+};
+
 export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [replyingTo, setReplyingTo] = useState<Message | null>(null);
     const flatListRef = useRef<FlatList>(null);
+    const inputRef = useRef<TextInput>(null);
 
     useEffect(() => {
         const initializeChat = async () => {
@@ -109,6 +216,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     }),
                     date: new Date(msg.created_at).toISOString().split('T')[0],
                     created_at: msg.created_at,
+                    replyTo: msg.reply_to,
                 }));
                 setMessages(formattedMessages);
             }
@@ -141,6 +249,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             }),
                             date: new Date(payload.new.created_at).toISOString().split('T')[0],
                             created_at: payload.new.created_at,
+                            replyTo: payload.new.reply_to,
                         };
                         setMessages((prev) => [...prev, newMessage]);
                     }
@@ -180,7 +289,14 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         if (!inputText.trim() || !currentUserId) return;
 
         const content = inputText.trim();
+        const replyData = replyingTo ? {
+            id: replyingTo.id,
+            text: replyingTo.text,
+            senderName: replyingTo.sender === 'me' ? '自分' : partnerName
+        } : null;
+
         setInputText(''); // Clear input immediately for better UX
+        setReplyingTo(null); // Clear reply state
 
         try {
             const { data, error } = await supabase
@@ -189,6 +305,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     sender_id: currentUserId,
                     receiver_id: partnerId,
                     content: content,
+                    reply_to: replyData, // Save reply info
                 })
                 .select()
                 .single();
@@ -206,6 +323,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     }),
                     date: new Date(data.created_at).toISOString().split('T')[0],
                     created_at: data.created_at,
+                    replyTo: replyData || undefined,
                 };
                 setMessages((prev) => [...prev, newMessage]);
 
@@ -221,6 +339,11 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         }
     };
 
+    const handleReply = (message: Message) => {
+        setReplyingTo(message);
+        inputRef.current?.focus();
+    };
+
     const renderDateSeparator = (dateLabel: string) => (
         <View style={styles.dateSeparatorContainer}>
             <View style={styles.dateSeparatorLine} />
@@ -229,36 +352,17 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         </View>
     );
 
-    const renderMessage = (message: Message) => {
-        const isMe = message.sender === 'me';
-        return (
-            <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
-                <View style={[styles.messageContainer, isMe ? styles.messageContainerMe : styles.messageContainerOther]}>
-                    {isMe ? (
-                        <LinearGradient
-                            colors={['#0d9488', '#2563eb']} // teal-600 to blue-600
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.bubbleGradient}
-                        >
-                            <Text style={styles.messageTextMe}>{message.text}</Text>
-                        </LinearGradient>
-                    ) : (
-                        <View style={styles.bubbleOther}>
-                            <Text style={styles.messageTextOther}>{message.text}</Text>
-                        </View>
-                    )}
-                    <Text style={styles.timestamp}>{message.timestamp}</Text>
-                </View>
-            </View>
-        );
-    };
-
     const renderItem = ({ item }: { item: MessageItem }) => {
         if (item.type === 'date') {
             return renderDateSeparator(item.dateLabel!);
         } else {
-            return renderMessage(item.message!);
+            return (
+                <MessageBubble
+                    message={item.message!}
+                    onReply={handleReply}
+                    onPartnerProfilePress={onPartnerProfilePress}
+                />
+            );
         }
     };
 
@@ -300,78 +404,94 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     }
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#374151" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.headerInfo} onPress={onPartnerProfilePress}>
-                    <Image source={{ uri: partnerImage }} style={styles.headerAvatar} />
-                    <Text style={styles.headerName}>{partnerName}</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
-                    <Ionicons name="ellipsis-vertical" size={24} color="#374151" />
-                </TouchableOpacity>
-            </View>
-
-            {/* Messages */}
-            <FlatList
-                ref={flatListRef}
-                data={messageListWithDates}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.messagesList}
-                onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
-            />
-
-            {/* Input Area */}
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
-            >
-                <View style={styles.inputContainer}>
-                    <TouchableOpacity
-                        style={styles.attachButton}
-                        onPress={() => Alert.alert('画像送信', '画像選択機能は開発中です')}
-                    >
-                        <Ionicons name="add" size={24} color="#6b7280" />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+            <SafeAreaView style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
+                        <Ionicons name="chevron-back" size={28} color="#374151" />
                     </TouchableOpacity>
 
-                    <TextInput
-                        style={styles.input}
-                        value={inputText}
-                        onChangeText={setInputText}
-                        placeholder="メッセージを入力..."
-                        multiline
-                        maxLength={500}
-                    />
-                    <TouchableOpacity
-                        onPress={handleSend}
-                        disabled={!inputText.trim()}
-                        style={[
-                            styles.sendButton,
-                            !inputText.trim() && styles.sendButtonDisabled
-                        ]}
-                    >
-                        {inputText.trim() ? (
-                            <LinearGradient
-                                colors={['#f97316', '#ea580c']}
-                                style={styles.sendButtonGradient}
-                            >
-                                <Ionicons name="send" size={20} color="white" />
-                            </LinearGradient>
-                        ) : (
-                            <View style={styles.sendButtonContentDisabled}>
-                                <Ionicons name="send" size={20} color="#9ca3af" />
-                            </View>
-                        )}
+                    <View style={styles.headerInfo}>
+                        <Image
+                            source={{ uri: partnerImage }}
+                            style={styles.headerAvatar}
+                        />
+                        <Text style={styles.headerName}>{partnerName}</Text>
+                    </View>
+
+                    <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
+                        <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
                     </TouchableOpacity>
                 </View>
-            </KeyboardAvoidingView>
-        </SafeAreaView>
+
+                {/* Messages List */}
+                <FlatList
+                    ref={flatListRef}
+                    data={messageListWithDates}
+                    renderItem={renderItem}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                    onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
+                />
+
+                {/* Input Area */}
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                >
+                    {replyingTo && (
+                        <View style={styles.replyPreviewBar}>
+                            <View style={styles.replyPreviewContent}>
+                                <View style={styles.replyPreviewLine} />
+                                <View>
+                                    <Text style={styles.replyPreviewSender}>
+                                        {replyingTo.sender === 'me' ? '自分' : partnerName}への返信
+                                    </Text>
+                                    <Text style={styles.replyPreviewText} numberOfLines={1}>
+                                        {replyingTo.text}
+                                    </Text>
+                                </View>
+                            </View>
+                            <TouchableOpacity onPress={() => setReplyingTo(null)} style={styles.closeReplyButton}>
+                                <Ionicons name="close" size={20} color="#6B7280" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    <View style={styles.inputContainer}>
+                        <TouchableOpacity style={styles.attachButton}>
+                            <Ionicons name="image-outline" size={24} color="#9ca3af" />
+                        </TouchableOpacity>
+
+                        <TextInput
+                            ref={inputRef}
+                            style={styles.input}
+                            placeholder="メッセージを入力..."
+                            value={inputText}
+                            onChangeText={setInputText}
+                            multiline
+                            maxLength={1000}
+                        />
+
+                        <TouchableOpacity
+                            style={[
+                                styles.sendButton,
+                                !inputText.trim() && styles.sendButtonDisabled
+                            ]}
+                            onPress={handleSend}
+                            disabled={!inputText.trim()}
+                        >
+                            <Ionicons
+                                name="send"
+                                size={20}
+                                color={inputText.trim() ? 'white' : '#9ca3af'}
+                            />
+                        </TouchableOpacity>
+                    </View>
+                </KeyboardAvoidingView>
+            </SafeAreaView>
+        </GestureHandlerRootView>
     );
 }
 
@@ -395,20 +515,19 @@ const styles = StyleSheet.create({
     },
     backButton: {
         padding: 4,
-        marginRight: 12,
+        marginRight: 8,
     },
     headerInfo: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
     },
     headerAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        borderWidth: 2,
-        borderColor: '#14b8a6', // teal-500
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        marginRight: 12,
+        backgroundColor: '#e5e7eb',
     },
     headerName: {
         fontSize: 16,
@@ -418,29 +537,29 @@ const styles = StyleSheet.create({
     menuButton: {
         padding: 4,
     },
-    messagesList: {
+    listContent: {
         padding: 16,
-        paddingBottom: 32,
+        paddingBottom: 16,
     },
     dateSeparatorContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 20,
-        paddingHorizontal: 16,
+        marginVertical: 16,
+        justifyContent: 'center',
     },
     dateSeparatorLine: {
         flex: 1,
         height: 1,
-        backgroundColor: '#d1d5db',
+        backgroundColor: '#e5e7eb',
     },
     dateSeparatorText: {
-        paddingHorizontal: 12,
+        marginHorizontal: 12,
         fontSize: 12,
-        color: '#6b7280',
+        color: '#9ca3af',
         fontWeight: '500',
     },
     messageRow: {
-        marginBottom: 16,
+        marginBottom: 12,
         flexDirection: 'row',
     },
     messageRowMe: {
@@ -451,7 +570,7 @@ const styles = StyleSheet.create({
     },
     messageContainer: {
         maxWidth: '75%',
-        gap: 4,
+        position: 'relative',
     },
     messageContainerMe: {
         alignItems: 'flex-end',
@@ -461,33 +580,34 @@ const styles = StyleSheet.create({
     },
     bubbleGradient: {
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 10,
         borderRadius: 20,
         borderBottomRightRadius: 4,
     },
     bubbleOther: {
+        backgroundColor: 'white',
         paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingVertical: 10,
         borderRadius: 20,
         borderBottomLeftRadius: 4,
-        backgroundColor: 'white',
         borderWidth: 1,
         borderColor: '#e5e7eb',
     },
     messageTextMe: {
         color: 'white',
-        fontSize: 14,
-        lineHeight: 20,
+        fontSize: 15,
+        lineHeight: 22,
     },
     messageTextOther: {
-        color: '#111827',
-        fontSize: 14,
-        lineHeight: 20,
+        color: '#1f2937',
+        fontSize: 15,
+        lineHeight: 22,
     },
     timestamp: {
         fontSize: 10,
         color: '#9ca3af',
-        paddingHorizontal: 4,
+        marginTop: 4,
+        marginHorizontal: 4,
     },
     inputContainer: {
         flexDirection: 'row',
@@ -496,48 +616,126 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderTopWidth: 1,
         borderTopColor: '#e5e7eb',
-        gap: 12,
+    },
+    attachButton: {
+        padding: 10,
+        marginRight: 8,
     },
     input: {
         flex: 1,
-        minHeight: 44,
-        maxHeight: 100,
-        backgroundColor: '#f9fafb',
-        borderRadius: 22,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 20,
         paddingHorizontal: 16,
-        paddingTop: 12,
-        paddingBottom: 12,
-        fontSize: 14,
-        borderWidth: 1,
-        borderColor: '#e5e7eb',
+        paddingVertical: 10,
+        maxHeight: 100,
+        fontSize: 15,
+        color: '#1f2937',
     },
     sendButton: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        overflow: 'hidden',
-    },
-    sendButtonDisabled: {
-        backgroundColor: '#f3f4f6',
-    },
-    sendButtonGradient: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    sendButtonContentDisabled: {
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    attachButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#f3f4f6',
+        backgroundColor: '#0d9488',
         alignItems: 'center',
         justifyContent: 'center',
+        marginLeft: 8,
+    },
+    sendButtonDisabled: {
+        backgroundColor: '#e5e7eb',
+    },
+    // Reply Styles
+    replyPreviewBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: '#F9FAFB',
+        borderTopWidth: 1,
+        borderTopColor: '#E5E7EB',
+    },
+    replyPreviewContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    replyPreviewLine: {
+        width: 4,
+        height: 36,
+        backgroundColor: '#0d9488',
+        borderRadius: 2,
+        marginRight: 12,
+    },
+    replyPreviewSender: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#0d9488',
+        marginBottom: 2,
+    },
+    replyPreviewText: {
+        fontSize: 14,
+        color: '#4B5563',
+    },
+    closeReplyButton: {
+        padding: 8,
+    },
+    replyContainerMe: {
+        marginBottom: 8,
+        padding: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderRadius: 8,
+        flexDirection: 'row',
+    },
+    replyContainerOther: {
+        marginBottom: 8,
+        padding: 8,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 8,
+        flexDirection: 'row',
+    },
+    replyBarMe: {
+        width: 3,
+        backgroundColor: 'rgba(255, 255, 255, 0.6)',
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    replyBarOther: {
+        width: 3,
+        backgroundColor: '#0d9488',
+        borderRadius: 2,
+        marginRight: 8,
+    },
+    replyContent: {
+        flex: 1,
+    },
+    replySenderMe: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: 'rgba(255, 255, 255, 0.9)',
+        marginBottom: 2,
+    },
+    replySenderOther: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: '#0d9488',
+        marginBottom: 2,
+    },
+    replyTextMe: {
+        fontSize: 13,
+        color: 'rgba(255, 255, 255, 0.8)',
+    },
+    replyTextOther: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    swipeableContainer: {
+        // Ensure swipeable doesn't mess up layout
+    },
+    replyActionContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 50,
+        height: '100%',
     },
 });
+
+
