@@ -54,6 +54,7 @@ function AppContent() {
   }, []);
 
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
+  const [matchedProfileIds, setMatchedProfileIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [activeChatRoom, setActiveChatRoom] = useState<{
@@ -118,6 +119,35 @@ function AppContent() {
     }
   };
 
+  // Fetch matches and liked profiles
+  const fetchMatches = async () => {
+    if (!session?.user) return;
+    try {
+      const { data: myLikes } = await supabase
+        .from('likes')
+        .select('receiver_id')
+        .eq('sender_id', session.user.id);
+
+      const { data: receivedLikes } = await supabase
+        .from('likes')
+        .select('sender_id')
+        .eq('receiver_id', session.user.id);
+
+      const myLikedIdsSet = new Set(myLikes?.map(l => l.receiver_id) || []);
+      setLikedProfiles(myLikedIdsSet);
+
+      const matches = new Set<string>();
+      receivedLikes?.forEach(l => {
+        if (myLikedIdsSet.has(l.sender_id)) {
+          matches.add(l.sender_id);
+        }
+      });
+      setMatchedProfileIds(matches);
+    } catch (error) {
+      console.error('Error fetching matches:', error);
+    }
+  };
+
   // Fetch current user profile
   const fetchCurrentUser = async () => {
     if (!session?.user) return;
@@ -165,6 +195,7 @@ function AppContent() {
     if (session?.user) {
       fetchCurrentUser();
       fetchProfiles();
+      fetchMatches();
     }
   }, [session]);
 
@@ -193,6 +224,8 @@ function AppContent() {
 
         if (myLike) {
           // It's a match! (initiated by the other user)
+          setMatchedProfileIds(prev => new Set(prev).add(senderId));
+
           // Fetch sender's profile to display modal
           const { data: senderProfile } = await supabase
             .from('profiles')
@@ -233,6 +266,7 @@ function AppContent() {
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await fetchProfiles();
+    await fetchMatches();
     setRefreshing(false);
   }, []);
 
@@ -254,6 +288,8 @@ function AppContent() {
   const filteredProfiles = displayProfiles.filter(profile => {
     // Exclude current user
     if (session?.user && profile.id === session.user.id) return false;
+    // Exclude matched users
+    if (matchedProfileIds.has(profile.id)) return false;
 
     if (!filterCriteria) return true;
 
@@ -354,6 +390,7 @@ function AppContent() {
 
         if (reverseLike) {
           // It's a match!
+          setMatchedProfileIds(prev => new Set(prev).add(profileId));
           const matchedUser = displayProfiles.find(p => p.id === profileId);
           if (matchedUser) {
             setMatchedProfile(matchedUser);
