@@ -27,6 +27,7 @@ begin
   delete from public.theme_participants where user_id = current_user_id;
   delete from public.likes where sender_id = current_user_id or receiver_id = current_user_id;
   delete from public.messages where sender_id = current_user_id or receiver_id = current_user_id;
+  delete from public.notifications where user_id = current_user_id or sender_id = current_user_id;
   delete from public.profiles where id = current_user_id;
 
   -- 2. Delete from auth.users (Authentication Data)

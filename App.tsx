@@ -168,6 +168,68 @@ function AppContent() {
     }
   }, [session]);
 
+  // Realtime subscription for matching
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    const subscription = supabase
+      .channel('public:likes:matching')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'likes',
+        filter: `receiver_id=eq.${session.user.id}`
+      }, async (payload) => {
+        const newLike = payload.new;
+        const senderId = newLike.sender_id;
+
+        // Check if I have already liked this user
+        const { data: myLike } = await supabase
+          .from('likes')
+          .select('*')
+          .eq('sender_id', session.user.id)
+          .eq('receiver_id', senderId)
+          .maybeSingle();
+
+        if (myLike) {
+          // It's a match! (initiated by the other user)
+          // Fetch sender's profile to display modal
+          const { data: senderProfile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', senderId)
+            .single();
+
+          if (senderProfile) {
+            const profile: Profile = {
+              id: senderProfile.id,
+              name: senderProfile.name,
+              age: senderProfile.age,
+              location: senderProfile.location || '',
+              university: senderProfile.university,
+              company: senderProfile.company,
+              image: senderProfile.image,
+              challengeTheme: senderProfile.challenge_theme || '',
+              theme: senderProfile.theme || '',
+              bio: senderProfile.bio,
+              skills: senderProfile.skills || [],
+              seekingFor: senderProfile.seeking_for || [],
+              seekingRoles: senderProfile.seeking_roles || [],
+              statusTags: senderProfile.status_tags || [],
+              isStudent: senderProfile.is_student,
+              createdAt: senderProfile.created_at,
+            };
+            setMatchedProfile(profile);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [session]);
+
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     await fetchProfiles();
@@ -270,6 +332,18 @@ function AppContent() {
             receiver_id: profileId
           });
 
+        // Create notification for like
+        if (currentUser) {
+          await supabase.from('notifications').insert({
+            user_id: profileId,
+            sender_id: session.user.id,
+            type: 'like',
+            title: 'いいねが届きました！',
+            content: `${currentUser.name}さんからいいねが届きました。`,
+            image_url: currentUser.image
+          });
+        }
+
         // Check for match
         const { data: reverseLike } = await supabase
           .from('likes')
@@ -283,6 +357,29 @@ function AppContent() {
           const matchedUser = displayProfiles.find(p => p.id === profileId);
           if (matchedUser) {
             setMatchedProfile(matchedUser);
+
+            // Create notifications for match
+            if (currentUser) {
+              // Notify partner
+              await supabase.from('notifications').insert({
+                user_id: profileId,
+                sender_id: session.user.id,
+                type: 'match',
+                title: 'マッチング成立！',
+                content: `${currentUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                image_url: currentUser.image
+              });
+
+              // Notify self
+              await supabase.from('notifications').insert({
+                user_id: session.user.id,
+                sender_id: profileId,
+                type: 'match',
+                title: 'マッチング成立！',
+                content: `${matchedUser.name}さんとマッチングしました！メッセージを送ってみましょう。`,
+                image_url: matchedUser.image
+              });
+            }
           }
         }
       }
