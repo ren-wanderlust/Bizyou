@@ -1,6 +1,7 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { supabase } from '../lib/supabase';
 
 import { Profile } from '../types';
 
@@ -21,6 +22,8 @@ interface MenuItem {
 }
 
 export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress }: MyPageProps) {
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card-outline', label: '課金・プラン管理' },
         { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
@@ -28,6 +31,22 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         { id: 'settings', icon: 'settings-outline', label: '各種設定' },
         { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
     ];
+
+    const handleDeleteAccount = async () => {
+        setIsDeleting(true);
+        try {
+            const { error } = await supabase.rpc('delete_account');
+            if (error) throw error;
+
+            Alert.alert("完了", "アカウントを削除しました。", [
+                { text: "OK", onPress: onLogout }
+            ]);
+        } catch (error: any) {
+            console.error('Error deleting account:', error);
+            Alert.alert("エラー", "アカウントの削除に失敗しました。");
+            setIsDeleting(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -119,17 +138,18 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                         {
                                             text: "削除する",
                                             style: "destructive",
-                                            onPress: () => {
-                                                Alert.alert("完了", "アカウント削除のリクエストを受け付けました。\n（デモ版のため実際の削除は行われません）", [
-                                                    { text: "OK", onPress: onLogout }
-                                                ]);
-                                            }
+                                            onPress: handleDeleteAccount
                                         }
                                     ]
                                 );
                             }}
+                            disabled={isDeleting}
                         >
-                            <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
+                            {isDeleting ? (
+                                <ActivityIndicator size="small" color="#999" />
+                            ) : (
+                                <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
+                            )}
                         </TouchableOpacity>
                     </View>
 

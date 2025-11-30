@@ -68,6 +68,7 @@ function AppContent() {
   const [legalDocument, setLegalDocument] = useState<{ title: string; content: string } | null>(null);
 
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
 
   const [sortOrder, setSortOrder] = useState<'recommended' | 'newest'>('recommended');
   const [isSortModalOpen, setIsSortModalOpen] = useState(false);
@@ -118,12 +119,13 @@ function AppContent() {
   // Fetch current user profile
   const fetchCurrentUser = async () => {
     if (!session?.user) return;
+    setIsLoadingUser(true);
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
-        .maybeSingle(); // Use maybeSingle instead of single to handle 0 rows gracefully
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -147,15 +149,15 @@ function AppContent() {
           createdAt: data.created_at,
         };
         setCurrentUser(mappedUser);
+      } else {
+        console.log('No profile found for user');
       }
     } catch (error: any) {
       console.error('Error fetching current user:', error);
+    } finally {
+      setIsLoadingUser(false);
     }
   };
-
-  React.useEffect(() => {
-    fetchProfiles();
-  }, []);
 
   React.useEffect(() => {
     if (session?.user) {
@@ -518,15 +520,32 @@ function AppContent() {
             })}
           />
         )}
-        {activeTab === 'profile' && currentUser && (
-          <MyPage
-            profile={currentUser}
-            onLogout={signOut}
-            onEditProfile={handleEditProfile}
-            onOpenNotifications={() => setShowNotifications(true)}
-            onSettingsPress={() => setShowSettings(true)}
-            onHelpPress={() => setShowHelp(true)}
-          />
+        {activeTab === 'profile' && (
+          isLoadingUser ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color="#009688" />
+              <Text>プロフィールを読み込み中...</Text>
+            </View>
+          ) : currentUser ? (
+            <MyPage
+              profile={currentUser}
+              onLogout={signOut}
+              onEditProfile={handleEditProfile}
+              onOpenNotifications={() => setShowNotifications(true)}
+              onSettingsPress={() => setShowSettings(true)}
+              onHelpPress={() => setShowHelp(true)}
+            />
+          ) : (
+            <View style={styles.centerContainer}>
+              <Text>プロフィールの読み込みに失敗しました。</Text>
+              <TouchableOpacity onPress={fetchCurrentUser} style={{ marginTop: 10, padding: 10, backgroundColor: '#009688', borderRadius: 5 }}>
+                <Text style={{ color: 'white' }}>再読み込み</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={signOut} style={{ marginTop: 20 }}>
+                <Text style={{ color: 'red' }}>ログアウト</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
       </View>
 
