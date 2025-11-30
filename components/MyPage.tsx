@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-
 import { Profile } from '../types';
 
 interface MyPageProps {
@@ -23,6 +22,7 @@ interface MenuItem {
 
 export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress }: MyPageProps) {
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isImageModalVisible, setIsImageModalVisible] = useState(false);
 
     const menuItems: MenuItem[] = [
         { id: 'billing', icon: 'card-outline', label: '課金・プラン管理' },
@@ -57,10 +57,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     <View style={styles.headerContainer}>
                         <Text style={styles.pageTitle}>マイページ</Text>
                         <View style={styles.profileImageContainer}>
-                            <Image
-                                source={{ uri: profile.image }}
-                                style={styles.profileImage}
-                            />
+                            <TouchableOpacity onPress={() => setIsImageModalVisible(true)} activeOpacity={0.9}>
+                                <Image
+                                    source={{ uri: profile.image }}
+                                    style={styles.profileImage}
+                                />
+                            </TouchableOpacity>
                         </View>
                         <Text style={styles.userName}>{profile.name}</Text>
                         <Text style={styles.userDetails}>{profile.age}歳 · {profile.university || profile.company || ''}</Text>
@@ -159,6 +161,32 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     </View>
                 </ScrollView>
             </SafeAreaView>
+
+            {/* Image Preview Modal */}
+            <Modal
+                visible={isImageModalVisible}
+                transparent={true}
+                onRequestClose={() => setIsImageModalVisible(false)}
+                animationType="fade"
+            >
+                <TouchableOpacity
+                    style={styles.modalBackground}
+                    activeOpacity={1}
+                    onPress={() => setIsImageModalVisible(false)}
+                >
+                    <Image
+                        source={{ uri: profile.image }}
+                        style={styles.fullScreenImage}
+                        resizeMode="contain"
+                    />
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={() => setIsImageModalVisible(false)}
+                    >
+                        <Ionicons name="close" size={30} color="white" />
+                    </TouchableOpacity>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 }
@@ -315,5 +343,22 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#999',
         textDecorationLine: 'underline',
+    },
+    modalBackground: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    fullScreenImage: {
+        width: '100%',
+        height: '80%',
+    },
+    closeButton: {
+        position: 'absolute',
+        top: 50,
+        right: 20,
+        padding: 10,
+        zIndex: 1,
     },
 });
