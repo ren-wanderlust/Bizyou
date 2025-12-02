@@ -114,36 +114,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     // Tag data (copied from ProfileEdit)
     const skillCategories = [
         {
-            title: '💻 エンジニア',
-            skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'ゲーム開発', 'AI / データ', 'ノーコード']
+            title: '開発技術',
+            skills: ['Webアプリ', 'モバイルアプリ', 'ゲーム開発', '機械学習']
         },
         {
-            title: '🎨 デザイナー',
-            skills: ['UI / UXデザイン', 'グラフィック / イラスト']
+            title: 'ビジネス',
+            skills: ['アイディアマン', 'マーケティング/SNS運用', '英語力']
         },
         {
-            title: '📣 マーケ / 広報',
-            skills: ['マーケティング', 'SNS運用', 'ライター']
-        },
-        {
-            title: '💼 セールス / BizDev',
-            skills: ['セールス (営業)', '事業開発 (BizDev)']
-        },
-        {
-            title: '🎥 動画 / クリエイター',
-            skills: ['動画編集', '3D / CG']
-        },
-        {
-            title: '1️⃣ PM / ディレクター',
-            skills: ['PM / ディレクター', 'コミュニティ運営']
-        },
-        {
-            title: '💰 財務 / 専門職',
-            skills: ['財務 / 会計', '法務 / 知財']
-        },
-        {
-            title: '🌏 その他 / 語学',
-            skills: ['英語 / 語学']
+            title: 'その他',
+            skills: ['デザイナー', '動画編集/クリエイター']
         }
     ];
 
@@ -161,12 +141,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     ];
 
     const seekingForOptions = [
-        'ビジネスメンバー探し',
-        'アイデア模索中',
-        'コミュニティ形成',
-        'まずは話してみたい',
-        '起業に興味あり',
-        '壁打ち相手募集',
+        'エンジニア探し',
+        'マーケター探し',
+        'クリエイター探し',
+        'とりあえず仲間探し',
     ];
 
     const pickImage = async () => {
@@ -744,7 +722,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <Ionicons name="flag-outline" size={20} color={errors.seekingFor ? "#ef4444" : "#0d9488"} />
-                    <Text style={[styles.sectionTitle, errors.seekingFor && styles.sectionTitleError]}>🌱 現在のステータス・目的</Text>
+                    <Text style={[styles.sectionTitle, errors.seekingFor && styles.sectionTitleError]}>🌱 目的</Text>
                 </View>
                 <View style={styles.chipContainer}>
                     {seekingForOptions.map((option) => (
