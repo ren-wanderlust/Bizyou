@@ -135,25 +135,15 @@ export function ChallengeCardPage({ onThemeSelect, hideHeader = false }: Challen
             {/* Header - Navigation Bar Style */}
             {!hideHeader && (
                 <View style={styles.header}>
-                    <View style={styles.headerTitleContainer}>
-                        <View style={styles.logoRow}>
-                            <Ionicons name="bulb-outline" size={24} color="#374151" style={{ marginRight: 4 }} />
-                            <Text style={styles.arrowDecoration}>{'>>'}</Text>
-                            <Text style={styles.headerLogoText}>挑戦テーマ</Text>
-                            <Ionicons name="settings-outline" size={20} color="#0d9488" style={{ marginLeft: 4, marginTop: 4 }} />
-                        </View>
-                        <View style={styles.underlineContainer}>
-                            <View style={styles.underline} />
-                            <Ionicons name="chevron-down" size={12} color="#0d9488" style={styles.underlineIcon} />
-                            <View style={styles.underline} />
-                        </View>
+                    <View style={styles.titleContainer}>
+                        <Ionicons name="bulb" size={24} color="#009688" />
+                        <Text style={styles.headerTitle}>挑戦テーマ</Text>
                     </View>
-
                     <TouchableOpacity
                         style={styles.searchButton}
                         onPress={() => setIsSearchModalVisible(true)}
                     >
-                        <Ionicons name="search-outline" size={28} color="#333" />
+                        <Ionicons name="search" size={20} color="#374151" />
                     </TouchableOpacity>
                 </View>
             )}
@@ -254,58 +244,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        height: 90,
-        paddingTop: 45,
-        paddingBottom: 10,
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#FAFAFA',
-        position: 'relative',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        backgroundColor: 'white',
         zIndex: 10,
     },
-    headerTitleContainer: {
-        alignItems: 'center',
-    },
-    logoRow: {
+    titleContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 8,
     },
-    headerLogoText: {
-        fontSize: 28,
+    headerTitle: {
+        fontSize: 24,
         fontWeight: 'bold',
-        color: '#1F2937', // Dark Navy/Black
-        letterSpacing: 1,
-        marginHorizontal: 4,
-    },
-    arrowDecoration: {
-        fontSize: 20,
-        color: '#374151',
-        fontWeight: '300',
-        marginRight: 4,
-    },
-    underlineContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: -4,
-        width: '100%',
-        justifyContent: 'center',
-    },
-    underline: {
-        height: 2,
-        backgroundColor: '#0d9488', // Teal accent
-        flex: 1,
-        maxWidth: 80,
-        borderRadius: 1,
-    },
-    underlineIcon: {
-        marginHorizontal: 4,
+        color: '#111827',
+        letterSpacing: 0.5,
     },
     searchButton: {
-        position: 'absolute',
-        right: 16,
-        bottom: 12,
-        padding: 4,
+        padding: 10,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 20,
     },
     content: {
         flex: 1,
