@@ -592,29 +592,27 @@ function AppContent() {
                 </View>
               </View>
 
-              {searchTab === 'users' && (
-                <View style={styles.searchControlBar}>
-                  <TouchableOpacity
-                    style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
-                    onPress={() => setIsFilterOpen(true)}
-                  >
-                    <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
-                    <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
-                      絞り込み
-                    </Text>
-                  </TouchableOpacity>
+              <View style={styles.searchControlBar}>
+                <TouchableOpacity
+                  style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+                  onPress={() => setIsFilterOpen(true)}
+                >
+                  <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+                  <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                    絞り込み
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.sortButton}
-                    onPress={() => setIsSortModalOpen(true)}
-                  >
-                    <Text style={styles.controlButtonText}>
-                      {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
-                    </Text>
-                    <Ionicons name="chevron-down" size={16} color="#374151" />
-                  </TouchableOpacity>
-                </View>
-              )}
+                <TouchableOpacity
+                  style={styles.sortButton}
+                  onPress={() => setIsSortModalOpen(true)}
+                >
+                  <Text style={styles.controlButtonText}>
+                    {sortOrder === 'recommended' ? 'おすすめ順' : '新着順'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#374151" />
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
