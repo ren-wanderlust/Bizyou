@@ -172,6 +172,10 @@ export function UserProjectPage({ currentUser, onChat }: UserProjectPageProps) {
                             setSelectedProject(null);
                             onChat(id, name, image);
                         }}
+                        onProjectUpdated={() => {
+                            setSelectedProject(null);
+                            onRefresh();
+                        }}
                     />
                 )}
             </Modal>

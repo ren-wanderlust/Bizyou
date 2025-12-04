@@ -22,14 +22,21 @@ interface CreateProjectModalProps {
     currentUser: Profile;
     onClose: () => void;
     onCreated: () => void;
+    project?: {
+        id: string;
+        title: string;
+        description: string;
+        image_url: string | null;
+        deadline?: string | null;
+    };
 }
 
-export function CreateProjectModal({ currentUser, onClose, onCreated }: CreateProjectModalProps) {
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [deadline, setDeadline] = useState<Date | null>(null);
+export function CreateProjectModal({ currentUser, onClose, onCreated, project }: CreateProjectModalProps) {
+    const [title, setTitle] = useState(project?.title || '');
+    const [description, setDescription] = useState(project?.description || '');
+    const [deadline, setDeadline] = useState<Date | null>(project?.deadline ? new Date(project.deadline) : null);
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [image, setImage] = useState<string | null>(null);
+    const [image, setImage] = useState<string | null>(project?.image_url || null);
     const [loading, setLoading] = useState(false);
 
     const pickImage = async () => {
@@ -47,6 +54,8 @@ export function CreateProjectModal({ currentUser, onClose, onCreated }: CreatePr
 
     const uploadImage = async (uri: string): Promise<string | null> => {
         try {
+            if (uri.startsWith('http')) return uri; // Already uploaded
+
             const ext = uri.split('.').pop();
             const fileName = `${Date.now()}.${ext}`;
             const filePath = `${currentUser.id}/${fileName}`;
@@ -77,7 +86,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated }: CreatePr
         }
     };
 
-    const handleCreate = async () => {
+    const handleSave = async () => {
         if (!title.trim()) {
             Alert.alert('エラー', 'タイトルを入力してください');
             return;
@@ -85,28 +94,45 @@ export function CreateProjectModal({ currentUser, onClose, onCreated }: CreatePr
 
         setLoading(true);
         try {
-            let imageUrl = null;
-            if (image) {
+            let imageUrl = image;
+            if (image && !image.startsWith('http')) {
                 imageUrl = await uploadImage(image);
             }
 
-            const { error } = await supabase
-                .from('projects')
-                .insert({
-                    owner_id: currentUser.id,
-                    title: title.trim(),
-                    description: description.trim(),
-                    image_url: imageUrl,
-                    deadline: deadline ? deadline.toISOString() : null,
-                });
+            const projectData = {
+                owner_id: currentUser.id,
+                title: title.trim(),
+                description: description.trim(),
+                image_url: imageUrl,
+                deadline: deadline ? deadline.toISOString() : null,
+            };
+
+            let error;
+            if (project) {
+                // Update
+                const { error: updateError } = await supabase
+                    .from('projects')
+                    .update(projectData)
+                    .eq('id', project.id);
+                error = updateError;
+            } else {
+                // Create
+                const { error: insertError } = await supabase
+                    .from('projects')
+                    .insert(projectData);
+                error = insertError;
+            }
 
             if (error) throw error;
 
-            Alert.alert('完了', 'プロジェクトを作成しました！');
-            onCreated();
+            Alert.alert(
+                '完了',
+                project ? 'プロジェクトを更新しました！' : 'プロジェクトを作成しました！',
+                [{ text: 'OK', onPress: onCreated }]
+            );
         } catch (error) {
-            console.error('Error creating project:', error);
-            Alert.alert('エラー', 'プロジェクトの作成に失敗しました');
+            console.error('Error saving project:', error);
+            Alert.alert('エラー', 'プロジェクトの保存に失敗しました');
         } finally {
             setLoading(false);
         }
@@ -128,12 +154,12 @@ export function CreateProjectModal({ currentUser, onClose, onCreated }: CreatePr
                 <TouchableOpacity onPress={onClose}>
                     <Text style={styles.cancelText}>キャンセル</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>プロジェクト作成</Text>
-                <TouchableOpacity onPress={handleCreate} disabled={loading}>
+                <Text style={styles.headerTitle}>{project ? 'プロジェクト編集' : 'プロジェクト作成'}</Text>
+                <TouchableOpacity onPress={handleSave} disabled={loading}>
                     {loading ? (
                         <ActivityIndicator size="small" color="#009688" />
                     ) : (
-                        <Text style={styles.createText}>作成</Text>
+                        <Text style={styles.createText}>{project ? '保存' : '作成'}</Text>
                     )}
                 </TouchableOpacity>
             </View>

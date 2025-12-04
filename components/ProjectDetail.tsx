@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { CreateProjectModal } from './CreateProjectModal';
 
 interface Project {
     id: string;
@@ -25,6 +26,7 @@ interface ProjectDetailProps {
     currentUser: Profile | null;
     onClose: () => void;
     onChat: (ownerId: string, ownerName: string, ownerImage: string) => void;
+    onProjectUpdated?: () => void;
 }
 
 interface Applicant {
@@ -39,12 +41,14 @@ interface Applicant {
     };
 }
 
-export function ProjectDetail({ project, currentUser, onClose, onChat }: ProjectDetailProps) {
+export function ProjectDetail({ project, currentUser, onClose, onChat, onProjectUpdated }: ProjectDetailProps) {
     const [owner, setOwner] = useState<any>(project.owner || null);
     const [loading, setLoading] = useState(!project.owner);
     const [applying, setApplying] = useState(false);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [hasApplied, setHasApplied] = useState(false);
+
+    const [showEditModal, setShowEditModal] = useState(false);
 
     useEffect(() => {
         if (!owner) {
@@ -175,6 +179,47 @@ export function ProjectDetail({ project, currentUser, onClose, onChat }: Project
         }
     };
 
+    const handleDelete = () => {
+        Alert.alert(
+            'プロジェクト削除',
+            '本当にこのプロジェクトを削除しますか？この操作は取り消せません。',
+            [
+                { text: 'キャンセル', style: 'cancel' },
+                {
+                    text: '削除',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setLoading(true);
+                        try {
+                            const { error } = await supabase
+                                .from('projects')
+                                .delete()
+                                .eq('id', project.id);
+                            if (error) throw error;
+
+                            Alert.alert(
+                                '完了',
+                                'プロジェクトを削除しました',
+                                [{
+                                    text: 'OK',
+                                    onPress: () => {
+                                        if (onProjectUpdated) onProjectUpdated();
+                                        else onClose();
+                                    }
+                                }]
+                            );
+                        } catch (error) {
+                            console.error('Error deleting project:', error);
+                            Alert.alert('エラー', '削除に失敗しました');
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const formatDate = (dateString?: string | null) => {
         if (!dateString) return '期限なし';
         const date = new Date(dateString);
@@ -195,7 +240,40 @@ export function ProjectDetail({ project, currentUser, onClose, onChat }: Project
                 <TouchableOpacity onPress={onClose} style={styles.closeButton}>
                     <Ionicons name="close" size={28} color="#374151" />
                 </TouchableOpacity>
+                {currentUser?.id === project.owner_id && (
+                    <View style={styles.headerActions}>
+                        <TouchableOpacity onPress={() => setShowEditModal(true)} style={styles.actionButton}>
+                            <Ionicons name="create-outline" size={24} color="#374151" />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleDelete} style={styles.actionButton}>
+                            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
+
+            <Modal
+                visible={showEditModal}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setShowEditModal(false)}
+            >
+                {currentUser && (
+                    <CreateProjectModal
+                        currentUser={currentUser}
+                        onClose={() => setShowEditModal(false)}
+                        onCreated={() => {
+                            setShowEditModal(false);
+                            // Wait for modal to close before closing parent to avoid black screen
+                            setTimeout(() => {
+                                if (onProjectUpdated) onProjectUpdated();
+                                else onClose();
+                            }, 500);
+                        }}
+                        project={project}
+                    />
+                )}
+            </Modal>
 
             <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
                 <Image
@@ -279,7 +357,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat }: Project
                     )}
                 </TouchableOpacity>
             </View>
-        </SafeAreaView>
+        </SafeAreaView >
     );
 }
 
@@ -297,10 +375,31 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 40,
         left: 0,
+        right: 0,
         zIndex: 10,
         padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
     },
     closeButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    headerActions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    actionButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
