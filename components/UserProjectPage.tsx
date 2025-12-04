@@ -196,13 +196,12 @@ const styles = StyleSheet.create({
         padding: 16,
     },
     grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
+        flexDirection: 'column',
+        gap: 16,
     },
     card: {
-        width: (Dimensions.get('window').width - 32 - 12) / 2,
-        height: (Dimensions.get('window').width - 32 - 12) / 2 * 1.1,
+        width: '100%',
+        height: 200,
         borderRadius: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
