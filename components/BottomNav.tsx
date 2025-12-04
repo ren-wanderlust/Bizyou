@@ -1,14 +1,15 @@
-import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Profile } from '../types';
 
 interface BottomNavProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
+    currentUser: Profile | null;
 }
 
-export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProps) {
     const insets = useSafeAreaInsets();
 
     const tabs = [
@@ -24,6 +25,32 @@ export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
             <View style={styles.tabBar}>
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
+
+                    if (tab.id === 'profile' && currentUser?.image) {
+                        return (
+                            <TouchableOpacity
+                                key={tab.id}
+                                onPress={() => onTabChange(tab.id)}
+                                style={styles.tabButton}
+                                activeOpacity={0.7}
+                            >
+                                <Image
+                                    source={{ uri: currentUser.image }}
+                                    style={[
+                                        styles.profileIcon,
+                                        isActive && styles.profileIconActive
+                                    ]}
+                                />
+                                <Text style={[
+                                    styles.tabLabel,
+                                    isActive ? styles.tabLabelActive : styles.tabLabelInactive
+                                ]}>
+                                    {tab.label}
+                                </Text>
+                            </TouchableOpacity>
+                        );
+                    }
+
                     // Ionicons names logic
                     let iconName: any = tab.icon;
                     if (!isActive) {
@@ -85,5 +112,16 @@ const styles = StyleSheet.create({
     },
     tabLabelInactive: {
         color: '#6b7280', // gray-500
+    },
+    profileIcon: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    profileIconActive: {
+        borderColor: '#0d9488',
+        borderWidth: 2,
     },
 });

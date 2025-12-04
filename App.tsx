@@ -736,7 +736,7 @@ function AppContent() {
         <BottomNav activeTab={activeTab} onTabChange={(tab) => {
           LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setActiveTab(tab);
-        }} />
+        }} currentUser={currentUser} />
       </View>
 
       {/* Modals */}
