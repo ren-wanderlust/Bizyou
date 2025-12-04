@@ -17,7 +17,6 @@ import {
     Modal
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import universitiesData from '../assets/japanese_universities.json';
@@ -28,33 +27,49 @@ interface SignupFlowProps {
 }
 
 export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
-    const [step, setStep] = useState<1 | 2 | 3>(1);
+    const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
 
-    // Step 1: Account info
+    // Step 1: Email and Password
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
+
+    // Step 2: Nickname
     const [nickname, setNickname] = useState('');
 
-    // Step 2: Profile info
+    // Step 3: Icon
     const [imageUri, setImageUri] = useState<string | null>(null);
-    const [age, setAge] = useState('');
+
+    // Step 4: University and Grade
     const [university, setUniversity] = useState('');
-    const [bio, setBio] = useState('');
+    const [grade, setGrade] = useState('');
     const [showUniversityModal, setShowUniversityModal] = useState(false);
+    const [showGradeModal, setShowGradeModal] = useState(false);
     const [searchInput, setSearchInput] = useState('');
     const [filteredUniversities, setFilteredUniversities] = useState<string[]>([]);
     const [allUniversities, setAllUniversities] = useState<string[]>([]);
     const [isLoadingUniversities, setIsLoadingUniversities] = useState(false);
 
+    // Step 5: Your Role
+    const [skills, setSkills] = useState<string[]>([]);
+    const [otherRoleText, setOtherRoleText] = useState('');
+
+    // Step 6: Seeking Teammates
+    const [seekingRoles, setSeekingRoles] = useState<string[]>([]);
+    const [otherSeekingText, setOtherSeekingText] = useState('');
+
+    // Step 7: Bio
+    const [bio, setBio] = useState('');
+
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
     // Load universities from JSON
     useEffect(() => {
         const loadUniversities = () => {
             setIsLoadingUniversities(true);
             try {
-                // Load from JSON file (converted from CSV)
                 const universities = universitiesData as string[];
                 if (universities && universities.length > 0) {
                     setAllUniversities(universities);
@@ -64,7 +79,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 }
             } catch (error) {
                 console.error('Error loading universities:', error);
-                // Fallback to empty list instead of alert to avoid blocking the flow
                 setAllUniversities([]);
                 setFilteredUniversities([]);
             } finally {
@@ -75,7 +89,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         loadUniversities();
     }, []);
 
-    // Filter universities by search input (partial match)
+    // Filter universities by search input
     useEffect(() => {
         if (!searchInput.trim()) {
             setFilteredUniversities(allUniversities);
@@ -84,34 +98,27 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
         const searchTerm = searchInput.trim().toLowerCase();
         const filtered = allUniversities.filter(uni => {
-            // Check if search term is included in university name (case-insensitive)
             return uni.toLowerCase().includes(searchTerm);
         });
         
         setFilteredUniversities(filtered);
     }, [searchInput, allUniversities]);
 
-    // Step 3: Tags (same as ProfileEdit)
-    const [seekingFor, setSeekingFor] = useState<string[]>([]);
-    const [skills, setSkills] = useState<string[]>([]);
-    const [seekingRoles, setSeekingRoles] = useState<string[]>([]);
-
     // Validation errors state
     const [errors, setErrors] = useState({
-        nickname: false,
         email: false,
         password: false,
         passwordConfirm: false,
+        nickname: false,
         image: false,
-        age: false,
         university: false,
-        bio: false,
-        seekingFor: false,
+        grade: false,
         skills: false,
         seekingRoles: false,
+        bio: false,
     });
 
-    // Tag data (copied from ProfileEdit)
+    // Tag data
     const skillCategories = [
         {
             title: '開発技術',
@@ -140,15 +147,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         '🤔 まだ分からない',
     ];
 
-    const seekingForOptions = [
-        'エンジニア探し',
-        'マーケター探し',
-        'クリエイター探し',
-        'とりあえず仲間探し',
+    const gradeOptions = [
+        { value: 'B1', label: 'B1' },
+        { value: 'B2', label: 'B2' },
+        { value: 'B3', label: 'B3' },
+        { value: 'B4', label: 'B4' },
+        { value: 'M1', label: 'M1' },
+        { value: 'M2', label: 'M2' },
     ];
 
     const pickImage = async () => {
-        // No permissions request is necessary for launching the image library
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
@@ -178,14 +186,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         let isValid = true;
         const newErrors = { ...errors };
         let errorMessage = '';
-
-        if (!nickname.trim()) {
-            newErrors.nickname = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = 'ニックネームを入力してください。';
-        } else {
-            newErrors.nickname = false;
-        }
 
         if (!email.trim()) {
             newErrors.email = true;
@@ -228,40 +228,12 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         const newErrors = { ...errors };
         let errorMessage = '';
 
-        if (!imageUri) {
-            newErrors.image = true;
+        if (!nickname.trim()) {
+            newErrors.nickname = true;
             isValid = false;
-            if (!errorMessage) errorMessage = 'プロフィール画像を設定してください。';
+            if (!errorMessage) errorMessage = 'ニックネームを入力してください。';
         } else {
-            newErrors.image = false;
-        }
-
-        if (!age.trim()) {
-            newErrors.age = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = '年齢を入力してください。';
-        } else if (isNaN(Number(age))) {
-            newErrors.age = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = '年齢は半角数字で入力してください。';
-        } else {
-            newErrors.age = false;
-        }
-
-        if (!university.trim()) {
-            newErrors.university = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = '大学名を入力してください。';
-        } else {
-            newErrors.university = false;
-        }
-
-        if (!bio.trim()) {
-            newErrors.bio = true;
-            isValid = false;
-            if (!errorMessage) errorMessage = '自己紹介文を入力してください。';
-        } else {
-            newErrors.bio = false;
+            newErrors.nickname = false;
         }
 
         setErrors(newErrors);
@@ -275,43 +247,206 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const validateStep3 = () => {
         let isValid = true;
         const newErrors = { ...errors };
+        let errorMessage = '';
 
-        if (seekingFor.length === 0) newErrors.seekingFor = true;
-        else newErrors.seekingFor = false;
-
-        if (skills.length === 0) newErrors.skills = true;
-        else newErrors.skills = false;
-
-        if (seekingRoles.length === 0) newErrors.seekingRoles = true;
-        else newErrors.seekingRoles = false;
+        if (!imageUri) {
+            newErrors.image = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = 'プロフィール画像を設定してください。';
+        } else {
+            newErrors.image = false;
+        }
 
         setErrors(newErrors);
 
-        if (seekingFor.length === 0 || skills.length === 0 || seekingRoles.length === 0) {
-            Alert.alert('エラー', 'すべての項目で少なくとも1つのタグを選択してください。');
-            isValid = false;
+        if (!isValid) {
+            Alert.alert('エラー', errorMessage || '入力内容を確認してください。');
         }
         return isValid;
     };
 
-    const handleNext = () => {
+    const validateStep4 = () => {
+        let isValid = true;
+        const newErrors = { ...errors };
+        let errorMessage = '';
+
+        if (!university.trim()) {
+            newErrors.university = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = '大学名を入力してください。';
+        } else {
+            newErrors.university = false;
+        }
+
+        if (!grade) {
+            newErrors.grade = true;
+            isValid = false;
+            if (!errorMessage) errorMessage = '学年を選択してください。';
+        } else {
+            newErrors.grade = false;
+        }
+
+        setErrors(newErrors);
+
+        if (!isValid) {
+            Alert.alert('エラー', errorMessage || '入力内容を確認してください。');
+        }
+        return isValid;
+    };
+
+    const validateStep5 = () => {
+        let isValid = true;
+        const newErrors = { ...errors };
+
+        if (skills.length === 0) {
+            newErrors.skills = true;
+            isValid = false;
+        } else if (skills.includes('other') && !otherRoleText.trim()) {
+            newErrors.skills = true;
+            isValid = false;
+        } else {
+            newErrors.skills = false;
+        }
+
+        setErrors(newErrors);
+
+        if (!isValid) {
+            if (skills.includes('other') && !otherRoleText.trim()) {
+                Alert.alert('エラー', '「その他」を選択した場合は、内容を記入してください。');
+            } else {
+                Alert.alert('エラー', '少なくとも1つの役割を選択してください。');
+            }
+        }
+        return isValid;
+    };
+
+    const validateStep6 = () => {
+        let isValid = true;
+        const newErrors = { ...errors };
+
+        if (seekingRoles.length === 0) {
+            newErrors.seekingRoles = true;
+            isValid = false;
+        } else if (seekingRoles.includes('other') && !otherSeekingText.trim()) {
+            newErrors.seekingRoles = true;
+            isValid = false;
+        } else {
+            newErrors.seekingRoles = false;
+        }
+
+        setErrors(newErrors);
+
+        if (!isValid) {
+            if (seekingRoles.includes('other') && !otherSeekingText.trim()) {
+                Alert.alert('エラー', '「その他」を選択した場合は、内容を記入してください。');
+            } else {
+                Alert.alert('エラー', '少なくとも1つの探している仲間を選択してください。');
+            }
+        }
+        return isValid;
+    };
+
+    const validateStep7 = () => {
+        // Step7は任意入力なので、常にtrueを返す
+        // ただし、20字以内のチェックは行う
+        const newErrors = { ...errors };
+        
+        if (bio.trim().length > 20) {
+            newErrors.bio = true;
+            Alert.alert('エラー', '一言アピールは20字以内で入力してください。');
+            return false;
+        } else {
+            newErrors.bio = false;
+        }
+
+        setErrors(newErrors);
+        return true;
+    };
+
+    const checkEmailExists = async (emailToCheck: string): Promise<boolean> => {
+        try {
+            // メールアドレスの重複チェック
+            // signInWithPasswordで試行して、メールアドレスが存在するか確認
+            // 注意: signUpを試行するとダミーユーザーが作成される可能性があるため、使用しない
+            
+            // signInWithPasswordで試行
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email: emailToCheck,
+                password: 'dummy_password_for_check_12345678', // ダミーパスワード
+            });
+
+            // エラーがない場合は、メールアドレスが存在し、パスワードが正しい（非常に稀なケース）
+            // この場合は重複とみなす
+            if (!signInError) {
+                // セッションをクリア
+                await supabase.auth.signOut();
+                return true;
+            }
+
+            // エラーメッセージから判定
+            const errorMessage = signInError.message?.toLowerCase() || '';
+
+            // "Email not confirmed" の場合は、メールアドレスが存在する（確認されていないユーザー）
+            if (
+                errorMessage.includes('email not confirmed') ||
+                errorMessage.includes('email_not_confirmed') ||
+                errorMessage.includes('email address not confirmed')
+            ) {
+                return true;
+            }
+
+            // "Invalid login credentials" の場合は、メールアドレスが存在する可能性が高い
+            // ただし、パスワードが間違っている場合も同じエラーになる
+            // メールアドレスが存在しない場合は、通常 "Invalid login credentials" が返される
+            // しかし、確実に判定するのは難しいため、この場合は重複なしとみなす
+            // （実際の登録時にエラーが発生した場合は、step7で適切に処理される）
+            
+            // その他のエラーの場合は重複なしとみなす
+            return false;
+        } catch (error) {
+            // エラーが発生した場合は重複なしとみなす（後で登録時にエラーが表示される）
+            console.error('Email check error:', error);
+            return false;
+        }
+    };
+
+    const handleNext = async () => {
         if (step === 1) {
-            if (validateStep1()) setStep(2);
+            if (validateStep1()) {
+                // メールアドレスの重複チェック
+                setIsCheckingEmail(true);
+                const emailExists = await checkEmailExists(email);
+                setIsCheckingEmail(false);
+
+                if (emailExists) {
+                    setShowEmailExistsModal(true);
+                } else {
+                    setStep(2);
+                }
+            }
         } else if (step === 2) {
             if (validateStep2()) setStep(3);
+        } else if (step === 3) {
+            if (validateStep3()) setStep(4);
+        } else if (step === 4) {
+            if (validateStep4()) setStep(5);
+        } else if (step === 5) {
+            if (validateStep5()) setStep(6);
+        } else if (step === 6) {
+            if (validateStep6()) setStep(7);
         }
     };
 
     const handleBack = () => {
         if (step > 1) {
-            setStep((step - 1) as 1 | 2 | 3);
+            setStep((step - 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7);
         } else {
             onCancel();
         }
     };
 
     const handleComplete = async () => {
-        if (validateStep3()) {
+        if (validateStep7()) {
             setIsSubmitting(true);
             try {
                 // 1. Sign up
@@ -320,7 +455,40 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     password,
                 });
 
-                if (signUpError) throw signUpError;
+                if (signUpError) {
+                    // エラーメッセージから重複を判定
+                    const errorMessage = signUpError.message?.toLowerCase() || '';
+                    if (
+                        errorMessage.includes('already registered') ||
+                        errorMessage.includes('user already exists') ||
+                        errorMessage.includes('email already') ||
+                        errorMessage.includes('already exists') ||
+                        errorMessage.includes('user with this email already exists') ||
+                        errorMessage.includes('email address already registered')
+                    ) {
+                        // メールアドレスが既に登録されている場合
+                        Alert.alert(
+                            '登録エラー',
+                            'このメールアドレスは既に登録されています。',
+                            [
+                                {
+                                    text: '閉じる',
+                                    style: 'cancel',
+                                },
+                                {
+                                    text: 'ログインへ',
+                                    onPress: () => {
+                                        onCancel();
+                                    },
+                                },
+                            ]
+                        );
+                        setIsSubmitting(false);
+                        return;
+                    }
+                    // その他のエラーの場合は通常通りエラーをthrow
+                    throw signUpError;
+                }
 
                 if (user) {
                     let uploadedImageUrl = imageUri;
@@ -355,8 +523,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
                             if (uploadError) {
                                 console.log('Image upload warning (RLS policy):', uploadError.message);
-                                // Upload failed, use a default avatar or the local one (though local won't work for others)
-                                // For now, let's use a placeholder to ensure the profile is created successfully
                                 uploadedImageUrl = 'https://placehold.co/400x400/png';
                             } else {
                                 const { data: { publicUrl } } = supabase.storage
@@ -377,14 +543,16 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             {
                                 id: user.id,
                                 name: nickname,
-                                age: parseInt(age, 10),
-                                university: university, // or company
+                                university: university,
                                 bio: bio,
                                 image: uploadedImageUrl,
-                                skills: skills,
-                                seeking_for: seekingFor,
-                                seeking_roles: seekingRoles,
-                                is_student: true, // Defaulting to true for now
+                                skills: skills.includes('other') && otherRoleText.trim()
+                                    ? [...skills.filter(s => s !== 'other'), otherRoleText.trim()]
+                                    : skills,
+                                seeking_roles: seekingRoles.includes('other') && otherSeekingText.trim()
+                                    ? [...seekingRoles.filter(s => s !== 'other'), otherSeekingText.trim()]
+                                    : seekingRoles,
+                                is_student: true,
                                 created_at: new Date().toISOString(),
                             }
                         ]);
@@ -404,62 +572,29 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         }
     };
 
-    const renderHeader = () => (
-        <View style={styles.header}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                <Ionicons name="arrow-back" size={24} color="#374151" />
-            </TouchableOpacity>
-            <View style={styles.progressContainer}>
-                <Text style={styles.headerTitle}>アカウント作成</Text>
-                <Text style={styles.stepText}>Step {step}/3</Text>
-            </View>
-            <View style={styles.placeholder} />
-        </View>
-    );
-
     const renderProgressBar = () => (
-        <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${(step / 3) * 100}%` }]} />
+        <View style={styles.progressBarContainer}>
+            <View style={styles.progressBarBg}>
+                <View style={[styles.progressBarFill, { width: `${(step / 7) * 100}%` }]} />
+            </View>
         </View>
     );
 
     const renderStep1 = () => (
         <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>アカウント情報</Text>
-            <Text style={styles.stepSubtitle}>メールアドレスとパスワードを設定してください</Text>
+            <Text style={styles.stepTitle}>メールアドレスとパスワードを設定</Text>
+            <Text style={styles.stepSubtitle}>
+                アカウント作成に必要な情報を入力してください
+            </Text>
 
             <View style={styles.formGroup}>
-                <Text style={styles.label}>ニックネーム</Text>
-                <TextInput
-                    value={nickname}
-                    onChangeText={(text) => {
-                        setNickname(text);
-                        if (errors.nickname) setErrors({ ...errors, nickname: false });
-                    }}
-                    placeholder="例: タロウ"
-                    autoCapitalize="none"
-                    textContentType="none"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        { backgroundColor: '#ffffff' },
-                        errors.nickname && styles.inputError
-                    ]}
-                />
-            </View>
-
-            <View style={styles.formGroup}>
-                <Text style={styles.label}>メールアドレス</Text>
                 <TextInput
                     value={email}
                     onChangeText={(text) => {
                         setEmail(text);
                         if (errors.email) setErrors({ ...errors, email: false });
                     }}
-                    placeholder="example@email.com"
+                    placeholder="メールアドレス"
                     keyboardType="email-address"
                     autoCapitalize="none"
                     textContentType="emailAddress"
@@ -469,21 +604,19 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     spellCheck={false}
                     style={[
                         styles.input,
-                        { backgroundColor: '#ffffff' },
                         errors.email && styles.inputError
                     ]}
                 />
             </View>
 
             <View style={styles.formGroup}>
-                <Text style={styles.label}>パスワード</Text>
                 <TextInput
                     value={password}
                     onChangeText={(text) => {
                         setPassword(text);
                         if (errors.password) setErrors({ ...errors, password: false });
                     }}
-                    placeholder="8文字以上"
+                    placeholder="パスワード（8文字以上）"
                     secureTextEntry={true}
                     textContentType="oneTimeCode"
                     autoComplete="off"
@@ -492,21 +625,19 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     spellCheck={false}
                     style={[
                         styles.input,
-                        { backgroundColor: '#ffffff' },
                         errors.password && styles.inputError
                     ]}
                 />
             </View>
 
             <View style={styles.formGroup}>
-                <Text style={styles.label}>パスワード（確認）</Text>
                 <TextInput
                     value={passwordConfirm}
                     onChangeText={(text) => {
                         setPasswordConfirm(text);
                         if (errors.passwordConfirm) setErrors({ ...errors, passwordConfirm: false });
                     }}
-                    placeholder="もう一度入力してください"
+                    placeholder="パスワード（確認）"
                     secureTextEntry={true}
                     textContentType="oneTimeCode"
                     autoComplete="off"
@@ -515,7 +646,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     spellCheck={false}
                     style={[
                         styles.input,
-                        { backgroundColor: '#ffffff' },
                         errors.passwordConfirm && styles.inputError
                     ]}
                 />
@@ -525,38 +655,20 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep2 = () => (
         <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>基本プロフィール</Text>
-            <Text style={styles.stepSubtitle}>あなたの基本情報を入力してください</Text>
-
-            <View style={styles.imagePickerContainer}>
-                <TouchableOpacity onPress={pickImage} style={[styles.imagePicker, errors.image && styles.imagePickerError]}>
-                    {imageUri ? (
-                        <>
-                            <Image source={{ uri: imageUri }} style={styles.profileImage} />
-                            <View style={styles.editIconContainer}>
-                                <Ionicons name="pencil" size={12} color="white" />
-                            </View>
-                        </>
-                    ) : (
-                        <View style={styles.imagePlaceholder}>
-                            <Ionicons name="camera" size={32} color="#9ca3af" />
-                            <Text style={styles.imagePlaceholderText}>写真を追加</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-                {errors.image && <Text style={styles.errorText}>必須です</Text>}
-            </View>
+            <Text style={styles.stepTitle}>ニックネームを入力</Text>
+            <Text style={styles.stepSubtitle}>
+                他のユーザーに表示される名前を入力してください
+            </Text>
 
             <View style={styles.formGroup}>
-                <Text style={styles.label}>年齢</Text>
                 <TextInput
-                    value={age}
+                    value={nickname}
                     onChangeText={(text) => {
-                        setAge(text);
-                        if (errors.age) setErrors({ ...errors, age: false });
+                        setNickname(text);
+                        if (errors.nickname) setErrors({ ...errors, nickname: false });
                     }}
-                    placeholder="例: 20"
-                    keyboardType="numeric"
+                    placeholder="ニックネーム"
+                    autoCapitalize="none"
                     textContentType="none"
                     autoComplete="off"
                     importantForAutofill="no"
@@ -564,149 +676,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     spellCheck={false}
                     style={[
                         styles.input,
-                        { backgroundColor: '#ffffff' },
-                        errors.age && styles.inputError
-                    ]}
-                />
-            </View>
-
-            <View style={styles.formGroup}>
-                <Text style={styles.label}>大学名</Text>
-                <TouchableOpacity
-                    onPress={() => setShowUniversityModal(true)}
-                    style={[
-                        styles.input,
-                        styles.dropdownButton,
-                        { backgroundColor: '#ffffff' },
-                        errors.university && styles.inputError
-                    ]}
-                >
-                    <Text style={[styles.dropdownText, !university && styles.dropdownPlaceholder]}>
-                        {university || '大学名を選択してください'}
-                    </Text>
-                    <Ionicons name="chevron-down" size={20} color="#6b7280" />
-                </TouchableOpacity>
-                
-                <Modal
-                    visible={showUniversityModal}
-                    transparent={true}
-                    animationType="fade"
-                    onRequestClose={() => {
-                        setShowUniversityModal(false);
-                        setSearchInput('');
-                    }}
-                >
-                    <TouchableOpacity
-                        style={styles.modalOverlay}
-                        activeOpacity={1}
-                        onPress={() => {
-                            setShowUniversityModal(false);
-                            setSearchInput('');
-                        }}
-                    >
-                        <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
-                            <View style={styles.modalHeader}>
-                                <Text style={styles.modalTitle}>大学名を選択</Text>
-                                <TouchableOpacity
-                                    onPress={() => {
-                                        setShowUniversityModal(false);
-                                        setSearchInput('');
-                                    }}
-                                >
-                                    <Ionicons name="close" size={24} color="#374151" />
-                                </TouchableOpacity>
-                            </View>
-                            
-                            {/* Search Input */}
-                            <View style={styles.hiraganaInputContainer}>
-                                <Text style={styles.hiraganaLabel}>大学名を検索</Text>
-                                <TextInput
-                                    value={searchInput}
-                                    onChangeText={(text) => {
-                                        setSearchInput(text);
-                                    }}
-                                    placeholder="例: 東京、けいおう、とうきょう"
-                                    style={styles.hiraganaInput}
-                                    autoFocus={true}
-                                    autoCapitalize="none"
-                                    autoCorrect={false}
-                                />
-                                {searchInput && (
-                                    <TouchableOpacity
-                                        onPress={() => setSearchInput('')}
-                                        style={styles.clearButton}
-                                    >
-                                        <Ionicons name="close-circle" size={20} color="#6b7280" />
-                                    </TouchableOpacity>
-                                )}
-                            </View>
-
-                            {/* University List */}
-                            {isLoadingUniversities ? (
-                                <View style={styles.loadingContainer}>
-                                    <ActivityIndicator size="large" color="#0d9488" />
-                                    <Text style={styles.loadingText}>読み込み中...</Text>
-                                </View>
-                            ) : (
-                                <ScrollView style={styles.universityList}>
-                                    {filteredUniversities.length === 0 ? (
-                                        <View style={styles.emptyContainer}>
-                                            <Text style={styles.emptyText}>
-                                                {searchInput.trim()
-                                                    ? `「${searchInput}」に一致する大学が見つかりませんでした`
-                                                    : '大学名を入力して検索してください'}
-                                            </Text>
-                                        </View>
-                                    ) : (
-                                        filteredUniversities.map((uni, index) => (
-                                            <TouchableOpacity
-                                                key={`${uni}-${index}`}
-                                                style={styles.modalOption}
-                                                onPress={() => {
-                                                    setUniversity(uni);
-                                                    if (errors.university) {
-                                                        setErrors({ ...errors, university: false });
-                                                    }
-                                                    setShowUniversityModal(false);
-                                                    setSearchInput('');
-                                                }}
-                                            >
-                                                <Text style={styles.modalOptionText}>{uni}</Text>
-                                                {university === uni && (
-                                                    <Ionicons name="checkmark" size={20} color="#0d9488" />
-                                                )}
-                                            </TouchableOpacity>
-                                        ))
-                                    )}
-                                </ScrollView>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                </Modal>
-            </View>
-
-            <View style={styles.formGroup}>
-                <Text style={styles.label}>自己紹介文</Text>
-                <TextInput
-                    value={bio}
-                    onChangeText={(text) => {
-                        setBio(text);
-                        if (errors.bio) setErrors({ ...errors, bio: false });
-                    }}
-                    placeholder="自己紹介を入力してください"
-                    multiline
-                    numberOfLines={4}
-                    textAlignVertical="top"
-                    textContentType="none"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        styles.textArea,
-                        { backgroundColor: '#ffffff' },
-                        errors.bio && styles.inputError
+                        errors.nickname && styles.inputError
                     ]}
                 />
             </View>
@@ -715,135 +685,500 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     const renderStep3 = () => (
         <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>タグ設定</Text>
-            <Text style={styles.stepSubtitle}>あなたのスキルや目的を選択してください</Text>
+            <Text style={styles.stepTitle}>プロフィール画像を設定</Text>
+            <Text style={styles.stepSubtitle}>
+                あなたのプロフィール画像を選択してください
+            </Text>
 
-            {/* Status/Purpose */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="flag-outline" size={20} color={errors.seekingFor ? "#ef4444" : "#0d9488"} />
-                    <Text style={[styles.sectionTitle, errors.seekingFor && styles.sectionTitleError]}>🌱 目的</Text>
-                </View>
-                <View style={styles.chipContainer}>
-                    {seekingForOptions.map((option) => (
-                        <TouchableOpacity
-                            key={option}
-                            onPress={() => handleToggle(option, seekingFor, setSeekingFor)}
-                            style={[
-                                styles.chip,
-                                seekingFor.includes(option) ? styles.chipSelected : styles.chipUnselected
-                            ]}
-                        >
-                            <Text style={seekingFor.includes(option) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                {option}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
-            </View>
-
-            {/* Skills */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="flash-outline" size={20} color={errors.skills ? "#ef4444" : "#0d9488"} />
-                    <Text style={[styles.sectionTitle, errors.skills && styles.sectionTitleError]}>⚡️ 持っているスキル</Text>
-                </View>
-                {skillCategories.map((category, categoryIndex) => (
-                    <View key={categoryIndex}>
-                        <Text style={styles.categoryTitle}>{category.title}</Text>
-                        <View style={styles.chipContainer}>
-                            {category.skills.map((skill) => (
-                                <TouchableOpacity
-                                    key={skill}
-                                    onPress={() => handleToggle(skill, skills, setSkills)}
-                                    style={[
-                                        styles.chip,
-                                        skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
-                                    ]}
-                                >
-                                    <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                        {skill}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
+            <View style={styles.imagePickerContainer}>
+                <TouchableOpacity 
+                    onPress={pickImage} 
+                    style={[
+                        styles.imagePicker,
+                        errors.image && styles.imagePickerError
+                    ]}
+                >
+                    {imageUri ? (
+                        <Image source={{ uri: imageUri }} style={styles.profileImage} />
+                    ) : (
+                        <View style={styles.imagePlaceholder}>
+                            <Ionicons name="camera" size={40} color="#9ca3af" />
+                            <Text style={styles.imagePlaceholderText}>画像を選択</Text>
                         </View>
-                    </View>
-                ))}
-            </View>
-
-            {/* Seeking Roles */}
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <Ionicons name="people-outline" size={20} color={errors.seekingRoles ? "#ef4444" : "#0d9488"} />
-                    <Text style={[styles.sectionTitle, errors.seekingRoles && styles.sectionTitleError]}>🤝 求める仲間・条件</Text>
-                </View>
-                <View style={styles.chipContainer}>
-                    {seekingOptions.map((role) => (
-                        <TouchableOpacity
-                            key={role}
-                            onPress={() => handleToggle(role, seekingRoles, setSeekingRoles)}
-                            style={[
-                                styles.chip,
-                                seekingRoles.includes(role) ? styles.chipSelected : styles.chipUnselected
-                            ]}
-                        >
-                            <Text style={seekingRoles.includes(role) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                {role}
-                            </Text>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                    )}
+                </TouchableOpacity>
+                {errors.image && (
+                    <Text style={styles.errorText}>プロフィール画像を選択してください</Text>
+                )}
             </View>
         </View>
     );
 
+    const renderStep4 = () => (
+        <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>大学と学年を選択</Text>
+            <Text style={styles.stepSubtitle}>
+                あなたの所属する大学と学年を選択してください
+            </Text>
 
+            <View style={styles.formGroup}>
+                <Text style={styles.label}>大学名</Text>
+                <TouchableOpacity
+                    onPress={() => setShowUniversityModal(true)}
+                    style={[
+                        styles.input,
+                        styles.dropdownButton,
+                        errors.university && styles.inputError
+                    ]}
+                >
+                    <Text style={[styles.dropdownText, !university && styles.dropdownPlaceholder]}>
+                        {university || '大学名を選択してください'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#6b7280" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+                <Text style={styles.label}>学年</Text>
+                <TouchableOpacity
+                    onPress={() => setShowGradeModal(true)}
+                    style={[
+                        styles.input,
+                        styles.dropdownButton,
+                        errors.grade && styles.inputError
+                    ]}
+                >
+                    <Text style={[styles.dropdownText, !grade && styles.dropdownPlaceholder]}>
+                        {grade ? gradeOptions.find(opt => opt.value === grade)?.label : '学年を選択してください'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={20} color="#6b7280" />
+                </TouchableOpacity>
+            </View>
+
+            {/* University Modal */}
+            <Modal
+                visible={showUniversityModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => {
+                    setShowUniversityModal(false);
+                    setSearchInput('');
+                }}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => {
+                        setShowUniversityModal(false);
+                        setSearchInput('');
+                    }}
+                >
+                    <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>大学名を選択</Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowUniversityModal(false);
+                                    setSearchInput('');
+                                }}
+                            >
+                                <Ionicons name="close" size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <View style={styles.searchInputContainer}>
+                            <TextInput
+                                value={searchInput}
+                                onChangeText={(text) => {
+                                    setSearchInput(text);
+                                }}
+                                placeholder="例: 東京、けいおう、とうきょう"
+                                style={styles.searchInput}
+                                autoFocus={true}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                            />
+                            {searchInput && (
+                                <TouchableOpacity
+                                    onPress={() => setSearchInput('')}
+                                    style={styles.clearButton}
+                                >
+                                    <Ionicons name="close-circle" size={20} color="#6b7280" />
+                                </TouchableOpacity>
+                            )}
+                        </View>
+
+                        {isLoadingUniversities ? (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color="#2563eb" />
+                                <Text style={styles.loadingText}>読み込み中...</Text>
+                            </View>
+                        ) : (
+                            <ScrollView style={styles.universityList}>
+                                {filteredUniversities.length === 0 ? (
+                                    <View style={styles.emptyContainer}>
+                                        <Text style={styles.emptyText}>
+                                            {searchInput.trim()
+                                                ? `「${searchInput}」に一致する大学が見つかりませんでした`
+                                                : '大学名を入力して検索してください'}
+                                        </Text>
+                                    </View>
+                                ) : (
+                                    filteredUniversities.map((uni, index) => (
+                                        <TouchableOpacity
+                                            key={`${uni}-${index}`}
+                                            style={styles.modalOption}
+                                onPress={() => {
+                                    setUniversity(uni);
+                                    if (errors.university) {
+                                        setErrors({ ...errors, university: false });
+                                    }
+                                    setSearchInput('');
+                                    setShowUniversityModal(false);
+                                }}
+                                        >
+                                            <Text style={styles.modalOptionText}>{uni}</Text>
+                                            {university === uni && (
+                                                <Ionicons name="checkmark" size={20} color="#FFD700" />
+                                            )}
+                                        </TouchableOpacity>
+                                    ))
+                                )}
+                            </ScrollView>
+                        )}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* Grade Modal */}
+            <Modal
+                visible={showGradeModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowGradeModal(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowGradeModal(false)}
+                >
+                    <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>学年を選択</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowGradeModal(false)}
+                            >
+                                <Ionicons name="close" size={24} color="#374151" />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        <ScrollView style={styles.universityList}>
+                            {gradeOptions.map((option) => (
+                                <TouchableOpacity
+                                    key={option.value}
+                                    style={styles.modalOption}
+                                    onPress={() => {
+                                        setGrade(option.value);
+                                        if (errors.grade) {
+                                            setErrors({ ...errors, grade: false });
+                                        }
+                                        setShowGradeModal(false);
+                                    }}
+                                >
+                                    <Text style={styles.modalOptionText}>{option.label}</Text>
+                                    {grade === option.value && (
+                                        <Ionicons name="checkmark" size={20} color="#FFD700" />
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+        </View>
+    );
+
+    const renderStep5 = () => {
+        const roleOptions = [
+            { id: 'engineer', label: 'エンジニア' },
+            { id: 'ideaman', label: 'アイディアマン' },
+            { id: 'marketer', label: 'マーケター' },
+            { id: 'creator', label: 'クリエイター' },
+            { id: 'other', label: 'その他' },
+        ];
+
+        const handleRoleToggle = (roleId: string) => {
+            if (skills.includes(roleId)) {
+                setSkills(skills.filter(s => s !== roleId));
+                if (roleId === 'other') {
+                    setOtherRoleText('');
+                }
+            } else {
+                setSkills([...skills, roleId]);
+            }
+            if (errors.skills) {
+                setErrors({ ...errors, skills: false });
+            }
+        };
+
+        const isOtherSelected = skills.includes('other');
+
+        return (
+            <View style={styles.stepContainer}>
+                <Text style={styles.stepTitle}>あなたの役割を選択</Text>
+                <Text style={styles.stepSubtitle}>
+                    あなたが提供できる役割を選択してください（複数選択可能）
+                </Text>
+
+                <View style={styles.roleContainer}>
+                    {roleOptions.map((option) => (
+                        <TouchableOpacity
+                            key={option.id}
+                            onPress={() => handleRoleToggle(option.id)}
+                            style={[
+                                styles.roleBox,
+                                skills.includes(option.id) && styles.roleBoxSelected
+                            ]}
+                        >
+                            <Text style={[
+                                styles.roleBoxText,
+                                skills.includes(option.id) && styles.roleBoxTextSelected
+                            ]}>
+                                {option.label}
+                            </Text>
+                            {skills.includes(option.id) && (
+                                <Ionicons name="checkmark-circle" size={20} color="#FFD700" style={styles.checkIcon} />
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {isOtherSelected && (
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>その他の内容を記入</Text>
+                        <TextInput
+                            value={otherRoleText}
+                            onChangeText={(text) => {
+                                setOtherRoleText(text);
+                            }}
+                            placeholder="例: 財務、法務、PMなど"
+                            multiline
+                            numberOfLines={3}
+                            textAlignVertical="top"
+                            style={styles.textArea}
+                        />
+                    </View>
+                )}
+
+                {errors.skills && (
+                    <Text style={styles.errorText}>少なくとも1つの役割を選択してください</Text>
+                )}
+            </View>
+        );
+    };
+
+    const renderStep6 = () => {
+        const seekingOptions = [
+            { id: 'engineer', label: 'エンジニア' },
+            { id: 'designer', label: 'デザイナー' },
+            { id: 'marketer', label: 'マーケター' },
+            { id: 'creator', label: 'クリエイター' },
+            { id: 'other', label: 'その他' },
+        ];
+
+        const handleSeekingToggle = (optionId: string) => {
+            if (seekingRoles.includes(optionId)) {
+                setSeekingRoles(seekingRoles.filter(s => s !== optionId));
+                if (optionId === 'other') {
+                    setOtherSeekingText('');
+                }
+            } else {
+                setSeekingRoles([...seekingRoles, optionId]);
+            }
+            if (errors.seekingRoles) {
+                setErrors({ ...errors, seekingRoles: false });
+            }
+        };
+
+        const isOtherSelected = seekingRoles.includes('other');
+
+        return (
+            <View style={styles.stepContainer}>
+                <Text style={styles.stepTitle}>探している仲間を選択</Text>
+                <Text style={styles.stepSubtitle}>
+                    あなたが探している仲間を選択してください（複数選択可能）
+                </Text>
+
+                <View style={styles.roleContainer}>
+                    {seekingOptions.map((option) => (
+                        <TouchableOpacity
+                            key={option.id}
+                            onPress={() => handleSeekingToggle(option.id)}
+                            style={[
+                                styles.roleBox,
+                                seekingRoles.includes(option.id) && styles.roleBoxSelected
+                            ]}
+                        >
+                            <Text style={[
+                                styles.roleBoxText,
+                                seekingRoles.includes(option.id) && styles.roleBoxTextSelected
+                            ]}>
+                                {option.label}
+                            </Text>
+                            {seekingRoles.includes(option.id) && (
+                                <Ionicons name="checkmark-circle" size={20} color="#FFD700" style={styles.checkIcon} />
+                            )}
+                        </TouchableOpacity>
+                    ))}
+                </View>
+
+                {isOtherSelected && (
+                    <View style={styles.formGroup}>
+                        <Text style={styles.label}>その他の内容を記入</Text>
+                        <TextInput
+                            value={otherSeekingText}
+                            onChangeText={(text) => {
+                                setOtherSeekingText(text);
+                            }}
+                            placeholder="例: PM、財務、法務など"
+                            multiline
+                            numberOfLines={3}
+                            textAlignVertical="top"
+                            style={styles.textArea}
+                        />
+                    </View>
+                )}
+
+                {errors.seekingRoles && (
+                    <Text style={styles.errorText}>少なくとも1つの仲間を選択してください</Text>
+                )}
+            </View>
+        );
+    };
+
+    const renderStep7 = () => {
+        const characterCount = bio.length;
+        const maxLength = 20;
+
+        return (
+            <View style={styles.stepContainer}>
+                <Text style={styles.stepTitle}>一言アピール</Text>
+                <Text style={styles.stepSubtitle}>
+                    あなたの魅力を最大限に伝えるメッセージを入力してください
+                </Text>
+
+                <View style={styles.formGroup}>
+                    <TextInput
+                        value={bio}
+                        onChangeText={(text) => {
+                            if (text.length <= maxLength) {
+                                setBio(text);
+                                if (errors.bio) setErrors({ ...errors, bio: false });
+                            }
+                        }}
+                        placeholder="例: スタートアップでエンジニアとして3年の経験があります"
+                        multiline
+                        numberOfLines={4}
+                        textAlignVertical="top"
+                        style={[
+                            styles.bioInput,
+                            errors.bio && styles.inputError
+                        ]}
+                        maxLength={maxLength}
+                    />
+                    <View style={styles.characterCountContainer}>
+                        <Text style={[
+                            styles.characterCount,
+                            characterCount > maxLength * 0.8 && styles.characterCountWarning
+                        ]}>
+                            {characterCount} / {maxLength}
+                        </Text>
+                    </View>
+                    <Text style={styles.optionalText}>
+                        ※記入は任意です。後から設定することもできます。
+                    </Text>
+                </View>
+
+                {errors.bio && (
+                    <Text style={styles.errorText}>20字以内で入力してください</Text>
+                )}
+            </View>
+        );
+    };
 
     return (
         <SafeAreaView style={styles.container}>
-            <KeyboardAvoidingView
-                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                style={{ flex: 1 }}
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="none"
             >
-                {renderHeader()}
-                {renderProgressBar()}
-
-                <ScrollView contentContainerStyle={styles.scrollContent}>
-                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                        <View>
-                            {step === 1 && renderStep1()}
-                            {step === 2 && renderStep2()}
-                            {step === 3 && renderStep3()}
-                        </View>
-                    </TouchableWithoutFeedback>
-                </ScrollView>
+                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                    <View>
+                        {step === 1 && renderStep1()}
+                        {step === 2 && renderStep2()}
+                        {step === 3 && renderStep3()}
+                        {step === 4 && renderStep4()}
+                        {step === 5 && renderStep5()}
+                        {step === 6 && renderStep6()}
+                        {step === 7 && renderStep7()}
+                    </View>
+                </TouchableWithoutFeedback>
+            </ScrollView>
 
                 <View style={styles.footer}>
+                    {renderProgressBar()}
                     <TouchableOpacity
-                        onPress={step === 3 ? handleComplete : handleNext}
-                        activeOpacity={0.9}
-                        disabled={isSubmitting}
+                        onPress={step === 7 ? handleComplete : handleNext}
+                        activeOpacity={0.7}
+                        disabled={isSubmitting || isCheckingEmail}
+                        style={styles.nextButton}
                     >
-                        <LinearGradient
-                            colors={['#0d9488', '#14b8a6']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={styles.nextButton}
-                        >
-                            {isSubmitting ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <>
-                                    <Text style={styles.nextButtonText}>
-                                        {step === 3 ? '登録してはじめる' : '次へ'}
-                                    </Text>
-                                    {step < 3 && <Ionicons name="arrow-forward" size={20} color="white" />}
-                                </>
-                            )}
-                        </LinearGradient>
+                        {isSubmitting || isCheckingEmail ? (
+                            <ActivityIndicator color="#FFD700" />
+                        ) : (
+                            <Text style={styles.nextButtonText}>
+                                {step === 7 ? '登録してはじめる' : '次へ'}
+                            </Text>
+                        )}
                     </TouchableOpacity>
                 </View>
-            </KeyboardAvoidingView>
+
+                {/* Email Exists Modal */}
+                <Modal
+                    visible={showEmailExistsModal}
+                    transparent={true}
+                    animationType="fade"
+                    onRequestClose={() => setShowEmailExistsModal(false)}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={styles.emailExistsModalContent}>
+                            <Text style={styles.emailExistsModalTitle}>
+                                すでに登録されています
+                            </Text>
+                            <Text style={styles.emailExistsModalMessage}>
+                                このメールアドレスは既に登録されています。
+                            </Text>
+                            <View style={styles.emailExistsModalButtons}>
+                                <TouchableOpacity
+                                    onPress={() => setShowEmailExistsModal(false)}
+                                    style={[styles.emailExistsModalButton, styles.emailExistsModalButtonClose]}
+                                >
+                                    <Text style={styles.emailExistsModalButtonCloseText}>閉じる</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        setShowEmailExistsModal(false);
+                                        onCancel();
+                                    }}
+                                    style={[styles.emailExistsModalButton, styles.emailExistsModalButtonLogin]}
+                                >
+                                    <Text style={styles.emailExistsModalButtonLoginText}>ログインへ</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+                </Modal>
         </SafeAreaView>
     );
 }
@@ -851,101 +1186,94 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#ffffff',
     },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
-        backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+    scrollContent: {
+        flexGrow: 1,
+        paddingHorizontal: 24,
+        paddingTop: 40,
+        paddingBottom: 24,
+        justifyContent: 'flex-start',
     },
-    backButton: {
-        padding: 8,
-    },
-    progressContainer: {
+    stepContainer: {
         flex: 1,
-        alignItems: 'center',
+        justifyContent: 'flex-start',
     },
-    headerTitle: {
+    stepTitle: {
+        fontSize: 28,
+        fontWeight: '600',
+        color: '#111827',
+        marginBottom: 12,
+        lineHeight: 36,
+    },
+    stepSubtitle: {
+        fontSize: 15,
+        color: '#6b7280',
+        marginBottom: 40,
+        lineHeight: 22,
+    },
+    formGroup: {
+        marginBottom: 20,
+    },
+    input: {
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
         fontSize: 16,
-        fontWeight: 'bold',
         color: '#111827',
     },
-    stepText: {
-        fontSize: 12,
-        color: '#6b7280',
-        marginTop: 2,
+    inputError: {
+        borderColor: '#ef4444',
     },
-    placeholder: {
-        width: 40,
+    progressBarContainer: {
+        marginBottom: 16,
     },
     progressBarBg: {
         height: 4,
         backgroundColor: '#e5e7eb',
         width: '100%',
+        borderRadius: 2,
     },
     progressBarFill: {
         height: '100%',
-        backgroundColor: '#0d9488',
+        backgroundColor: '#FFD700',
+        borderRadius: 2,
     },
-    scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
+    footer: {
+        paddingHorizontal: 24,
+        paddingTop: 16,
+        paddingBottom: 32,
+        backgroundColor: '#ffffff',
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
     },
-    stepContainer: {
-        marginBottom: 20,
-    },
-    stepTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 8,
-    },
-    stepSubtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginBottom: 24,
-    },
-    formGroup: {
-        marginBottom: 20,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#374151',
-        marginBottom: 8,
-    },
-    input: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 8,
+    nextButton: {
+        alignItems: 'center',
+        justifyContent: 'center',
         paddingVertical: 12,
-        paddingHorizontal: 16,
-        fontSize: 16,
-        color: '#000',
     },
-    inputError: {
-        backgroundColor: '#fef2f2',
-        borderColor: '#ef4444',
+    nextButtonText: {
+        color: '#FF8C00',
+        fontSize: 16,
+        fontWeight: '600',
     },
     imagePickerContainer: {
         alignItems: 'center',
-        marginBottom: 24,
+        marginTop: 20,
+        marginBottom: 20,
     },
     imagePicker: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#f3f4f6',
+        width: 160,
+        height: 160,
+        borderRadius: 80,
+        backgroundColor: '#f9fafb',
         overflow: 'hidden',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
+        borderWidth: 2,
         borderColor: '#e5e7eb',
     },
     imagePickerError: {
@@ -961,103 +1289,21 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     imagePlaceholderText: {
-        fontSize: 12,
+        fontSize: 14,
         color: '#6b7280',
-        marginTop: 4,
-    },
-    editIconContainer: {
-        position: 'absolute',
-        bottom: 0,
-        right: 0,
-        backgroundColor: '#0d9488',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 2,
-        borderColor: 'white',
+        marginTop: 8,
     },
     errorText: {
         color: '#ef4444',
-        fontSize: 12,
-        marginTop: 4,
+        fontSize: 14,
+        marginTop: 12,
+        textAlign: 'center',
     },
-    sectionTitleError: {
-        color: '#ef4444',
-    },
-    textArea: {
-        height: 100,
-        textAlignVertical: 'top',
-    },
-    section: {
-        marginBottom: 24,
-    },
-    sectionHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
-    },
-    sectionTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#111827',
-    },
-    chipContainer: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-        marginBottom: 8,
-    },
-    chip: {
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderRadius: 20,
-        borderWidth: 1,
-    },
-    chipUnselected: {
-        backgroundColor: 'white',
-        borderColor: '#d1d5db',
-    },
-    chipSelected: {
-        backgroundColor: '#f0fdfa',
-        borderColor: '#0d9488',
-    },
-    chipTextUnselected: {
+    label: {
+        fontSize: 14,
+        fontWeight: '500',
         color: '#374151',
-        fontSize: 14,
-    },
-    chipTextSelected: {
-        color: '#0d9488',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    categoryTitle: {
-        fontSize: 13,
-        fontWeight: 'bold',
-        color: '#6b7280',
-        marginTop: 16,
         marginBottom: 8,
-    },
-    footer: {
-        padding: 16,
-        backgroundColor: 'white',
-        borderTopWidth: 1,
-        borderTopColor: '#e5e7eb',
-    },
-    nextButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 16,
-        borderRadius: 12,
-    },
-    nextButtonText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
     },
     dropdownButton: {
         flexDirection: 'row',
@@ -1067,7 +1313,7 @@ const styles = StyleSheet.create({
     },
     dropdownText: {
         fontSize: 16,
-        color: '#000',
+        color: '#111827',
     },
     dropdownPlaceholder: {
         color: '#9ca3af',
@@ -1082,7 +1328,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         borderRadius: 12,
         width: '90%',
-        maxHeight: '70%',
+        height: 500,
+        maxHeight: 500,
         overflow: 'hidden',
     },
     modalHeader: {
@@ -1098,6 +1345,31 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#111827',
     },
+    searchInputContainer: {
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        minHeight: 60,
+        maxHeight: 60,
+    },
+    searchInput: {
+        flex: 1,
+        backgroundColor: '#f9fafb',
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        color: '#111827',
+        height: 40,
+    },
+    clearButton: {
+        padding: 4,
+    },
     modalOption: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -1110,78 +1382,8 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#374151',
     },
-    modalInputContainer: {
-        padding: 16,
-    },
-    modalTextInput: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        fontSize: 16,
-        color: '#000',
-        marginTop: 8,
-        marginBottom: 16,
-    },
-    modalButtonContainer: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    modalButton: {
-        flex: 1,
-        paddingVertical: 12,
-        borderRadius: 8,
-        alignItems: 'center',
-    },
-    modalButtonCancel: {
-        backgroundColor: '#f3f4f6',
-    },
-    modalButtonCancelText: {
-        color: '#374151',
-        fontSize: 16,
-        fontWeight: '500',
-    },
-    modalButtonConfirm: {
-        backgroundColor: '#0d9488',
-    },
-    modalButtonConfirmText: {
-        color: 'white',
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-    hiraganaInputContainer: {
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 12,
-    },
-    hiraganaLabel: {
-        fontSize: 14,
-        fontWeight: '500',
-        color: '#374151',
-        minWidth: 120,
-    },
-    hiraganaInput: {
-        flex: 1,
-        backgroundColor: '#f9fafb',
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        fontSize: 18,
-        textAlign: 'center',
-        color: '#000',
-    },
-    clearButton: {
-        padding: 4,
-    },
     universityList: {
-        maxHeight: 400,
+        flex: 1,
     },
     loadingContainer: {
         padding: 40,
@@ -1202,5 +1404,138 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#6b7280',
         textAlign: 'center',
+    },
+    roleContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginTop: 20,
+    },
+    roleBox: {
+        flex: 1,
+        minWidth: '45%',
+        backgroundColor: '#ffffff',
+        borderWidth: 2,
+        borderColor: '#e5e7eb',
+        borderRadius: 24,
+        paddingVertical: 20,
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        gap: 8,
+    },
+    roleBoxSelected: {
+        borderColor: '#FFD700',
+        backgroundColor: '#FFF9E6',
+    },
+    roleBoxText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#374151',
+    },
+    roleBoxTextSelected: {
+        color: '#FF8C00',
+        fontWeight: '600',
+    },
+    checkIcon: {
+        marginLeft: 4,
+    },
+    textArea: {
+        backgroundColor: '#ffffff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 12,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        color: '#111827',
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+    optionalText: {
+        fontSize: 13,
+        color: '#6b7280',
+        marginTop: 8,
+        fontStyle: 'italic',
+    },
+    bioInput: {
+        backgroundColor: '#FFF9E6',
+        borderWidth: 2,
+        borderColor: '#FFD700',
+        borderRadius: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        fontSize: 16,
+        color: '#111827',
+        minHeight: 120,
+        textAlignVertical: 'top',
+        shadowColor: '#FFD700',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    characterCountContainer: {
+        alignItems: 'flex-end',
+        marginTop: 8,
+    },
+    characterCount: {
+        fontSize: 13,
+        color: '#6b7280',
+    },
+    characterCountWarning: {
+        color: '#f59e0b',
+    },
+    emailExistsModalContent: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 24,
+        width: '85%',
+        maxWidth: 400,
+    },
+    emailExistsModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#111827',
+        marginBottom: 12,
+        textAlign: 'center',
+    },
+    emailExistsModalMessage: {
+        fontSize: 15,
+        color: '#6b7280',
+        marginBottom: 24,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    emailExistsModalButtons: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    emailExistsModalButton: {
+        flex: 1,
+        paddingVertical: 14,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    emailExistsModalButtonClose: {
+        backgroundColor: '#f3f4f6',
+    },
+    emailExistsModalButtonCloseText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#374151',
+    },
+    emailExistsModalButtonLogin: {
+        backgroundColor: '#2563eb',
+    },
+    emailExistsModalButtonLoginText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#ffffff',
     },
 });
