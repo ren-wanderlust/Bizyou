@@ -7,9 +7,10 @@ interface BottomNavProps {
     activeTab: string;
     onTabChange: (tab: string) => void;
     currentUser: Profile | null;
+    badges?: { [key: string]: number };
 }
 
-export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProps) {
+export function BottomNav({ activeTab, onTabChange, currentUser, badges }: BottomNavProps) {
     const insets = useSafeAreaInsets();
 
     const tabs = [
@@ -25,6 +26,20 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
             <View style={styles.tabBar}>
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
+                    const badgeCount = badges?.[tab.id] || 0;
+
+                    const renderBadge = () => {
+                        if (badgeCount > 0) {
+                            return (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>
+                                        {badgeCount > 99 ? '99+' : badgeCount}
+                                    </Text>
+                                </View>
+                            );
+                        }
+                        return null;
+                    };
 
                     if (tab.id === 'profile' && currentUser?.image) {
                         return (
@@ -34,13 +49,16 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
                                 style={styles.tabButton}
                                 activeOpacity={0.7}
                             >
-                                <Image
-                                    source={{ uri: currentUser.image }}
-                                    style={[
-                                        styles.profileIcon,
-                                        isActive && styles.profileIconActive
-                                    ]}
-                                />
+                                <View>
+                                    <Image
+                                        source={{ uri: currentUser.image }}
+                                        style={[
+                                            styles.profileIcon,
+                                            isActive && styles.profileIconActive
+                                        ]}
+                                    />
+                                    {renderBadge()}
+                                </View>
                             </TouchableOpacity>
                         );
                     }
@@ -58,11 +76,14 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
                             style={styles.tabButton}
                             activeOpacity={0.7}
                         >
-                            <Ionicons
-                                name={iconName}
-                                size={28}
-                                color={isActive ? '#0d9488' : '#6b7280'} // teal-600 : gray-500
-                            />
+                            <View>
+                                <Ionicons
+                                    name={iconName}
+                                    size={28}
+                                    color={isActive ? '#0d9488' : '#6b7280'} // teal-600 : gray-500
+                                />
+                                {renderBadge()}
+                            </View>
                         </TouchableOpacity>
                     );
                 })}
@@ -111,5 +132,25 @@ const styles = StyleSheet.create({
     profileIconActive: {
         borderColor: '#0d9488',
         borderWidth: 2,
+    },
+    badge: {
+        position: 'absolute',
+        top: -4,
+        right: -6,
+        backgroundColor: '#EF4444',
+        borderRadius: 10,
+        minWidth: 16,
+        height: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white',
+        zIndex: 10,
+    },
+    badgeText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
+        paddingHorizontal: 2,
     },
 });
