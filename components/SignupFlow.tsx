@@ -66,6 +66,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
     const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+    
+    // Step1で作成されたユーザーのIDを保持（step6でプロフィール作成に使用）
+    const [createdUserId, setCreatedUserId] = useState<string | null>(null);
 
     // Load universities from JSON
     useEffect(() => {
@@ -408,65 +411,74 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         return true;
     };
 
-    const checkEmailExists = async (emailToCheck: string): Promise<boolean> => {
-        try {
-            // メールアドレスの重複チェック
-            // signInWithPasswordで試行して、メールアドレスが存在するか確認
-            // 注意: signUpを試行するとダミーユーザーが作成される可能性があるため、使用しない
-            
-            // signInWithPasswordで試行
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: emailToCheck,
-                password: 'dummy_password_for_check_12345678', // ダミーパスワード
-            });
-
-            // エラーがない場合は、メールアドレスが存在し、パスワードが正しい（非常に稀なケース）
-            // この場合は重複とみなす
-            if (!signInError) {
-                // セッションをクリア
-                await supabase.auth.signOut();
-                return true;
-            }
-
-            // エラーメッセージから判定
-            const errorMessage = signInError.message?.toLowerCase() || '';
-
-            // "Email not confirmed" の場合は、メールアドレスが存在する（確認されていないユーザー）
-            if (
-                errorMessage.includes('email not confirmed') ||
-                errorMessage.includes('email_not_confirmed') ||
-                errorMessage.includes('email address not confirmed')
-            ) {
-                return true;
-            }
-
-            // "Invalid login credentials" の場合は、メールアドレスが存在する可能性が高い
-            // ただし、パスワードが間違っている場合も同じエラーになる
-            // メールアドレスが存在しない場合は、通常 "Invalid login credentials" が返される
-            // しかし、確実に判定するのは難しいため、この場合は重複なしとみなす
-            // （実際の登録時にエラーが発生した場合は、step7で適切に処理される）
-            
-            // その他のエラーの場合は重複なしとみなす
-            return false;
-        } catch (error) {
-            // エラーが発生した場合は重複なしとみなす（後で登録時にエラーが表示される）
-            console.error('Email check error:', error);
-            return false;
-        }
-    };
-
     const handleNext = async () => {
         if (step === 1) {
             if (validateStep1()) {
-                // メールアドレスの重複チェック
+                // Step1でサインアップを実行し、メールアドレスの重複チェックも行う
                 setIsCheckingEmail(true);
-                const emailExists = await checkEmailExists(email);
-                setIsCheckingEmail(false);
-
-                if (emailExists) {
-                    setShowEmailExistsModal(true);
-                } else {
-                    setStep(2);
+                
+                try {
+                    // 既存のセッションをクリア
+                    await supabase.auth.signOut();
+                    
+                    // SecureStoreから直接セッションを削除
+                    if (Platform.OS !== 'web') {
+                        try {
+                            const projectRef = 'qexnfdidlqewfxskkqow';
+                            const authKey = `sb-${projectRef}-auth-token`;
+                            await SecureStore.deleteItemAsync(authKey);
+                            await SecureStore.deleteItemAsync(`sb-${projectRef}-auth-token-code-verifier`);
+                        } catch (secureStoreError) {
+                            console.log('SecureStore削除エラー（無視可能）:', secureStoreError);
+                        }
+                    }
+                    
+                    // サインアップを実行
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email.trim(),
+                        password: password,
+                    });
+                    
+                    setIsCheckingEmail(false);
+                    
+                    if (error) {
+                        const errorMessage = error.message?.toLowerCase() || '';
+                        
+                        // 既に登録されている場合
+                        if (
+                            errorMessage.includes('already registered') ||
+                            errorMessage.includes('already exists') ||
+                            errorMessage.includes('user already')
+                        ) {
+                            setShowEmailExistsModal(true);
+                            return;
+                        }
+                        
+                        // その他のエラー
+                        Alert.alert('エラー', error.message || '登録中にエラーが発生しました。');
+                        return;
+                    }
+                    
+                    // signUpが成功した場合、identities配列をチェック
+                    if (data?.user) {
+                        const identities = data.user.identities || [];
+                        
+                        if (identities.length === 0) {
+                            // identitiesが空 = 既存ユーザー
+                            setShowEmailExistsModal(true);
+                            return;
+                        }
+                        
+                        // 新規ユーザーが作成された
+                        setCreatedUserId(data.user.id);
+                        setStep(2);
+                    } else {
+                        Alert.alert('エラー', '登録中にエラーが発生しました。');
+                    }
+                } catch (error) {
+                    setIsCheckingEmail(false);
+                    console.error('Signup error:', error);
+                    Alert.alert('エラー', '登録中にエラーが発生しました。');
                 }
             }
         } else if (step === 2) {
@@ -492,84 +504,15 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         if (validateStep6()) {
             setIsSubmitting(true);
             try {
-                // 0. 既存のセッションをクリア（過去にログインしていたアカウントのセッションを削除）
-                await supabase.auth.signOut();
-                
-                // SecureStoreから直接セッションを削除（Supabaseが使用するキーを直接削除）
-                if (Platform.OS !== 'web') {
-                    try {
-                        // Supabaseが使用するキー名の形式: sb-{project-ref}-auth-token
-                        const projectRef = 'qexnfdidlqewfxskkqow';
-                        const authKey = `sb-${projectRef}-auth-token`;
-                        await SecureStore.deleteItemAsync(authKey);
-                        
-                        // 念のため、他の可能性のあるキーも削除
-                        await SecureStore.deleteItemAsync(`sb-${projectRef}-auth-token-code-verifier`);
-                    } catch (secureStoreError) {
-                        console.log('SecureStore削除エラー（無視可能）:', secureStoreError);
-                    }
-                }
-                
-                // signOutの完了を確実にするため、少し待機
-                await new Promise(resolve => setTimeout(resolve, 300));
-                
-                // セッションが確実に削除されたことを確認
-                const { data: { session: checkSession } } = await supabase.auth.getSession();
-                if (checkSession) {
-                    // セッションが残っている場合、再度signOutを試行
-                    await supabase.auth.signOut();
-                    await new Promise(resolve => setTimeout(resolve, 300));
+                // Step1で既にユーザーが作成されているので、サインインしてプロフィールを作成
+                if (!createdUserId) {
+                    throw new Error('ユーザー情報が見つかりません。最初からやり直してください。');
                 }
 
-                // 1. Sign up
-                const { data: { user }, error: signUpError } = await supabase.auth.signUp({
-                    email,
-                    password,
-                });
-
-                if (signUpError) {
-                    // エラーメッセージから重複を判定
-                    const errorMessage = signUpError.message?.toLowerCase() || '';
-                    if (
-                        errorMessage.includes('already registered') ||
-                        errorMessage.includes('user already exists') ||
-                        errorMessage.includes('email already') ||
-                        errorMessage.includes('already exists') ||
-                        errorMessage.includes('user with this email already exists') ||
-                        errorMessage.includes('email address already registered')
-                    ) {
-                        // メールアドレスが既に登録されている場合
-                        Alert.alert(
-                            '登録エラー',
-                            'このメールアドレスは既に登録されています。',
-                            [
-                                {
-                                    text: '閉じる',
-                                    style: 'cancel',
-                                },
-                                {
-                                    text: 'ログインへ',
-                                    onPress: () => {
-                                        onCancel();
-                                    },
-                                },
-                            ]
-                        );
-                        setIsSubmitting(false);
-                        return;
-                    }
-                    // その他のエラーの場合は通常通りエラーをthrow
-                    throw signUpError;
-                }
-
-                if (!user) {
-                    throw new Error('ユーザーの作成に失敗しました');
-                }
-
-                // 2. 確実にサインインする
+                // 1. サインインしてセッションを確立
                 const { data: { session: signInSession }, error: signInError } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
+                    email: email.trim(),
+                    password: password,
                 });
 
                 if (signInError) {
@@ -594,9 +537,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     throw new Error('セッションの設定に失敗しました。もう一度お試しください。');
                 }
 
+                const userId = createdUserId;
                 let uploadedImageUrl = imageUri;
 
-                // 3. Upload image if exists
+                // 2. Upload image if exists
                 if (imageUri) {
                     try {
                         const arrayBuffer = await new Promise<ArrayBuffer>((resolve, reject) => {
@@ -614,7 +558,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         });
 
                         const fileExt = imageUri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+                        const fileName = `${userId}/${Date.now()}.${fileExt}`;
                         const filePath = `${fileName}`;
 
                         const { error: uploadError } = await supabase.storage
@@ -639,12 +583,12 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     }
                 }
 
-                // 4. Insert profile
+                // 3. Insert profile
                 const { error: profileError } = await supabase
                     .from('profiles')
                     .insert([
                         {
-                            id: user.id,
+                            id: userId,
                             name: nickname,
                             university: university,
                             bio: bio,
