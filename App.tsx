@@ -46,7 +46,7 @@ const PlaceholderScreen = ({ title }: { title: string }) => (
 
 function AppContent() {
   const insets = useSafeAreaInsets();
-  const { session, loading: authLoading, signOut } = useAuth();
+  const { session, loading: authLoading, signOut, refreshSession } = useAuth();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState<boolean | null>(null);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -519,9 +519,9 @@ function AppContent() {
     return (
       <SafeAreaProvider>
         <SignupFlow
-          onComplete={() => {
+          onComplete={async () => {
+            await refreshSession();
             setShowSignup(false);
-            // Session is handled by AuthProvider
           }}
           onCancel={() => setShowSignup(false)}
         />

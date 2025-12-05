@@ -7,6 +7,7 @@ type AuthContextType = {
     user: User | null;
     loading: boolean;
     signOut: () => Promise<void>;
+    refreshSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -14,6 +15,7 @@ const AuthContext = createContext<AuthContextType>({
     user: null,
     loading: true,
     signOut: async () => { },
+    refreshSession: async () => { },
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -51,8 +53,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await supabase.auth.signOut();
     };
 
+    const refreshSession = async () => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            setSession(session);
+            setUser(session?.user ?? null);
+        } catch (error) {
+            console.error('Error refreshing session:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ session, user, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, loading, signOut, refreshSession }}>
             {children}
         </AuthContext.Provider>
     );
