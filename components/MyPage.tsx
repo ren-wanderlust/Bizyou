@@ -24,18 +24,101 @@ interface MenuItem {
 }
 
 const { width } = Dimensions.get('window');
-const COLUMN_COUNT = 3;
-const IMAGE_SIZE = width / COLUMN_COUNT;
+
+// UserProjectPageと同じProjectCardコンポーネント（自分のプロジェクト用）
+const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerProfile: Profile; onPress: () => void }) => {
+    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
+    const deadlineString = deadlineDate
+        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
+        : '';
+
+    return (
+        <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
+            <View style={projectCardStyles.cardInner}>
+                <Image
+                    source={{ uri: ownerProfile.image || 'https://via.placeholder.com/50' }}
+                    style={projectCardStyles.authorIcon}
+                />
+                <View style={projectCardStyles.cardContent}>
+                    <View style={projectCardStyles.cardHeader}>
+                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
+                        {deadlineString ? (
+                            <View style={projectCardStyles.deadlineBadge}>
+                                <Ionicons name="time-outline" size={14} color="#D32F2F" />
+                                <Text style={projectCardStyles.deadlineText}>{deadlineString}</Text>
+                            </View>
+                        ) : null}
+                    </View>
+                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{project.description}</Text>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+};
+
+// 応募したプロジェクト用のカードコンポーネント
+const AppliedProjectCard = ({ project, onPress }: { project: any; onPress: () => void }) => {
+    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
+    const deadlineString = deadlineDate
+        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
+        : '';
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'approved':
+                return { text: '承認済み', color: '#4CAF50', bgColor: '#E8F5E9' };
+            case 'rejected':
+                return { text: '不承認', color: '#F44336', bgColor: '#FFEBEE' };
+            default:
+                return { text: '審査中', color: '#FF9800', bgColor: '#FFF3E0' };
+        }
+    };
+
+    const statusBadge = getStatusBadge(project.applicationStatus);
+
+    return (
+        <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
+            <View style={projectCardStyles.cardInner}>
+                <Image
+                    source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                    style={projectCardStyles.authorIcon}
+                />
+                <View style={projectCardStyles.cardContent}>
+                    <View style={projectCardStyles.cardHeader}>
+                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
+                        <View style={[projectCardStyles.statusBadge, { backgroundColor: statusBadge.bgColor }]}>
+                            <Text style={[projectCardStyles.statusText, { color: statusBadge.color }]}>{statusBadge.text}</Text>
+                        </View>
+                    </View>
+                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{project.description}</Text>
+                    <View style={projectCardStyles.ownerInfo}>
+                        <Text style={projectCardStyles.ownerName}>{project.owner?.name || '不明'}</Text>
+                        {deadlineString ? (
+                            <View style={projectCardStyles.deadlineBadgeSmall}>
+                                <Ionicons name="time-outline" size={12} color="#D32F2F" />
+                                <Text style={projectCardStyles.deadlineTextSmall}>{deadlineString}</Text>
+                            </View>
+                        ) : null}
+                    </View>
+                </View>
+            </View>
+        </TouchableOpacity>
+    );
+};
 
 export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat }: MyPageProps) {
     const [projects, setProjects] = useState<any[]>([]);
+    const [appliedProjects, setAppliedProjects] = useState<any[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [loadingProjects, setLoadingProjects] = useState(true);
+    const [loadingAppliedProjects, setLoadingAppliedProjects] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [activeTab, setActiveTab] = useState<'myProjects' | 'appliedProjects'>('myProjects');
 
     useEffect(() => {
         fetchMyProjects();
+        fetchAppliedProjects();
     }, [profile.id]);
 
     const fetchMyProjects = async () => {
@@ -52,6 +135,52 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             console.error('Error fetching my projects:', error);
         } finally {
             setLoadingProjects(false);
+        }
+    };
+
+    const fetchAppliedProjects = async () => {
+        try {
+            // 自分が応募したプロジェクトを取得
+            const { data, error } = await supabase
+                .from('project_applications')
+                .select(`
+                    id,
+                    status,
+                    project:projects!project_id (
+                        id,
+                        title,
+                        description,
+                        image_url,
+                        owner_id,
+                        created_at,
+                        deadline,
+                        owner:profiles!owner_id (
+                            id,
+                            name,
+                            image,
+                            university
+                        )
+                    )
+                `)
+                .eq('user_id', profile.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (data) {
+                // プロジェクト情報を抽出してフラット化
+                const projectsWithStatus = data
+                    .filter((item: any) => item.project)
+                    .map((item: any) => ({
+                        ...item.project,
+                        applicationStatus: item.status,
+                        applicationId: item.id
+                    }));
+                setAppliedProjects(projectsWithStatus);
+            }
+        } catch (error) {
+            console.error('Error fetching applied projects:', error);
+        } finally {
+            setLoadingAppliedProjects(false);
         }
     };
 
@@ -162,26 +291,34 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const renderTabs = () => (
         <View style={styles.tabsContainer}>
-            <TouchableOpacity style={[styles.tabItem, styles.activeTab]}>
-                <Ionicons name="grid-outline" size={24} color="black" />
+            <TouchableOpacity 
+                style={[styles.tabItem, activeTab === 'myProjects' && styles.activeTab]}
+                onPress={() => setActiveTab('myProjects')}
+            >
+                <Ionicons name="grid-outline" size={24} color={activeTab === 'myProjects' ? 'black' : '#999'} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.tabItem}>
-                <Ionicons name="person-outline" size={24} color="#999" />
+            <TouchableOpacity 
+                style={[styles.tabItem, activeTab === 'appliedProjects' && styles.activeTab]}
+                onPress={() => setActiveTab('appliedProjects')}
+            >
+                <Ionicons name="person-outline" size={24} color={activeTab === 'appliedProjects' ? 'black' : '#999'} />
             </TouchableOpacity>
         </View>
     );
 
     const renderProjectItem = ({ item }: { item: any }) => (
-        <TouchableOpacity
-            style={styles.gridItem}
+        <ProjectCard
+            project={item}
+            ownerProfile={profile}
             onPress={() => setSelectedProject(item)}
-            activeOpacity={0.8}
-        >
-            <Image
-                source={{ uri: item.image_url || 'https://via.placeholder.com/300' }}
-                style={styles.gridImage}
-            />
-        </TouchableOpacity>
+        />
+    );
+
+    const renderAppliedProjectItem = ({ item }: { item: any }) => (
+        <AppliedProjectCard
+            project={item}
+            onPress={() => setSelectedProject(item)}
+        />
     );
 
     return (
@@ -189,10 +326,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             {renderHeader()}
 
             <FlatList
-                data={projects}
-                renderItem={renderProjectItem}
+                data={activeTab === 'myProjects' ? projects : appliedProjects}
+                renderItem={activeTab === 'myProjects' ? renderProjectItem : renderAppliedProjectItem}
                 keyExtractor={(item) => item.id}
-                numColumns={COLUMN_COUNT}
                 ListHeaderComponent={
                     <>
                         {renderProfileInfo()}
@@ -201,14 +337,27 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         {renderTabs()}
                     </>
                 }
+                contentContainerStyle={styles.projectListContent}
                 showsVerticalScrollIndicator={false}
+                ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 ListEmptyComponent={
-                    !loadingProjects ? (
+                    (activeTab === 'myProjects' ? !loadingProjects : !loadingAppliedProjects) ? (
                         <View style={styles.emptyContainer}>
                             <View style={styles.emptyIconContainer}>
-                                <Ionicons name="camera-outline" size={48} color="black" />
+                                <Ionicons 
+                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "document-text-outline"} 
+                                    size={48} 
+                                    color="black" 
+                                />
                             </View>
-                            <Text style={styles.emptyTitle}>写真・動画はまだありません</Text>
+                            <Text style={styles.emptyTitle}>
+                                {activeTab === 'myProjects' ? 'プロジェクトはまだありません' : '応募したプロジェクトはありません'}
+                            </Text>
+                            <Text style={styles.emptySubText}>
+                                {activeTab === 'myProjects' 
+                                    ? 'プロジェクトを作成して公開しましょう' 
+                                    : '気になるプロジェクトに応募してみましょう'}
+                            </Text>
                         </View>
                     ) : null
                 }
@@ -397,6 +546,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         borderTopWidth: 1,
         borderTopColor: '#EFEFEF',
+        marginBottom: 16,
     },
     tabItem: {
         flex: 1,
@@ -407,18 +557,14 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: 'black',
     },
-    gridItem: {
-        width: IMAGE_SIZE,
-        height: IMAGE_SIZE,
-        padding: 1,
-    },
-    gridImage: {
-        flex: 1,
-        backgroundColor: '#EFEFEF',
+    projectListContent: {
+        paddingHorizontal: 16,
+        paddingBottom: 20,
     },
     emptyContainer: {
         alignItems: 'center',
         paddingTop: 60,
+        paddingHorizontal: 20,
     },
     emptyIconContainer: {
         width: 90,
@@ -434,6 +580,12 @@ const styles = StyleSheet.create({
         fontSize: 20,
         fontWeight: 'bold',
         color: 'black',
+        marginBottom: 8,
+    },
+    emptySubText: {
+        fontSize: 14,
+        color: '#6B7280',
+        textAlign: 'center',
     },
     menuOverlay: {
         flex: 1,
@@ -467,5 +619,96 @@ const styles = StyleSheet.create({
     menuRowText: {
         fontSize: 16,
         color: 'black',
+    },
+});
+
+// UserProjectPageと同じProjectCardスタイル
+const projectCardStyles = StyleSheet.create({
+    card: {
+        width: '100%',
+        backgroundColor: 'white',
+        borderRadius: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    cardInner: {
+        flexDirection: 'row',
+        padding: 16,
+        alignItems: 'flex-start',
+    },
+    authorIcon: {
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        marginRight: 16,
+        backgroundColor: '#EEE',
+    },
+    cardContent: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    cardTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#111827',
+        flex: 1,
+        marginRight: 8,
+    },
+    deadlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FFEBEE',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    deadlineText: {
+        fontSize: 12,
+        color: '#D32F2F',
+        fontWeight: 'bold',
+        marginLeft: 4,
+    },
+    cardDescription: {
+        fontSize: 14,
+        color: '#4B5563',
+        lineHeight: 20,
+    },
+    // 応募したプロジェクト用の追加スタイル
+    statusBadge: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    ownerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginTop: 8,
+    },
+    ownerName: {
+        fontSize: 13,
+        color: '#6B7280',
+    },
+    deadlineBadgeSmall: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    deadlineTextSmall: {
+        fontSize: 11,
+        color: '#D32F2F',
+        marginLeft: 2,
     },
 });
