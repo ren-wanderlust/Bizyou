@@ -27,6 +27,7 @@ interface Message {
     text: string;
     image_url?: string;
     sender: 'me' | 'other';
+    senderName?: string; // Add senderName
     timestamp: string;
     date: string; // ISO date string for grouping (YYYY-MM-DD)
     created_at: string;
@@ -46,10 +47,11 @@ interface MessageItem {
 
 interface ChatRoomProps {
     onBack: () => void;
-    partnerId: string;
+    partnerId: string; // Acts as chatRoomId if isGroup is true
     partnerName: string;
     partnerImage: string;
     onPartnerProfilePress: () => void;
+    isGroup?: boolean; // New prop
 }
 
 // Helper function to get date label
@@ -78,11 +80,13 @@ const getDateLabel = (dateString: string): string => {
 const MessageBubble = ({
     message,
     onReply,
-    onPartnerProfilePress
+    onPartnerProfilePress,
+    isGroup
 }: {
     message: Message,
     onReply: (msg: Message) => void,
-    onPartnerProfilePress: () => void
+    onPartnerProfilePress: () => void,
+    isGroup?: boolean
 }) => {
     const isMe = message.sender === 'me';
     const swipeableRef = useRef<any>(null);
@@ -134,6 +138,11 @@ const MessageBubble = ({
                         onLongPress={handleLongPress}
                         activeOpacity={0.8}
                     >
+                        {!isMe && isGroup && message.senderName && (
+                            <Text style={{ fontSize: 10, color: '#6B7280', marginBottom: 2, marginLeft: 4 }}>
+                                {message.senderName}
+                            </Text>
+                        )}
                         {isMe ? (
                             <LinearGradient
                                 colors={['#0d9488', '#2563eb']} // teal-600 to blue-600
@@ -194,7 +203,7 @@ const MessageBubble = ({
     );
 };
 
-export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress }: ChatRoomProps) {
+export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, isGroup = false }: ChatRoomProps) {
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
@@ -221,15 +230,27 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         return () => {
             supabase.channel('public:messages').unsubscribe();
         };
-    }, [partnerId]);
+    }, [partnerId, isGroup]);
 
     const fetchMessages = async (userId: string) => {
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('messages')
-                .select('*')
-                .or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`)
+                .select(`
+                    *,
+                    sender:profiles!sender_id (
+                        name
+                    )
+                `)
                 .order('created_at', { ascending: true });
+
+            if (isGroup) {
+                query = query.eq('chat_room_id', partnerId);
+            } else {
+                query = query.or(`and(sender_id.eq.${userId},receiver_id.eq.${partnerId}),and(sender_id.eq.${partnerId},receiver_id.eq.${userId})`);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
 
@@ -239,6 +260,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     text: msg.content,
                     image_url: msg.image_url,
                     sender: msg.sender_id === userId ? 'me' : 'other',
+                    senderName: msg.sender?.name,
                     timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -256,6 +278,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     };
 
     const subscribeToMessages = (userId: string) => {
+        const filter = isGroup
+            ? `chat_room_id=eq.${partnerId}`
+            : `receiver_id=eq.${userId}`;
+
         supabase
             .channel('public:messages')
             .on(
@@ -264,15 +290,26 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     event: 'INSERT',
                     schema: 'public',
                     table: 'messages',
-                    filter: `receiver_id=eq.${userId}`,
+                    filter: filter,
                 },
-                (payload) => {
-                    if (payload.new.sender_id === partnerId) {
+                async (payload) => {
+                    const isRelevant = isGroup
+                        ? (payload.new.chat_room_id === partnerId && payload.new.sender_id !== userId)
+                        : (payload.new.sender_id === partnerId);
+
+                    if (isRelevant) {
+                        let senderName = '';
+                        if (isGroup) {
+                            const { data } = await supabase.from('profiles').select('name').eq('id', payload.new.sender_id).single();
+                            senderName = data?.name || '';
+                        }
+
                         const newMessage: Message = {
                             id: payload.new.id,
                             text: payload.new.content,
                             image_url: payload.new.image_url,
                             sender: 'other',
+                            senderName: senderName,
                             timestamp: new Date(payload.new.created_at).toLocaleTimeString('ja-JP', {
                                 hour: '2-digit',
                                 minute: '2-digit',
@@ -386,7 +423,8 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 .from('messages')
                 .insert({
                     sender_id: currentUserId,
-                    receiver_id: partnerId,
+                    receiver_id: isGroup ? null : partnerId,
+                    chat_room_id: isGroup ? partnerId : null,
                     content: content,
                     image_url: uploadedImageUrl,
                     reply_to: replyData,
@@ -449,6 +487,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     message={item.message!}
                     onReply={handleReply}
                     onPartnerProfilePress={onPartnerProfilePress}
+                    isGroup={isGroup}
                 />
             );
         }

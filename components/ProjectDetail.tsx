@@ -196,6 +196,43 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             }
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '棄却'}しました`);
+
+            if (newStatus === 'approved') {
+                // Check if total members >= 2 (Owner + at least 1 approved applicant)
+                const { count } = await supabase
+                    .from('project_applications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('project_id', project.id)
+                    .eq('status', 'approved');
+
+                const totalMembers = (count || 0) + 1; // +1 for owner
+
+                if (totalMembers >= 2) {
+                    // Check if chat room already exists
+                    const { data: existingRoom } = await supabase
+                        .from('chat_rooms')
+                        .select('id')
+                        .eq('project_id', project.id)
+                        .single();
+
+                    if (!existingRoom) {
+                        // Create team chat room
+                        const { error: createRoomError } = await supabase
+                            .from('chat_rooms')
+                            .insert({
+                                project_id: project.id,
+                                type: 'group'
+                            });
+
+                        if (!createRoomError) {
+                            Alert.alert('チームチャット作成', 'メンバーが2名以上になったため、チームチャットが自動作成されました！「トーク」タブから確認できます。');
+                        } else {
+                            console.error('Error creating chat room:', createRoomError);
+                        }
+                    }
+                }
+            }
+
             fetchApplicants();
         } catch (error) {
             console.error('Error updating status:', error);

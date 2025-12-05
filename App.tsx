@@ -71,6 +71,7 @@ function AppContent() {
     partnerId: string;
     partnerName: string;
     partnerImage: string;
+    isGroup?: boolean;
   } | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria | null>(null);
@@ -676,6 +677,7 @@ function AppContent() {
                           partnerId,
                           partnerName,
                           partnerImage,
+                          isGroup: false,
                         });
                       }}
                     />
@@ -701,6 +703,7 @@ function AppContent() {
                 partnerId: room.partnerId,
                 partnerName: room.partnerName,
                 partnerImage: room.partnerImage,
+                isGroup: room.type === 'group',
               })}
             />
           )}
@@ -768,6 +771,7 @@ function AppContent() {
                   partnerId: selectedProfile.id,
                   partnerName: selectedProfile.name,
                   partnerImage: selectedProfile.image,
+                  isGroup: false,
                 });
               }}
               isLiked={likedProfiles.has(selectedProfile.id)}
@@ -783,6 +787,7 @@ function AppContent() {
               partnerId={activeChatRoom.partnerId}
               partnerName={activeChatRoom.partnerName}
               partnerImage={activeChatRoom.partnerImage}
+              isGroup={activeChatRoom.isGroup}
               onBack={() => setActiveChatRoom(null)}
               onPartnerProfilePress={() => {
                 const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
