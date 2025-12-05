@@ -21,7 +21,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
     ];
 
     return (
-        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom - 10, 0) }]}>
+        <View style={[styles.container, { paddingBottom: Math.max(insets.bottom - 10, 0) + 10 }]}>
             <View style={styles.tabBar}>
                 {tabs.map((tab) => {
                     const isActive = activeTab === tab.id;
@@ -41,12 +41,6 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
                                         isActive && styles.profileIconActive
                                     ]}
                                 />
-                                <Text style={[
-                                    styles.tabLabel,
-                                    isActive ? styles.tabLabelActive : styles.tabLabelInactive
-                                ]}>
-                                    {tab.label}
-                                </Text>
                             </TouchableOpacity>
                         );
                     }
@@ -66,15 +60,9 @@ export function BottomNav({ activeTab, onTabChange, currentUser }: BottomNavProp
                         >
                             <Ionicons
                                 name={iconName}
-                                size={24}
+                                size={28}
                                 color={isActive ? '#0d9488' : '#6b7280'} // teal-600 : gray-500
                             />
-                            <Text style={[
-                                styles.tabLabel,
-                                isActive ? styles.tabLabelActive : styles.tabLabelInactive
-                            ]}>
-                                {tab.label}
-                            </Text>
                         </TouchableOpacity>
                     );
                 })}
@@ -114,9 +102,9 @@ const styles = StyleSheet.create({
         color: '#6b7280', // gray-500
     },
     profileIcon: {
-        width: 24,
-        height: 24,
-        borderRadius: 12,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaView, Alert, ActivityIndicator, Modal, FlatList, Dimensions, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { ProjectDetail } from './ProjectDetail';
 
 interface MyPageProps {
     profile: Profile;
@@ -11,6 +12,7 @@ interface MyPageProps {
     onOpenNotifications?: () => void;
     onSettingsPress?: () => void;
     onHelpPress?: () => void;
+    onChat?: (ownerId: string, ownerName: string, ownerImage: string) => void;
 }
 
 interface MenuItem {
@@ -18,19 +20,40 @@ interface MenuItem {
     icon: any;
     label: string;
     badge?: number;
+    color?: string;
 }
 
-export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress }: MyPageProps) {
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+const { width } = Dimensions.get('window');
+const COLUMN_COUNT = 3;
+const IMAGE_SIZE = width / COLUMN_COUNT;
 
-    const menuItems: MenuItem[] = [
-        { id: 'billing', icon: 'card-outline', label: '課金・プラン管理' },
-        { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
-        { id: 'favorites', icon: 'star-outline', label: 'お気に入り' },
-        { id: 'settings', icon: 'settings-outline', label: '各種設定' },
-        { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
-    ];
+export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat }: MyPageProps) {
+    const [projects, setProjects] = useState<any[]>([]);
+    const [isMenuVisible, setIsMenuVisible] = useState(false);
+    const [selectedProject, setSelectedProject] = useState<any | null>(null);
+    const [loadingProjects, setLoadingProjects] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    useEffect(() => {
+        fetchMyProjects();
+    }, [profile.id]);
+
+    const fetchMyProjects = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('projects')
+                .select('*')
+                .eq('owner_id', profile.id)
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (data) setProjects(data);
+        } catch (error) {
+            console.error('Error fetching my projects:', error);
+        } finally {
+            setLoadingProjects(false);
+        }
+    };
 
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
@@ -45,10 +68,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
             if (avatarFiles && avatarFiles.length > 0) {
                 const filesToRemove = avatarFiles.map(x => `${user.id}/${x.name}`);
-                const { error: removeError } = await supabase.storage
-                    .from('avatars')
-                    .remove(filesToRemove);
-                if (removeError) console.error('Error removing avatars:', removeError);
+                await supabase.storage.from('avatars').remove(filesToRemove);
             }
 
             // 2. Delete chat images
@@ -58,13 +78,10 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
             if (chatFiles && chatFiles.length > 0) {
                 const filesToRemove = chatFiles.map(x => `${user.id}/${x.name}`);
-                const { error: removeError } = await supabase.storage
-                    .from('chat-images')
-                    .remove(filesToRemove);
-                if (removeError) console.error('Error removing chat images:', removeError);
+                await supabase.storage.from('chat-images').remove(filesToRemove);
             }
 
-            // 3. Delete account data and auth user
+            // 3. Delete account data
             const { error } = await supabase.rpc('delete_account');
             if (error) throw error;
 
@@ -78,318 +95,377 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         }
     };
 
+    const menuItems: MenuItem[] = [
+        { id: 'billing', icon: 'card-outline', label: '課金・プラン管理' },
+        { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
+        { id: 'favorites', icon: 'star-outline', label: 'お気に入り' },
+        { id: 'settings', icon: 'settings-outline', label: '各種設定' },
+        { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
+        { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
+    ];
+
+    const renderHeader = () => (
+        <View style={styles.header}>
+            <View style={styles.headerLeft}>
+                <Ionicons name="lock-closed-outline" size={16} color="black" style={{ marginRight: 4 }} />
+                <Text style={styles.headerUsername}>{profile.name}</Text>
+                <Ionicons name="chevron-down" size={16} color="black" style={{ marginLeft: 4 }} />
+            </View>
+            <View style={styles.headerRight}>
+                <TouchableOpacity onPress={() => setIsMenuVisible(true)}>
+                    <Ionicons name="menu-outline" size={32} color="black" />
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    const renderProfileInfo = () => (
+        <View style={styles.profileInfoContainer}>
+            <View style={styles.profileImageWrapper}>
+                <Image
+                    source={{ uri: profile.image }}
+                    style={styles.profileImage}
+                />
+            </View>
+            <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>{projects.length}</Text>
+                    <Text style={styles.statLabel}>投稿</Text>
+                </View>
+                <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>0</Text>
+                    <Text style={styles.statLabel}>フォロワー</Text>
+                </View>
+                <View style={styles.statItem}>
+                    <Text style={styles.statNumber}>0</Text>
+                    <Text style={styles.statLabel}>フォロー中</Text>
+                </View>
+            </View>
+        </View>
+    );
+
+    const renderBio = () => (
+        <View style={styles.bioContainer}>
+            <Text style={styles.bioName}>{profile.name}</Text>
+            <Text style={styles.bioUniversity}>{profile.university}</Text>
+            {profile.bio && <Text style={styles.bioText}>{profile.bio}</Text>}
+        </View>
+    );
+
+    const renderActions = () => (
+        <View style={styles.actionsContainer}>
+            <TouchableOpacity style={styles.actionButton} onPress={onEditProfile}>
+                <Text style={styles.actionButtonText}>プロフィールを編集</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderTabs = () => (
+        <View style={styles.tabsContainer}>
+            <TouchableOpacity style={[styles.tabItem, styles.activeTab]}>
+                <Ionicons name="grid-outline" size={24} color="black" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.tabItem}>
+                <Ionicons name="person-outline" size={24} color="#999" />
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderProjectItem = ({ item }: { item: any }) => (
+        <TouchableOpacity
+            style={styles.gridItem}
+            onPress={() => setSelectedProject(item)}
+            activeOpacity={0.8}
+        >
+            <Image
+                source={{ uri: item.image_url || 'https://via.placeholder.com/300' }}
+                style={styles.gridImage}
+            />
+        </TouchableOpacity>
+    );
+
     return (
-        <View style={styles.container}>
-            <View style={{ flex: 1 }}>
-                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <SafeAreaView style={styles.container}>
+            {renderHeader()}
 
-                    {/* Header Area */}
-                    <View style={styles.headerContainer}>
-                        <Text style={styles.pageTitle}>マイページ</Text>
-                        <View style={styles.profileImageContainer}>
-                            <TouchableOpacity onPress={() => setIsImageModalVisible(true)} activeOpacity={0.9}>
-                                <Image
-                                    source={{ uri: profile.image }}
-                                    style={styles.profileImage}
-                                />
+            <FlatList
+                data={projects}
+                renderItem={renderProjectItem}
+                keyExtractor={(item) => item.id}
+                numColumns={COLUMN_COUNT}
+                ListHeaderComponent={
+                    <>
+                        {renderProfileInfo()}
+                        {renderBio()}
+                        {renderActions()}
+                        {renderTabs()}
+                    </>
+                }
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                    !loadingProjects ? (
+                        <View style={styles.emptyContainer}>
+                            <View style={styles.emptyIconContainer}>
+                                <Ionicons name="camera-outline" size={48} color="black" />
+                            </View>
+                            <Text style={styles.emptyTitle}>写真・動画はまだありません</Text>
+                        </View>
+                    ) : null
+                }
+            />
+
+            {/* Menu Modal */}
+            <Modal
+                visible={isMenuVisible}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setIsMenuVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.menuOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsMenuVisible(false)}
+                >
+                    <View style={styles.menuContent}>
+                        <View style={styles.menuHeader}>
+                            <View style={styles.menuIndicator} />
+                        </View>
+                        {menuItems.map((item) => (
+                            <TouchableOpacity
+                                key={item.id}
+                                style={styles.menuRow}
+                                onPress={() => {
+                                    setIsMenuVisible(false);
+                                    if (item.id === 'notifications' && onOpenNotifications) onOpenNotifications();
+                                    else if (item.id === 'settings' && onSettingsPress) onSettingsPress();
+                                    else if (item.id === 'help' && onHelpPress) onHelpPress();
+                                    else if (item.id === 'logout' && onLogout) onLogout();
+                                }}
+                            >
+                                <Ionicons name={item.icon} size={24} color={item.color || "black"} />
+                                <Text style={[styles.menuRowText, item.color && { color: item.color }]}>{item.label}</Text>
                             </TouchableOpacity>
-                        </View>
-                        <Text style={styles.userName}>{profile.name}</Text>
-                        <Text style={styles.userDetails}>{profile.age}歳 · {profile.university || profile.company || ''}</Text>
+                        ))}
 
                         <TouchableOpacity
-                            onPress={onEditProfile}
-                            style={styles.editButton}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.editButtonText}>プロフィール編集</Text>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Plan Area */}
-                    <View style={styles.planContainer}>
-                        <View style={styles.planCard}>
-                            <Text style={styles.planLabel}>現在のプラン</Text>
-                            <Text style={styles.planName}>スタンダード（無料）</Text>
-                        </View>
-                    </View>
-
-                    {/* Menu List */}
-                    <View style={styles.menuContainer}>
-                        {menuItems.map((item, index) => {
-                            return (
-                                <TouchableOpacity
-                                    key={item.id}
-                                    style={styles.menuItem}
-                                    onPress={() => {
-                                        if (item.id === 'notifications' && onOpenNotifications) {
-                                            onOpenNotifications();
-                                        } else if (item.id === 'settings' && onSettingsPress) {
-                                            onSettingsPress();
-                                        } else if (item.id === 'help' && onHelpPress) {
-                                            onHelpPress();
-                                        }
-                                    }}
-                                    activeOpacity={0.7}
-                                >
-                                    <View style={styles.menuLeft}>
-                                        <Ionicons name={item.icon} size={22} color="#555" />
-                                        <Text style={styles.menuLabel}>{item.label}</Text>
-                                    </View>
-                                    <View style={styles.menuRight}>
-                                        {item.badge && (
-                                            <View style={styles.badge}>
-                                                <Text style={styles.badgeText}>{item.badge}</Text>
-                                            </View>
-                                        )}
-                                        <Ionicons name="chevron-forward" size={16} color="#CCC" />
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-
-                    {/* Logout Button */}
-                    <TouchableOpacity
-                        onPress={onLogout}
-                        style={styles.logoutButton}
-                    >
-                        <Text style={styles.logoutText}>ログアウト</Text>
-                    </TouchableOpacity>
-
-                    {/* Delete Account */}
-                    <View style={styles.deleteAccountContainer}>
-                        <TouchableOpacity
-                            style={styles.deleteAccountButton}
+                            style={styles.menuRow}
                             onPress={() => {
+                                setIsMenuVisible(false);
                                 Alert.alert(
                                     "アカウント削除",
-                                    "本当にアカウントを削除しますか？この操作は取り消せません。\nすべてのデータが完全に削除されます。",
+                                    "本当にアカウントを削除しますか？",
                                     [
                                         { text: "キャンセル", style: "cancel" },
-                                        {
-                                            text: "削除する",
-                                            style: "destructive",
-                                            onPress: handleDeleteAccount
-                                        }
+                                        { text: "削除する", style: "destructive", onPress: handleDeleteAccount }
                                     ]
                                 );
                             }}
-                            disabled={isDeleting}
                         >
-                            {isDeleting ? (
-                                <ActivityIndicator size="small" color="#999" />
-                            ) : (
-                                <Text style={styles.deleteAccountText}>アカウントを削除する</Text>
-                            )}
+                            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                            <Text style={[styles.menuRowText, { color: '#EF4444' }]}>アカウント削除</Text>
                         </TouchableOpacity>
                     </View>
-
-                    {/* App Version */}
-                    <View style={styles.versionContainer}>
-                        <Text style={styles.versionText}>Nakama v1.0.0</Text>
-                    </View>
-                </ScrollView>
-            </View>
-
-            {/* Image Preview Modal */}
-            <Modal
-                visible={isImageModalVisible}
-                transparent={true}
-                onRequestClose={() => setIsImageModalVisible(false)}
-                animationType="fade"
-            >
-                <TouchableOpacity
-                    style={styles.modalBackground}
-                    activeOpacity={1}
-                    onPress={() => setIsImageModalVisible(false)}
-                >
-                    <Image
-                        source={{ uri: profile.image }}
-                        style={styles.fullScreenImage}
-                        resizeMode="contain"
-                    />
-                    <TouchableOpacity
-                        style={styles.closeButton}
-                        onPress={() => setIsImageModalVisible(false)}
-                    >
-                        <Ionicons name="close" size={30} color="white" />
-                    </TouchableOpacity>
                 </TouchableOpacity>
             </Modal>
-        </View>
+
+            {/* Project Detail Modal */}
+            <Modal
+                visible={!!selectedProject}
+                animationType="slide"
+                presentationStyle="fullScreen"
+                onRequestClose={() => setSelectedProject(null)}
+            >
+                {selectedProject && (
+                    <ProjectDetail
+                        project={selectedProject}
+                        currentUser={profile}
+                        onClose={() => setSelectedProject(null)}
+                        onChat={(id, name, image) => {
+                            setSelectedProject(null);
+                            if (onChat) onChat(id, name, image);
+                        }}
+                        onProjectUpdated={() => {
+                            setSelectedProject(null);
+                            fetchMyProjects();
+                        }}
+                    />
+                )}
+            </Modal>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FAFAFA',
-    },
-    scrollContent: {
-        paddingBottom: 40,
-    },
-    headerContainer: {
-        alignItems: 'center',
-        paddingTop: 0,
-        paddingBottom: 20,
-        paddingHorizontal: 20,
         backgroundColor: 'white',
     },
-    pageTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#111827',
-        marginBottom: 24,
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
     },
-    profileImageContainer: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-        marginBottom: 16,
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    headerUsername: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: 'black',
+    },
+    headerRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    profileInfoContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        marginBottom: 12,
+    },
+    profileImageWrapper: {
+        marginRight: 20,
     },
     profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        backgroundColor: '#E5E7EB',
+        width: 86,
+        height: 86,
+        borderRadius: 43,
+        borderWidth: 1,
+        borderColor: '#EFEFEF',
     },
-    userName: {
-        fontSize: 22,
+    statsContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+    },
+    statItem: {
+        alignItems: 'center',
+    },
+    statNumber: {
+        fontSize: 18,
         fontWeight: 'bold',
-        color: '#333',
+        color: 'black',
+    },
+    statLabel: {
+        fontSize: 13,
+        color: 'black',
+    },
+    bioContainer: {
+        paddingHorizontal: 16,
+        marginBottom: 16,
+    },
+    bioName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: 'black',
+        marginBottom: 2,
+    },
+    bioUniversity: {
+        fontSize: 14,
+        color: '#666',
         marginBottom: 4,
     },
-    userDetails: {
+    bioText: {
         fontSize: 14,
-        color: '#888',
+        color: 'black',
+        lineHeight: 20,
+    },
+    actionsContainer: {
+        flexDirection: 'row',
+        paddingHorizontal: 16,
+        gap: 8,
         marginBottom: 20,
     },
-    editButton: {
+    actionButton: {
+        flex: 1,
+        backgroundColor: '#EFEFEF',
         paddingVertical: 8,
-        paddingHorizontal: 24,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: '#DDD',
-        backgroundColor: 'white',
-    },
-    editButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#333',
-    },
-    planContainer: {
-        paddingHorizontal: 20,
-        marginBottom: 24,
-    },
-    planCard: {
-        backgroundColor: '#F0F9FF', // Very light blue
-        paddingVertical: 12,
-        paddingHorizontal: 16,
         borderRadius: 8,
-        flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 8,
     },
-    planLabel: {
-        fontSize: 13,
-        color: '#64748B',
-    },
-    planName: {
+    actionButtonText: {
         fontSize: 14,
-        fontWeight: 'bold',
-        color: '#0284C7', // Blue
+        fontWeight: '600',
+        color: 'black',
     },
-    menuContainer: {
-        backgroundColor: 'white',
+    tabsContainer: {
+        flexDirection: 'row',
         borderTopWidth: 1,
-        borderBottomWidth: 1,
-        borderColor: '#EEE',
-        marginBottom: 32,
+        borderTopColor: '#EFEFEF',
     },
-    menuItem: {
-        flexDirection: 'row',
+    tabItem: {
+        flex: 1,
         alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 16,
-        paddingHorizontal: 20,
+        paddingVertical: 10,
+    },
+    activeTab: {
+        borderBottomWidth: 1,
+        borderBottomColor: 'black',
+    },
+    gridItem: {
+        width: IMAGE_SIZE,
+        height: IMAGE_SIZE,
+        padding: 1,
+    },
+    gridImage: {
+        flex: 1,
+        backgroundColor: '#EFEFEF',
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        paddingTop: 60,
+    },
+    emptyIconContainer: {
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        borderWidth: 2,
+        borderColor: 'black',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 16,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: 'black',
+    },
+    menuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    menuContent: {
         backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#F5F5F5',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: 40,
+        paddingTop: 10,
     },
-    menuLeft: {
+    menuHeader: {
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    menuIndicator: {
+        width: 40,
+        height: 4,
+        backgroundColor: '#E0E0E0',
+        borderRadius: 2,
+    },
+    menuRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 24,
         gap: 16,
     },
-    menuLabel: {
+    menuRowText: {
         fontSize: 16,
-        color: '#333',
-    },
-    menuRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 8,
-    },
-    badge: {
-        backgroundColor: '#EF4444',
-        paddingHorizontal: 8,
-        paddingVertical: 2,
-        borderRadius: 10,
-    },
-    badgeText: {
-        color: 'white',
-        fontSize: 11,
-        fontWeight: 'bold',
-    },
-    logoutButton: {
-        alignItems: 'center',
-        paddingVertical: 16,
-        marginBottom: 8,
-    },
-    logoutText: {
-        fontSize: 14,
-        color: '#EF4444', // Red for logout
-        fontWeight: '600',
-    },
-    versionContainer: {
-        alignItems: 'center',
-        paddingBottom: 20,
-    },
-    versionText: {
-        fontSize: 12,
-        color: '#CCC',
-    },
-    deleteAccountContainer: {
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    deleteAccountButton: {
-        padding: 8,
-    },
-    deleteAccountText: {
-        fontSize: 13,
-        color: '#999',
-        textDecorationLine: 'underline',
-    },
-    modalBackground: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.9)',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    fullScreenImage: {
-        width: '100%',
-        height: '80%',
-    },
-    closeButton: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
-        padding: 10,
-        zIndex: 1,
+        color: 'black',
     },
 });

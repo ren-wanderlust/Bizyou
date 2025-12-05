@@ -64,7 +64,7 @@ function AppContent() {
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [matchedProfileIds, setMatchedProfileIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
-  const [searchTab, setSearchTab] = useState<'users' | 'projects'>('users');
+  const [searchTab, setSearchTab] = useState<'users' | 'projects'>('projects');
   const searchListRef = useRef<FlatList>(null);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [activeChatRoom, setActiveChatRoom] = useState<{
@@ -564,22 +564,22 @@ function AppContent() {
                 <View style={{ flex: 1 }} />
                 <View style={styles.tabContainer}>
                   <TouchableOpacity
-                    style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
-                    onPress={() => {
-                      setSearchTab('users');
-                      searchListRef.current?.scrollToIndex({ index: 0, animated: true });
-                    }}
-                  >
-                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>さがす</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
                     onPress={() => {
                       setSearchTab('projects');
-                      searchListRef.current?.scrollToIndex({ index: 1, animated: true });
+                      searchListRef.current?.scrollToIndex({ index: 0, animated: true });
                     }}
                   >
                     <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
+                    onPress={() => {
+                      setSearchTab('users');
+                      searchListRef.current?.scrollToIndex({ index: 1, animated: true });
+                    }}
+                  >
+                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>さがす</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={{ flex: 1, alignItems: 'flex-end' }}>
@@ -622,19 +622,19 @@ function AppContent() {
           {activeTab === 'search' && (
             <FlatList
               ref={searchListRef}
-              data={['users', 'projects']}
+              data={['projects', 'users']}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               keyExtractor={(item) => item}
               onMomentumScrollEnd={(e) => {
                 const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                setSearchTab(index === 0 ? 'users' : 'projects');
+                setSearchTab(index === 0 ? 'projects' : 'users');
               }}
               getItemLayout={(data, index) => (
                 { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
               )}
-              initialScrollIndex={searchTab === 'users' ? 0 : 1}
+              initialScrollIndex={searchTab === 'projects' ? 0 : 1}
               renderItem={({ item }) => (
                 <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
                   {item === 'users' ? (
