@@ -136,11 +136,11 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={onClose}>
+                <Text style={styles.headerTitle}>{project ? 'プロジェクト編集' : 'プロジェクト作成'}</Text>
+                <TouchableOpacity onPress={onClose} style={styles.headerLeftButton}>
                     <Text style={styles.cancelText}>キャンセル</Text>
                 </TouchableOpacity>
-                <Text style={styles.headerTitle}>{project ? 'プロジェクト編集' : 'プロジェクト作成'}</Text>
-                <TouchableOpacity onPress={handleSave} disabled={loading}>
+                <TouchableOpacity onPress={handleSave} disabled={loading} style={styles.headerRightButton}>
                     {loading ? (
                         <ActivityIndicator size="small" color="#009688" />
                     ) : (
@@ -268,9 +268,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 16,
+        paddingVertical: 16,
+        paddingHorizontal: 20,
         borderBottomWidth: 1,
         borderBottomColor: '#E5E7EB',
+        position: 'relative',
+    },
+    headerLeftButton: {
+        position: 'absolute',
+        left: 20,
+        zIndex: 1,
+    },
+    headerRightButton: {
+        position: 'absolute',
+        right: 20,
+        zIndex: 1,
     },
     cancelText: {
         fontSize: 16,
@@ -280,6 +292,8 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: '#111827',
+        textAlign: 'center',
+        flex: 1,
     },
     createText: {
         fontSize: 16,
