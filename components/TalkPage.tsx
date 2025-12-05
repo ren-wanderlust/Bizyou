@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
@@ -22,6 +22,8 @@ interface TalkPageProps {
 }
 
 export function TalkPage({ onOpenChat }: TalkPageProps) {
+    const [talkTab, setTalkTab] = useState<'individual' | 'team'>('individual');
+    const talkListRef = useRef<FlatList>(null);
     const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -191,23 +193,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
         }
     };
 
-    if (loading) {
-        return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <ActivityIndicator size="large" color="#009688" />
-            </View>
-        );
-    }
-
-    return (
-        <View style={styles.container}>
-            {/* Header */}
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>トーク</Text>
-            </View>
-
-            {/* Chat Rooms List */}
-            {chatRooms.length > 0 ? (
+    const renderIndividualList = () => {
+        if (chatRooms.length > 0) {
+            return (
                 <FlatList
                     data={chatRooms}
                     keyExtractor={(item) => item.id}
@@ -264,7 +252,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
                     }
                 />
-            ) : (
+            );
+        } else {
+            return (
                 <View style={styles.emptyContainer}>
                     <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
                     <Text style={styles.emptyText}>まだトークがありません</Text>
@@ -275,7 +265,78 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         <Text style={{ color: '#009688' }}>再読み込み</Text>
                     </TouchableOpacity>
                 </View>
-            )}
+            );
+        }
+    };
+
+    const renderTeamList = () => {
+        return (
+            <View style={styles.emptyContainer}>
+                <Ionicons name="people-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>チームチャットは準備中です</Text>
+                <Text style={styles.emptySubText}>
+                    プロジェクトのメンバーと会話できるようになります
+                </Text>
+            </View>
+        );
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, styles.loadingContainer]}>
+                <ActivityIndicator size="large" color="#009688" />
+            </View>
+        );
+    }
+
+    return (
+        <View style={styles.container}>
+            {/* Header */}
+            <View style={styles.header}>
+                <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setTalkTab('individual');
+                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
+                        }}
+                    >
+                        <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setTalkTab('team');
+                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
+                    >
+                        <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            {/* Content */}
+            <FlatList
+                ref={talkListRef}
+                data={['individual', 'team']}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setTalkTab(index === 0 ? 'individual' : 'team');
+                }}
+                getItemLayout={(data, index) => (
+                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                )}
+                initialScrollIndex={0}
+                renderItem={({ item }) => (
+                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                        {item === 'individual' ? renderIndividualList() : renderTeamList()}
+                    </View>
+                )}
+            />
         </View>
     );
 }
@@ -292,7 +353,7 @@ const styles = StyleSheet.create({
     header: {
         backgroundColor: 'white',
         paddingTop: 16,
-        paddingBottom: 12,
+        paddingBottom: 0, // Adjusted for tabs
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
         alignItems: 'center',
@@ -301,6 +362,29 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         color: '#111827',
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 24,
+    },
+    tabButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
+    },
+    tabButtonActive: {
+        borderBottomColor: '#FF5252',
+    },
+    tabText: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#9CA3AF',
+    },
+    tabTextActive: {
+        color: '#FF5252',
     },
     listContent: {
         paddingBottom: 20,
@@ -341,14 +425,14 @@ const styles = StyleSheet.create({
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start', // Changed from baseline to flex-start for multiline right info
+        alignItems: 'flex-start',
         marginBottom: 4,
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'baseline',
         gap: 8,
-        flex: 1, // Allow taking space
+        flex: 1,
     },
     rightInfo: {
         alignItems: 'flex-end',
