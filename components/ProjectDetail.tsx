@@ -167,6 +167,66 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
+    const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
+        try {
+            const { error } = await supabase
+                .from('project_applications')
+                .update({ status: newStatus })
+                .eq('id', applicationId);
+
+            if (error) throw error;
+
+            // Send notification to the applicant
+            const applicant = applicants.find(a => a.id === applicationId);
+            if (applicant) {
+                const { error: notifError } = await supabase
+                    .from('notifications')
+                    .insert({
+                        user_id: applicant.user_id,
+                        sender_id: currentUser?.id,
+                        type: 'match',
+                        title: newStatus === 'approved' ? 'プロジェクト参加承認' : 'プロジェクト参加見送り',
+                        content: newStatus === 'approved'
+                            ? `「${project.title}」への参加が承認されました！`
+                            : `「${project.title}」への参加は見送られました。`,
+                        image_url: project.image_url || currentUser?.image
+                    });
+
+                if (notifError) console.error('Notification error:', notifError);
+            }
+
+            Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '棄却'}しました`);
+            fetchApplicants();
+        } catch (error) {
+            console.error('Error updating status:', error);
+            Alert.alert('エラー', 'ステータスの更新に失敗しました');
+        }
+    };
+
+    const handleApplicantPress = (applicant: Applicant) => {
+        if (currentUser?.id !== project.owner_id) return;
+
+        if (applicant.status === 'pending') {
+            Alert.alert(
+                '申請の管理',
+                `${applicant.user.name}さんからの申請をどうしますか？`,
+                [
+                    { text: 'キャンセル', style: 'cancel' },
+                    {
+                        text: '棄却する',
+                        style: 'destructive',
+                        onPress: () => updateApplicantStatus(applicant.id, 'rejected', applicant.user.name)
+                    },
+                    {
+                        text: '承認する',
+                        style: 'default',
+                        onPress: () => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)
+                    }
+                ]
+            );
+        }
+    };
+
     const handleMessage = () => {
         if (!currentUser) {
             Alert.alert('エラー', 'ログインが必要です');
@@ -300,13 +360,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     </View>
 
                     {/* Applicants Section */}
+                    {/* Approved Members Section */}
                     <View style={styles.applicantsSection}>
                         <Text style={styles.sectionTitle}>
-                            参加申請中のメンバー ({applicants.length}人)
+                            参加メンバー ({applicants.filter(a => a.status === 'approved').length}人)
                         </Text>
-                        {applicants.length > 0 ? (
+                        {applicants.filter(a => a.status === 'approved').length > 0 ? (
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
-                                {applicants.map((applicant) => (
+                                {applicants.filter(a => a.status === 'approved').map((applicant) => (
                                     <View key={applicant.id} style={styles.applicantItem}>
                                         <Image
                                             source={{ uri: applicant.user.image || 'https://via.placeholder.com/40' }}
@@ -319,9 +380,45 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 ))}
                             </ScrollView>
                         ) : (
-                            <Text style={styles.noApplicantsText}>まだ申請者はいません</Text>
+                            <Text style={styles.noApplicantsText}>まだ参加メンバーはいません</Text>
                         )}
                     </View>
+
+                    {/* Pending Applications Section (Owner Only) */}
+                    {currentUser?.id === project.owner_id && (
+                        <View style={styles.applicantsSection}>
+                            <Text style={styles.sectionTitle}>
+                                申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
+                            </Text>
+                            {applicants.filter(a => a.status === 'pending').length > 0 ? (
+                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
+                                    {applicants.filter(a => a.status === 'pending').map((applicant) => (
+                                        <TouchableOpacity
+                                            key={applicant.id}
+                                            style={styles.applicantItem}
+                                            onPress={() => handleApplicantPress(applicant)}
+                                        >
+                                            <View style={styles.pendingBadgeContainer}>
+                                                <Image
+                                                    source={{ uri: applicant.user.image || 'https://via.placeholder.com/40' }}
+                                                    style={[styles.applicantImage, { borderColor: '#F59E0B', borderWidth: 2 }]}
+                                                />
+                                                <View style={styles.badgeIcon}>
+                                                    <Ionicons name="alert-circle" size={16} color="#F59E0B" />
+                                                </View>
+                                            </View>
+                                            <Text style={styles.applicantName} numberOfLines={1}>
+                                                {applicant.user.name}
+                                            </Text>
+                                            <Text style={styles.actionHint}>タップで管理</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            ) : (
+                                <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
+                            )}
+                        </View>
+                    )}
 
                     <View style={styles.divider} />
 
@@ -631,5 +728,20 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: 'white',
+    },
+    pendingBadgeContainer: {
+        position: 'relative',
+    },
+    badgeIcon: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderRadius: 8,
+    },
+    actionHint: {
+        fontSize: 10,
+        color: '#F59E0B',
+        marginTop: 2,
     },
 });
