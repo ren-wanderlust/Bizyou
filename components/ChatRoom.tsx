@@ -236,12 +236,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         try {
             let query = supabase
                 .from('messages')
-                .select(`
-                    *,
-                    sender:profiles!sender_id (
-                        name
-                    )
-                `)
+                .select('*')
                 .order('created_at', { ascending: true });
 
             if (isGroup) {
@@ -255,12 +250,27 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             if (error) throw error;
 
             if (data) {
+                // Manually fetch sender profiles to avoid join issues
+                const senderIds = Array.from(new Set(data.map((m: any) => m.sender_id)));
+                let profileMap = new Map<string, string>();
+
+                if (senderIds.length > 0) {
+                    const { data: profiles } = await supabase
+                        .from('profiles')
+                        .select('id, name')
+                        .in('id', senderIds);
+
+                    profiles?.forEach((p: any) => {
+                        profileMap.set(p.id, p.name);
+                    });
+                }
+
                 const formattedMessages: Message[] = data.map((msg: any) => ({
                     id: msg.id,
                     text: msg.content,
                     image_url: msg.image_url,
                     sender: msg.sender_id === userId ? 'me' : 'other',
-                    senderName: msg.sender?.name,
+                    senderName: profileMap.get(msg.sender_id),
                     timestamp: new Date(msg.created_at).toLocaleTimeString('ja-JP', {
                         hour: '2-digit',
                         minute: '2-digit',
