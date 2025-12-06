@@ -215,12 +215,19 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     const inputRef = useRef<TextInput>(null);
 
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+
         const initializeChat = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (user) {
                 setCurrentUserId(user.id);
                 await fetchMessages(user.id);
                 subscribeToMessages(user.id);
+
+                // Polling as Realtime fallback for RLS limitations
+                interval = setInterval(() => {
+                    fetchMessages(user.id);
+                }, 3000);
             }
             setLoading(false);
         };
@@ -229,6 +236,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 
         return () => {
             supabase.channel('public:messages').unsubscribe();
+            if (interval) clearInterval(interval);
         };
     }, [partnerId, isGroup]);
 
@@ -433,7 +441,9 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 .from('messages')
                 .insert({
                     sender_id: currentUserId,
-                    receiver_id: isGroup ? null : partnerId,
+                    // For group chats, we set receiver_id to sender to satisfy NOT NULL constraint
+                    // filtering logic correctly handles this using chat_room_id
+                    receiver_id: isGroup ? currentUserId : partnerId,
                     chat_room_id: isGroup ? partnerId : null,
                     content: content,
                     image_url: uploadedImageUrl,

@@ -160,7 +160,10 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     id,
                     project:projects (
                         title,
-                        image_url
+                        image_url,
+                        owner:profiles!owner_id (
+                            image
+                        )
                     )
                 `)
                 .eq('type', 'group');
@@ -195,7 +198,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         partnerName: room.project?.title || 'Team Chat',
                         partnerAge: 0,
                         partnerLocation: '',
-                        partnerImage: room.project?.image_url || 'https://via.placeholder.com/150',
+                        partnerImage: room.project?.owner?.image || room.project?.image_url || 'https://via.placeholder.com/150',
                         lastMessage: lastMsg?.content || 'チームチャットが作成されました',
                         unreadCount: 0,
                         timestamp: timestamp,
@@ -315,8 +318,11 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                             <View style={styles.avatarContainer}>
                                 <Image
                                     source={{ uri: item.partnerImage }}
-                                    style={styles.avatar} // Can be square or different style for project
+                                    style={styles.avatar}
                                 />
+                                <View style={styles.groupBadgeOverlay}>
+                                    <Ionicons name="people" size={12} color="white" />
+                                </View>
                             </View>
 
                             {/* Content */}
@@ -579,5 +585,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#9ca3af',
         textAlign: 'center',
+    },
+    groupBadgeOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: '#009688', // Brand color
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: 'white',
     },
 });
