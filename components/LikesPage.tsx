@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, SafeAreaView, Image, ActivityIndicator } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
@@ -14,13 +13,12 @@ interface LikesPageProps {
     onLike: (profileId: string) => void;
 }
 
-
-
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
-    const [activeTab, setActiveTab] = useState<'received' | 'sent'>('sent');
+    const [activeTab, setActiveTab] = useState<'received' | 'sent'>('received');
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
+    const listRef = useRef<FlatList>(null);
 
     React.useEffect(() => {
         const fetchReceivedLikes = async () => {
@@ -98,7 +96,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         !likedProfileIds.has(profile.id)
     );
 
-    const renderContent = () => {
+    const renderReceivedList = () => {
         if (loading) {
             return (
                 <View style={styles.loadingContainer}>
@@ -107,28 +105,57 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             );
         }
 
-        const data = activeTab === 'received' ? displayReceivedLikes : sentLikes;
-        const emptyMessage = activeTab === 'received' ? 'まだいいねがありません' : 'まだいいねを送っていません';
-        const emptySubMessage = activeTab === 'received' ? 'プロフィールを充実させて待ちましょう！' : '気になる相手を探してみましょう！';
-
-        if (data.length === 0) {
+        if (displayReceivedLikes.length === 0) {
             return (
                 <View style={styles.emptyContainer}>
                     <Ionicons name="heart-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.emptyText}>{emptyMessage}</Text>
-                    <Text style={styles.emptySubText}>{emptySubMessage}</Text>
+                    <Text style={styles.emptyText}>まだいいねがありません</Text>
+                    <Text style={styles.emptySubText}>プロフィールを充実させて待ちましょう！</Text>
                 </View>
             );
         }
 
         return (
             <FlatList
-                data={data}
+                data={displayReceivedLikes}
                 renderItem={({ item }) => (
                     <View style={styles.gridItem}>
                         <ProfileCard
                             profile={item}
-                            isLiked={activeTab === 'sent'} // True if sent tab, False if received tab (waiting for like back)
+                            isLiked={false}
+                            onLike={() => onLike(item.id)}
+                            onSelect={() => onProfileSelect(item)}
+                        />
+                    </View>
+                )}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.listContent}
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+            />
+        );
+    };
+
+    const renderSentList = () => {
+        if (sentLikes.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="heart-outline" size={48} color="#d1d5db" />
+                    <Text style={styles.emptyText}>まだいいねを送っていません</Text>
+                    <Text style={styles.emptySubText}>気になる相手を探してみましょう！</Text>
+                </View>
+            );
+        }
+
+        return (
+            <FlatList
+                data={sentLikes}
+                renderItem={({ item }) => (
+                    <View style={styles.gridItem}>
+                        <ProfileCard
+                            profile={item}
+                            isLiked={true}
                             onLike={() => onLike(item.id)}
                             onSelect={() => onProfileSelect(item)}
                         />
@@ -152,61 +179,57 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 {/* Tabs */}
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
-                        onPress={() => setActiveTab('received')}
                         style={[styles.tabButton, activeTab === 'received' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setActiveTab('received');
+                            listRef.current?.scrollToIndex({ index: 0, animated: true });
+                        }}
                     >
-                        {activeTab === 'received' ? (
-                            <LinearGradient
-                                colors={['#0d9488', '#2563eb']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.tabGradient}
-                            >
-                                <Text style={styles.tabTextActive}>あなたに興味あり</Text>
-                                {displayReceivedLikes.length > 0 && (
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
-                                    </View>
-                                )}
-                            </LinearGradient>
-                        ) : (
-                            <View style={styles.tabContentInactive}>
-                                <Text style={styles.tabTextInactive}>あなたに興味あり</Text>
-                                {displayReceivedLikes.length > 0 && (
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
-                                    </View>
-                                )}
+                        <Text style={[styles.tabText, activeTab === 'received' && styles.tabTextActive]}>
+                            あなたに興味あり
+                        </Text>
+                        {displayReceivedLikes.length > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{displayReceivedLikes.length}</Text>
                             </View>
                         )}
                     </TouchableOpacity>
-
                     <TouchableOpacity
-                        onPress={() => setActiveTab('sent')}
                         style={[styles.tabButton, activeTab === 'sent' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setActiveTab('sent');
+                            listRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
                     >
-                        {activeTab === 'sent' ? (
-                            <LinearGradient
-                                colors={['#0d9488', '#2563eb']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                style={styles.tabGradient}
-                            >
-                                <Text style={styles.tabTextActive}>送ったいいね</Text>
-                            </LinearGradient>
-                        ) : (
-                            <View style={styles.tabContentInactive}>
-                                <Text style={styles.tabTextInactive}>送ったいいね</Text>
-                            </View>
-                        )}
+                        <Text style={[styles.tabText, activeTab === 'sent' && styles.tabTextActive]}>
+                            送ったいいね
+                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
 
-            {/* Content */}
-            <View style={styles.content}>
-                {renderContent()}
-            </View>
+            {/* Swipeable Content */}
+            <FlatList
+                ref={listRef}
+                data={['received', 'sent']}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item) => item}
+                onMomentumScrollEnd={(e) => {
+                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    setActiveTab(index === 0 ? 'received' : 'sent');
+                }}
+                getItemLayout={(data, index) => (
+                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                )}
+                initialScrollIndex={0}
+                renderItem={({ item }) => (
+                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                        {item === 'received' ? renderReceivedList() : renderSentList()}
+                    </View>
+                )}
+            />
         </View>
     );
 }
@@ -218,7 +241,7 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 0, // SafeArea handled by parent or header height
+        paddingTop: 0,
         paddingBottom: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
@@ -227,64 +250,49 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 24,
+        marginBottom: 16,
         color: '#111827',
     },
     tabContainer: {
         flexDirection: 'row',
         paddingHorizontal: 16,
-        gap: 8,
+        justifyContent: 'center',
+        gap: 24,
     },
     tabButton: {
-        flex: 1,
-        borderRadius: 8,
-        overflow: 'hidden',
-        backgroundColor: '#f3f4f6', // gray-100
-        height: 44, // Fixed height
+        paddingVertical: 8,
+        paddingHorizontal: 4,
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderBottomWidth: 2,
+        borderBottomColor: 'transparent',
     },
     tabButtonActive: {
-        backgroundColor: 'transparent',
+        borderBottomColor: '#009688',
     },
-    tabGradient: {
-        flex: 1, // Fill the fixed height
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: 4,
-    },
-    tabContentInactive: {
-        flex: 1, // Fill the fixed height
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'row',
-        gap: 4,
+    tabText: {
+        fontSize: 14,
+        color: '#9ca3af',
+        fontWeight: '500',
     },
     tabTextActive: {
-        color: 'white',
-        fontSize: 12,
+        color: '#009688',
         fontWeight: 'bold',
-    },
-    tabTextInactive: {
-        color: '#4b5563', // gray-600
-        fontSize: 12,
-        fontWeight: '500',
     },
     badge: {
         backgroundColor: '#FF7F11',
-        height: 20,
-        minWidth: 20,
-        borderRadius: 10,
+        height: 18,
+        minWidth: 18,
+        borderRadius: 9,
         alignItems: 'center',
         justifyContent: 'center',
         marginLeft: 6,
+        paddingHorizontal: 4,
     },
     badgeText: {
         color: 'white',
         fontSize: 10,
         fontWeight: 'bold',
-    },
-    content: {
-        flex: 1,
     },
     listContent: {
         padding: 16,
