@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { HapticTouchable, triggerHaptic } from './HapticButton';
 
 export interface FilterCriteria {
     keyword: string;
@@ -87,9 +88,9 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                     {/* Header */}
                     <View style={styles.header}>
                         <Text style={styles.headerTitle}>絞り込み</Text>
-                        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+                        <HapticTouchable onPress={onClose} style={styles.closeButton} hapticType="light">
                             <Ionicons name="close" size={24} color="#4b5563" />
-                        </TouchableOpacity>
+                        </HapticTouchable>
                     </View>
 
                     <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
@@ -103,7 +104,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                                 {STATUS_OPTIONS.map((status) => {
                                     const isSelected = selectedStatuses.includes(status);
                                     return (
-                                        <TouchableOpacity
+                                        <HapticTouchable
                                             key={status}
                                             style={[styles.chip, isSelected && styles.chipSelected]}
                                             onPress={() => {
@@ -113,11 +114,12 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                                                     setSelectedStatuses(prev => [...prev, status]);
                                                 }
                                             }}
+                                            hapticType="selection"
                                         >
                                             <Text style={[styles.chipText, isSelected && styles.chipTextSelected]}>
                                                 {status}
                                             </Text>
-                                        </TouchableOpacity>
+                                        </HapticTouchable>
                                     );
                                 })}
                             </View>
@@ -198,11 +200,11 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                     {/* Footer */}
                     <View style={styles.footer}>
                         <View style={styles.footerButtons}>
-                            <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
+                            <HapticTouchable onPress={handleReset} style={styles.resetButton} hapticType="medium">
                                 <Text style={styles.resetButtonText}>リセット</Text>
-                            </TouchableOpacity>
+                            </HapticTouchable>
 
-                            <TouchableOpacity onPress={handleApply} style={styles.applyButtonContainer}>
+                            <HapticTouchable onPress={handleApply} style={styles.applyButtonContainer} hapticType="success">
                                 <LinearGradient
                                     colors={['#0d9488', '#2563eb']}
                                     start={{ x: 0, y: 0 }}
@@ -211,7 +213,7 @@ export function FilterModal({ visible, onClose, onApply, initialCriteria }: Filt
                                 >
                                     <Text style={styles.applyButtonText}>適用する</Text>
                                 </LinearGradient>
-                            </TouchableOpacity>
+                            </HapticTouchable>
                         </View>
                     </View>
                 </View>

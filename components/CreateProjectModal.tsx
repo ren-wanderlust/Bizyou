@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../lib/supabase';
 import { Profile, Theme } from '../types';
+import { HapticTouchable, triggerHaptic } from './HapticButton';
 
 interface CreateProjectModalProps {
     currentUser: Profile;
@@ -138,16 +139,16 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>{project ? 'プロジェクト編集' : 'プロジェクト作成'}</Text>
-                <TouchableOpacity onPress={onClose} style={styles.headerLeftButton}>
+                <HapticTouchable onPress={onClose} style={styles.headerLeftButton} hapticType="light">
                     <Text style={styles.cancelText}>キャンセル</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={handleSave} disabled={loading} style={styles.headerRightButton}>
+                </HapticTouchable>
+                <HapticTouchable onPress={handleSave} disabled={loading} style={styles.headerRightButton} hapticType="success">
                     {loading ? (
                         <ActivityIndicator size="small" color="#009688" />
                     ) : (
                         <Text style={styles.createText}>{project ? '保存' : '作成'}</Text>
                     )}
-                </TouchableOpacity>
+                </HapticTouchable>
             </View>
 
             <KeyboardAvoidingView
@@ -170,19 +171,20 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <Text style={styles.label}>募集するメンバー</Text>
                         <View style={styles.chipContainer}>
                             {ROLES.map((role) => (
-                                <TouchableOpacity
+                                <HapticTouchable
                                     key={role}
                                     style={[
                                         styles.chip,
                                         selectedRoles.includes(role) && styles.chipActive
                                     ]}
                                     onPress={() => toggleRole(role)}
+                                    hapticType="selection"
                                 >
                                     <Text style={[
                                         styles.chipText,
                                         selectedRoles.includes(role) && styles.chipTextActive
                                     ]}>{role}</Text>
-                                </TouchableOpacity>
+                                </HapticTouchable>
                             ))}
                         </View>
                     </View>
@@ -191,19 +193,20 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                         <Text style={styles.label}>プロジェクトのテーマ</Text>
                         <View style={styles.chipContainer}>
                             {themes.map((theme) => (
-                                <TouchableOpacity
+                                <HapticTouchable
                                     key={theme.id}
                                     style={[
                                         styles.chip,
                                         selectedThemes.includes(theme.title) && styles.chipActive
                                     ]}
                                     onPress={() => toggleTheme(theme.title)}
+                                    hapticType="selection"
                                 >
                                     <Text style={[
                                         styles.chipText,
                                         selectedThemes.includes(theme.title) && styles.chipTextActive
                                     ]}>{theme.title}</Text>
-                                </TouchableOpacity>
+                                </HapticTouchable>
                             ))}
                         </View>
                     </View>

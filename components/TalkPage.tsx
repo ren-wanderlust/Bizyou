@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SPACING, AVATAR } from '../constants/DesignSystem';
+import { ChatEmptyState, EmptyState } from './EmptyState';
 
 interface ChatRoom {
     id: string;
@@ -321,18 +322,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                 />
             );
         } else {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.emptyText}>まだトークがありません</Text>
-                    <Text style={styles.emptySubText}>
-                        マッチングした相手とメッセージを始めましょう！
-                    </Text>
-                    <TouchableOpacity onPress={onRefresh} style={{ marginTop: 20, padding: 10 }}>
-                        <Text style={{ color: '#009688' }}>再読み込み</Text>
-                    </TouchableOpacity>
-                </View>
-            );
+            return <ChatEmptyState />;
         }
     };
 
@@ -397,16 +387,12 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             );
         } else {
             return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="people-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.emptyText}>まだチームチャットがありません</Text>
-                    <Text style={styles.emptySubText}>
-                        2人以上のメンバーが承認されると、自動的にチームチャットが作成されます。
-                    </Text>
-                    <TouchableOpacity onPress={onRefresh} style={{ marginTop: 20, padding: 10 }}>
-                        <Text style={{ color: '#009688' }}>再読み込み</Text>
-                    </TouchableOpacity>
-                </View>
+                <EmptyState
+                    variant="chat"
+                    icon="people-outline"
+                    title="まだチームチャットがありません"
+                    description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
+                />
             );
         }
     };

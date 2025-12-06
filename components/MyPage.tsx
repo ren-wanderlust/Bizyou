@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { ProjectDetail } from './ProjectDetail';
+import { HapticTouchable, triggerHaptic } from './HapticButton';
 
 interface MyPageProps {
     profile: Profile;
@@ -279,9 +280,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 <Ionicons name="chevron-down" size={16} color="black" style={{ marginLeft: 4 }} />
             </View>
             <View style={styles.headerRight}>
-                <TouchableOpacity onPress={() => setIsMenuVisible(true)}>
+                <HapticTouchable onPress={() => setIsMenuVisible(true)} hapticType="light">
                     <Ionicons name="menu-outline" size={32} color="black" />
-                </TouchableOpacity>
+                </HapticTouchable>
             </View>
         </View>
     );
@@ -321,26 +322,28 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const renderActions = () => (
         <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.actionButton} onPress={onEditProfile}>
+            <HapticTouchable style={styles.actionButton} onPress={onEditProfile} hapticType="light">
                 <Text style={styles.actionButtonText}>プロフィールを編集</Text>
-            </TouchableOpacity>
+            </HapticTouchable>
         </View>
     );
 
     const renderTabs = () => (
         <View style={styles.tabsContainer}>
-            <TouchableOpacity
+            <HapticTouchable
                 style={[styles.tabItem, activeTab === 'myProjects' && styles.activeTab]}
                 onPress={() => setActiveTab('myProjects')}
+                hapticType="selection"
             >
                 <Ionicons name="grid-outline" size={24} color={activeTab === 'myProjects' ? 'black' : '#999'} />
-            </TouchableOpacity>
-            <TouchableOpacity
+            </HapticTouchable>
+            <HapticTouchable
                 style={[styles.tabItem, activeTab === 'appliedProjects' && styles.activeTab]}
                 onPress={() => setActiveTab('appliedProjects')}
+                hapticType="selection"
             >
                 <Ionicons name="person-outline" size={24} color={activeTab === 'appliedProjects' ? 'black' : '#999'} />
-            </TouchableOpacity>
+            </HapticTouchable>
         </View>
     );
 

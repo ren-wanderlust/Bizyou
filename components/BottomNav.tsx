@@ -1,7 +1,8 @@
-import { StyleSheet, Text, View, TouchableOpacity, Platform, Image } from 'react-native';
+import { StyleSheet, Text, View, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Profile } from '../types';
+import { HapticTouchable } from './HapticButton';
 
 interface BottomNavProps {
     activeTab: string;
@@ -45,27 +46,27 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                     // Create button (center)
                     if (tab.isCreate) {
                         return (
-                            <TouchableOpacity
+                            <HapticTouchable
                                 key={tab.id}
                                 onPress={onCreateProject}
                                 style={styles.tabButton}
-                                activeOpacity={0.7}
+                                hapticType="medium"
                             >
                                 <View style={styles.createButton}>
                                     <Ionicons name="add" size={28} color="white" />
                                 </View>
-                            </TouchableOpacity>
+                            </HapticTouchable>
                         );
                     }
 
                     // Profile tab with custom image
                     if (tab.id === 'profile' && currentUser?.image) {
                         return (
-                            <TouchableOpacity
+                            <HapticTouchable
                                 key={tab.id}
                                 onPress={() => onTabChange(tab.id)}
                                 style={styles.tabButton}
-                                activeOpacity={0.7}
+                                hapticType="selection"
                             >
                                 <View>
                                     <Image
@@ -77,7 +78,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                                     />
                                     {renderBadge()}
                                 </View>
-                            </TouchableOpacity>
+                            </HapticTouchable>
                         );
                     }
 
@@ -88,11 +89,11 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                     }
 
                     return (
-                        <TouchableOpacity
+                        <HapticTouchable
                             key={tab.id}
                             onPress={() => onTabChange(tab.id)}
                             style={styles.tabButton}
-                            activeOpacity={0.7}
+                            hapticType="selection"
                         >
                             <View>
                                 <Ionicons
@@ -102,7 +103,7 @@ export function BottomNav({ activeTab, onTabChange, currentUser, badges, onCreat
                                 />
                                 {renderBadge()}
                             </View>
-                        </TouchableOpacity>
+                        </HapticTouchable>
                     );
                 })}
             </View>

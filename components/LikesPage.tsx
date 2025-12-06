@@ -6,6 +6,7 @@ import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { ProfileListSkeleton } from './Skeleton';
+import { LikesEmptyState } from './EmptyState';
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -103,13 +104,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         }
 
         if (displayReceivedLikes.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="heart-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.emptyText}>まだいいねがありません</Text>
-                    <Text style={styles.emptySubText}>プロフィールを充実させて待ちましょう！</Text>
-                </View>
-            );
+            return <LikesEmptyState type="received" />;
         }
 
         return (
@@ -136,13 +131,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     const renderSentList = () => {
         if (sentLikes.length === 0) {
-            return (
-                <View style={styles.emptyContainer}>
-                    <Ionicons name="heart-outline" size={48} color="#d1d5db" />
-                    <Text style={styles.emptyText}>まだいいねを送っていません</Text>
-                    <Text style={styles.emptySubText}>気になる相手を探してみましょう！</Text>
-                </View>
-            );
+            return <LikesEmptyState type="sent" />;
         }
 
         return (

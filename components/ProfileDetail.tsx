@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaVi
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedLikeButton } from './AnimatedLikeButton';
+import { HapticTouchable } from './HapticButton';
 
 interface ProfileDetailProps {
     profile: Profile;
@@ -96,16 +97,16 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked }: Prof
         <SafeAreaView style={styles.container}>
             {/* Navigation Header */}
             <View style={styles.navHeader}>
-                <TouchableOpacity onPress={onBack} style={styles.navButton}>
+                <HapticTouchable onPress={onBack} style={styles.navButton} hapticType="light">
                     <Ionicons name="chevron-back" size={28} color="#374151" />
-                </TouchableOpacity>
+                </HapticTouchable>
                 <View style={styles.headerRightButtons}>
-                    <TouchableOpacity style={styles.navButton} onPress={onChat}>
+                    <HapticTouchable style={styles.navButton} onPress={onChat} hapticType="medium">
                         <Ionicons name="chatbubble-outline" size={24} color="#374151" />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.navButton} onPress={handleMenuPress}>
+                    </HapticTouchable>
+                    <HapticTouchable style={styles.navButton} onPress={handleMenuPress} hapticType="light">
                         <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
-                    </TouchableOpacity>
+                    </HapticTouchable>
                 </View>
             </View>
 

@@ -8,6 +8,7 @@ import { ProjectDetail } from './ProjectDetail';
 import { ProjectListSkeleton } from './Skeleton';
 import { CustomRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
+import { ProjectsEmptyState } from './EmptyState';
 
 interface Project {
     id: string;
@@ -175,10 +176,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                             ))}
                         </View>
                     ) : (
-                        <View style={styles.emptyContainer}>
-                            <Text style={styles.emptyText}>まだプロジェクトがありません</Text>
-                            <Text style={styles.emptySubText}>右下のボタンから最初のプロジェクトを作成しましょう！</Text>
-                        </View>
+                        <ProjectsEmptyState onCreateProject={handleCreatePress} />
                     )}
                 </View>
                 <View style={{ height: 100 }} />
