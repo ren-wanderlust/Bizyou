@@ -290,33 +290,60 @@ function AppContent() {
     if (!session?.user) return;
     const fetchUnreadMessages = async () => {
       try {
-        // 1. Individual Chats (DB is_read)
+        // 1. Individual Chats (DB is_read) - only DMs (not group messages)
         const { count: dmCount, error: dmError } = await supabase
           .from('messages')
           .select('id', { count: 'exact', head: true })
           .eq('receiver_id', session.user.id)
-          .neq('is_read', true);
+          .is('chat_room_id', null)  // Exclude group messages
+          .or('is_read.is.null,is_read.eq.false');  // Unread messages
 
-        // 2. Group Chats (Local Storage Time)
-        const { data: groups } = await supabase
-          .from('chat_rooms')
+        console.log('DM unread count:', dmCount);
+
+        // 2. Group Chats (Local Storage Time) - only count groups where user is a member
+        // First, get groups where user is owner or approved member
+        const { data: ownedProjects } = await supabase
+          .from('projects')
           .select('id')
-          .eq('type', 'group');
+          .eq('owner_id', session.user.id);
 
+        const { data: approvedApps } = await supabase
+          .from('project_applications')
+          .select('project_id')
+          .eq('user_id', session.user.id)
+          .eq('status', 'approved');
+
+        const memberProjectIds = new Set<string>();
+        ownedProjects?.forEach((p: any) => memberProjectIds.add(p.id));
+        approvedApps?.forEach((a: any) => memberProjectIds.add(a.project_id));
+
+        // Get group chat rooms for these projects
         let groupCount = 0;
-        if (groups && groups.length > 0) {
-          const groupPromises = groups.map(async (group: any) => {
-            const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
-            const { count } = await supabase
-              .from('messages')
-              .select('id', { count: 'exact', head: true })
-              .eq('chat_room_id', group.id)
-              .gt('created_at', lastReadTime || '1970-01-01')
-              .neq('sender_id', session.user.id);
-            return count || 0;
-          });
-          const counts = await Promise.all(groupPromises);
-          groupCount = counts.reduce((a, b) => a + b, 0);
+        if (memberProjectIds.size > 0) {
+          const { data: groups } = await supabase
+            .from('chat_rooms')
+            .select('id, project_id')
+            .eq('type', 'group')
+            .in('project_id', Array.from(memberProjectIds));
+
+          if (groups && groups.length > 0) {
+            const groupPromises = groups.map(async (group: any) => {
+              const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+
+              // If never read, don't count as unread (new group)
+              if (!lastReadTime) return 0;
+
+              const { count } = await supabase
+                .from('messages')
+                .select('id', { count: 'exact', head: true })
+                .eq('chat_room_id', group.id)
+                .gt('created_at', lastReadTime)
+                .neq('sender_id', session.user.id);
+              return count || 0;
+            });
+            const counts = await Promise.all(groupPromises);
+            groupCount = counts.reduce((a, b) => a + b, 0);
+          }
         }
 
         if (!dmError) {
@@ -359,27 +386,51 @@ function AppContent() {
             .from('messages')
             .select('id', { count: 'exact', head: true })
             .eq('receiver_id', session.user.id)
-            .neq('is_read', true);
+            .is('chat_room_id', null)  // Exclude group messages
+            .or('is_read.is.null,is_read.eq.false');  // Unread messages
 
-          const { data: groups } = await supabase
-            .from('chat_rooms')
+          // Get groups where user is owner or approved member
+          const { data: ownedProjects } = await supabase
+            .from('projects')
             .select('id')
-            .eq('type', 'group');
+            .eq('owner_id', session.user.id);
+
+          const { data: approvedApps } = await supabase
+            .from('project_applications')
+            .select('project_id')
+            .eq('user_id', session.user.id)
+            .eq('status', 'approved');
+
+          const memberProjectIds = new Set<string>();
+          ownedProjects?.forEach((p: any) => memberProjectIds.add(p.id));
+          approvedApps?.forEach((a: any) => memberProjectIds.add(a.project_id));
 
           let groupCount = 0;
-          if (groups && groups.length > 0) {
-            const groupPromises = groups.map(async (group: any) => {
-              const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
-              const { count } = await supabase
-                .from('messages')
-                .select('id', { count: 'exact', head: true })
-                .eq('chat_room_id', group.id)
-                .gt('created_at', lastReadTime || '1970-01-01')
-                .neq('sender_id', session.user.id);
-              return count || 0;
-            });
-            const counts = await Promise.all(groupPromises);
-            groupCount = counts.reduce((a, b) => a + b, 0);
+          if (memberProjectIds.size > 0) {
+            const { data: groups } = await supabase
+              .from('chat_rooms')
+              .select('id, project_id')
+              .eq('type', 'group')
+              .in('project_id', Array.from(memberProjectIds));
+
+            if (groups && groups.length > 0) {
+              const groupPromises = groups.map(async (group: any) => {
+                const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+
+                // If never read, don't count as unread (new group)
+                if (!lastReadTime) return 0;
+
+                const { count } = await supabase
+                  .from('messages')
+                  .select('id', { count: 'exact', head: true })
+                  .eq('chat_room_id', group.id)
+                  .gt('created_at', lastReadTime)
+                  .neq('sender_id', session.user.id);
+                return count || 0;
+              });
+              const counts = await Promise.all(groupPromises);
+              groupCount = counts.reduce((a, b) => a + b, 0);
+            }
           }
 
           setUnreadMessagesCount((dmCount || 0) + groupCount);

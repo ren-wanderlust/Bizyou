@@ -267,6 +267,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             }
 
             fetchApplicants();
+
+            // Update the project list in MyPage to reflect pending count changes
+            if (onProjectUpdated) onProjectUpdated();
         } catch (error) {
             console.error('Error updating status:', error);
             Alert.alert('エラー', 'ステータスの更新に失敗しました');

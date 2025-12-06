@@ -66,69 +66,19 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     );
 };
 
-// 応募したプロジェクト用のカードコンポーネント
-const AppliedProjectCard = ({ project, onPress }: { project: any; onPress: () => void }) => {
-    const deadlineDate = project.deadline ? new Date(project.deadline) : null;
-    const deadlineString = deadlineDate
-        ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
-        : '';
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'approved':
-                return { text: '承認済み', color: '#4CAF50', bgColor: '#E8F5E9' };
-            case 'rejected':
-                return { text: '不承認', color: '#F44336', bgColor: '#FFEBEE' };
-            default:
-                return { text: '審査中', color: '#FF9800', bgColor: '#FFF3E0' };
-        }
-    };
-
-    const statusBadge = getStatusBadge(project.applicationStatus);
-
-    return (
-        <TouchableOpacity style={projectCardStyles.card} onPress={onPress} activeOpacity={0.7}>
-            <View style={projectCardStyles.cardInner}>
-                <Image
-                    source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
-                    style={projectCardStyles.authorIcon}
-                />
-                <View style={projectCardStyles.cardContent}>
-                    <View style={projectCardStyles.cardHeader}>
-                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                        <View style={[projectCardStyles.statusBadge, { backgroundColor: statusBadge.bgColor }]}>
-                            <Text style={[projectCardStyles.statusText, { color: statusBadge.color }]}>{statusBadge.text}</Text>
-                        </View>
-                    </View>
-                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{project.description}</Text>
-                    <View style={projectCardStyles.ownerInfo}>
-                        <Text style={projectCardStyles.ownerName}>{project.owner?.name || '不明'}</Text>
-                        {deadlineString ? (
-                            <View style={projectCardStyles.deadlineBadgeSmall}>
-                                <Ionicons name="time-outline" size={12} color="#D32F2F" />
-                                <Text style={projectCardStyles.deadlineTextSmall}>{deadlineString}</Text>
-                            </View>
-                        ) : null}
-                    </View>
-                </View>
-            </View>
-        </TouchableOpacity>
-    );
-};
-
 export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat, onBadgeUpdate }: MyPageProps) {
     const [projects, setProjects] = useState<any[]>([]);
-    const [appliedProjects, setAppliedProjects] = useState<any[]>([]);
+    const [participatingProjects, setParticipatingProjects] = useState<any[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [loadingProjects, setLoadingProjects] = useState(true);
-    const [loadingAppliedProjects, setLoadingAppliedProjects] = useState(true);
+    const [loadingParticipating, setLoadingParticipating] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [activeTab, setActiveTab] = useState<'myProjects' | 'appliedProjects'>('myProjects');
+    const [activeTab, setActiveTab] = useState<'myProjects' | 'participatingProjects'>('myProjects');
 
     useEffect(() => {
         fetchMyProjects();
-        fetchAppliedProjects();
+        fetchParticipatingProjects();
     }, [profile.id]);
 
     const fetchMyProjects = async () => {
@@ -178,9 +128,9 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         }
     };
 
-    const fetchAppliedProjects = async () => {
+    const fetchParticipatingProjects = async () => {
         try {
-            // 自分が応募したプロジェクトを取得
+            // 自分が参加中のプロジェクト（承認済みのみ）を取得
             const { data, error } = await supabase
                 .from('project_applications')
                 .select(`
@@ -203,6 +153,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                     )
                 `)
                 .eq('user_id', profile.id)
+                .eq('status', 'approved')  // 承認済みのみ
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -215,12 +166,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         applicationStatus: item.status,
                         applicationId: item.id
                     }));
-                setAppliedProjects(projectsWithStatus);
+                setParticipatingProjects(projectsWithStatus);
             }
         } catch (error) {
-            console.error('Error fetching applied projects:', error);
+            console.error('Error fetching participating projects:', error);
         } finally {
-            setLoadingAppliedProjects(false);
+            setLoadingParticipating(false);
         }
     };
 
@@ -288,43 +239,20 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         </View>
     );
 
-    const renderProfileInfo = () => (
-        <View style={styles.profileInfoContainer}>
+    const renderProfileCard = () => (
+        <View style={styles.profileCard}>
             <View style={styles.profileImageWrapper}>
                 <Image
                     source={{ uri: profile.image }}
                     style={styles.profileImage}
                 />
             </View>
-            <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>{projects.length}</Text>
-                    <Text style={styles.statLabel}>投稿</Text>
-                </View>
-                <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>0</Text>
-                    <Text style={styles.statLabel}>フォロワー</Text>
-                </View>
-                <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>0</Text>
-                    <Text style={styles.statLabel}>フォロー中</Text>
-                </View>
-            </View>
-        </View>
-    );
-
-    const renderBio = () => (
-        <View style={styles.bioContainer}>
-            <Text style={styles.bioName}>{profile.name}</Text>
-            <Text style={styles.bioUniversity}>{profile.university}</Text>
-            {profile.bio && <Text style={styles.bioText}>{profile.bio}</Text>}
-        </View>
-    );
-
-    const renderActions = () => (
-        <View style={styles.actionsContainer}>
-            <HapticTouchable style={styles.actionButton} onPress={onEditProfile} hapticType="light">
-                <Text style={styles.actionButtonText}>プロフィールを編集</Text>
+            <Text style={styles.profileName}>{profile.name}</Text>
+            <Text style={styles.profileUniversity}>{profile.university}</Text>
+            {profile.bio && <Text style={styles.profileBio}>{profile.bio}</Text>}
+            <HapticTouchable style={styles.editButton} onPress={onEditProfile} hapticType="light">
+                <Ionicons name="pencil-outline" size={16} color="#009688" />
+                <Text style={styles.editButtonText}>プロフィールを編集</Text>
             </HapticTouchable>
         </View>
     );
@@ -336,14 +264,16 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 onPress={() => setActiveTab('myProjects')}
                 hapticType="selection"
             >
-                <Ionicons name="grid-outline" size={24} color={activeTab === 'myProjects' ? 'black' : '#999'} />
+                <Ionicons name="grid-outline" size={22} color={activeTab === 'myProjects' ? '#009688' : '#999'} />
+                <Text style={[styles.tabLabel, activeTab === 'myProjects' && styles.tabLabelActive]}>マイプロジェクト</Text>
             </HapticTouchable>
             <HapticTouchable
-                style={[styles.tabItem, activeTab === 'appliedProjects' && styles.activeTab]}
-                onPress={() => setActiveTab('appliedProjects')}
+                style={[styles.tabItem, activeTab === 'participatingProjects' && styles.activeTab]}
+                onPress={() => setActiveTab('participatingProjects')}
                 hapticType="selection"
             >
-                <Ionicons name="person-outline" size={24} color={activeTab === 'appliedProjects' ? 'black' : '#999'} />
+                <Ionicons name="people-outline" size={22} color={activeTab === 'participatingProjects' ? '#009688' : '#999'} />
+                <Text style={[styles.tabLabel, activeTab === 'participatingProjects' && styles.tabLabelActive]}>参加中</Text>
             </HapticTouchable>
         </View>
     );
@@ -356,11 +286,27 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
         />
     );
 
-    const renderAppliedProjectItem = ({ item }: { item: any }) => (
-        <AppliedProjectCard
-            project={item}
-            onPress={() => setSelectedProject(item)}
-        />
+    const renderParticipatingProjectItem = ({ item }: { item: any }) => (
+        <TouchableOpacity style={projectCardStyles.card} onPress={() => setSelectedProject(item)} activeOpacity={0.7}>
+            <View style={projectCardStyles.participatingBadge}>
+                <Text style={projectCardStyles.participatingBadgeText}>参加中</Text>
+            </View>
+            <View style={projectCardStyles.cardInner}>
+                <Image
+                    source={{ uri: item.owner?.image || 'https://via.placeholder.com/50' }}
+                    style={projectCardStyles.authorIcon}
+                />
+                <View style={projectCardStyles.cardContent}>
+                    <View style={projectCardStyles.cardHeader}>
+                        <Text style={projectCardStyles.cardTitle} numberOfLines={1}>{item.title}</Text>
+                    </View>
+                    <Text style={projectCardStyles.cardDescription} numberOfLines={2}>{item.description}</Text>
+                    <View style={projectCardStyles.ownerInfo}>
+                        <Text style={projectCardStyles.ownerName}>{item.owner?.name || '不明'}</Text>
+                    </View>
+                </View>
+            </View>
+        </TouchableOpacity>
     );
 
     return (
@@ -368,14 +314,12 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
             {renderHeader()}
 
             <FlatList
-                data={activeTab === 'myProjects' ? projects : appliedProjects}
-                renderItem={activeTab === 'myProjects' ? renderProjectItem : renderAppliedProjectItem}
+                data={activeTab === 'myProjects' ? projects : participatingProjects}
+                renderItem={activeTab === 'myProjects' ? renderProjectItem : renderParticipatingProjectItem}
                 keyExtractor={(item) => item.id}
                 ListHeaderComponent={
                     <>
-                        {renderProfileInfo()}
-                        {renderBio()}
-                        {renderActions()}
+                        {renderProfileCard()}
                         {renderTabs()}
                     </>
                 }
@@ -383,17 +327,17 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                 showsVerticalScrollIndicator={false}
                 ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
                 ListEmptyComponent={
-                    (activeTab === 'myProjects' ? !loadingProjects : !loadingAppliedProjects) ? (
+                    (activeTab === 'myProjects' ? !loadingProjects : !loadingParticipating) ? (
                         <View style={styles.emptyContainer}>
                             <View style={styles.emptyIconContainer}>
                                 <Ionicons
-                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "document-text-outline"}
+                                    name={activeTab === 'myProjects' ? "folder-open-outline" : "people-outline"}
                                     size={48}
-                                    color="black"
+                                    color="#009688"
                                 />
                             </View>
                             <Text style={styles.emptyTitle}>
-                                {activeTab === 'myProjects' ? 'プロジェクトはまだありません' : '応募したプロジェクトはありません'}
+                                {activeTab === 'myProjects' ? 'プロジェクトはまだありません' : '参加中のプロジェクトはありません'}
                             </Text>
                             <Text style={styles.emptySubText}>
                                 {activeTab === 'myProjects'
@@ -511,93 +455,93 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    profileInfoContainer: {
-        flexDirection: 'row',
+    profileCard: {
         alignItems: 'center',
+        paddingVertical: 24,
         paddingHorizontal: 16,
-        marginBottom: 12,
+        marginHorizontal: 16,
+        marginBottom: 16,
+        backgroundColor: '#FAFAFA',
+        borderRadius: 16,
     },
     profileImageWrapper: {
-        marginRight: 20,
+        marginBottom: 12,
     },
     profileImage: {
-        width: 86,
-        height: 86,
-        borderRadius: 43,
-        borderWidth: 1,
-        borderColor: '#EFEFEF',
+        width: 90,
+        height: 90,
+        borderRadius: 45,
+        borderWidth: 3,
+        borderColor: '#009688',
     },
-    statsContainer: {
-        flex: 1,
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        alignItems: 'center',
-    },
-    statItem: {
-        alignItems: 'center',
-    },
-    statNumber: {
-        fontSize: 18,
+    profileName: {
+        fontSize: 20,
         fontWeight: 'bold',
-        color: 'black',
-    },
-    statLabel: {
-        fontSize: 13,
-        color: 'black',
-    },
-    bioContainer: {
-        paddingHorizontal: 16,
-        marginBottom: 16,
-    },
-    bioName: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: 'black',
-        marginBottom: 2,
-    },
-    bioUniversity: {
-        fontSize: 14,
-        color: '#666',
+        color: '#1F2937',
         marginBottom: 4,
     },
-    bioText: {
+    profileUniversity: {
         fontSize: 14,
-        color: 'black',
+        color: '#6B7280',
+        marginBottom: 8,
+    },
+    profileBio: {
+        fontSize: 14,
+        color: '#4B5563',
         lineHeight: 20,
+        textAlign: 'center',
+        marginBottom: 16,
+        paddingHorizontal: 12,
     },
-    actionsContainer: {
+    editButton: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
-        gap: 8,
-        marginBottom: 20,
-    },
-    actionButton: {
-        flex: 1,
-        backgroundColor: '#EFEFEF',
-        paddingVertical: 8,
-        borderRadius: 8,
         alignItems: 'center',
-        justifyContent: 'center',
+        backgroundColor: 'white',
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: '#009688',
+        gap: 6,
     },
-    actionButtonText: {
+    editButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: 'black',
+        color: '#009688',
     },
     tabsContainer: {
         flexDirection: 'row',
-        borderTopWidth: 1,
-        borderTopColor: '#EFEFEF',
+        marginHorizontal: 16,
         marginBottom: 16,
+        backgroundColor: '#F3F4F6',
+        borderRadius: 12,
+        padding: 4,
     },
     tabItem: {
         flex: 1,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         paddingVertical: 10,
+        borderRadius: 10,
+        gap: 6,
     },
     activeTab: {
-        borderBottomWidth: 1,
-        borderBottomColor: 'black',
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    tabLabel: {
+        fontSize: 14,
+        color: '#999',
+        fontWeight: '500',
+    },
+    tabLabelActive: {
+        color: '#009688',
+        fontWeight: '600',
     },
     projectListContent: {
         paddingHorizontal: 16,
@@ -762,6 +706,21 @@ const projectCardStyles = StyleSheet.create({
     notificationText: {
         color: 'white',
         fontSize: 10,
+        fontWeight: 'bold',
+    },
+    participatingBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#009688',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        zIndex: 10,
+    },
+    participatingBadgeText: {
+        color: 'white',
+        fontSize: 11,
         fontWeight: 'bold',
     },
 });
