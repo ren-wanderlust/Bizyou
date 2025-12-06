@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, RefreshControl, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { ChatListSkeleton } from './Skeleton';
 
 interface ChatRoom {
     id: string;
@@ -410,8 +411,19 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
 
     if (loading) {
         return (
-            <View style={[styles.container, styles.loadingContainer]}>
-                <ActivityIndicator size="large" color="#009688" />
+            <View style={styles.container}>
+                {/* Header */}
+                <View style={styles.header}>
+                    <View style={styles.tabContainer}>
+                        <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
+                            <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.tabButton}>
+                            <Text style={styles.tabText}>個人</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+                <ChatListSkeleton count={6} />
             </View>
         );
     }

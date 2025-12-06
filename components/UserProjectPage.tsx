@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, RefreshControl, ActivityIndicator, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, RefreshControl, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { ProjectDetail } from './ProjectDetail';
+import { ProjectListSkeleton } from './Skeleton';
 
 interface Project {
     id: string;
@@ -139,8 +140,8 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
 
     if (loading && !refreshing) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#009688" />
+            <View style={styles.container}>
+                <ProjectListSkeleton count={5} />
             </View>
         );
     }

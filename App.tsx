@@ -31,6 +31,7 @@ import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
 import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
+import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -737,10 +738,9 @@ function AppContent() {
   // Show loading screen while checking onboarding status or auth status
   if (hasCompletedOnboarding === null || authLoading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#009688" />
-        <Text style={styles.loadingText}>読み込み中...</Text>
-      </View>
+      <SafeAreaProvider>
+        <FullPageSkeleton />
+      </SafeAreaProvider>
     );
   }
 

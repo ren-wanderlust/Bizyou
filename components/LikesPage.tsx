@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { ProfileListSkeleton } from './Skeleton';
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -98,11 +99,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     const renderReceivedList = () => {
         if (loading) {
-            return (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="small" color="#009688" />
-                </View>
-            );
+            return <ProfileListSkeleton count={4} />;
         }
 
         if (displayReceivedLikes.length === 0) {
