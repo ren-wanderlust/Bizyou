@@ -9,6 +9,7 @@ import { ProjectListSkeleton } from './Skeleton';
 import { CustomRefreshControl } from './CustomRefreshControl';
 import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
 import { ProjectsEmptyState } from './EmptyState';
+import { translateTag } from '../constants/TagConstants';
 
 interface Project {
     id: string;
@@ -63,12 +64,12 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                         <View style={styles.cardTags}>
                             {project.required_roles?.map((role, i) => (
                                 <View key={`role-${i}`} style={styles.miniRoleTag}>
-                                    <Text style={styles.miniRoleTagText}>{role}</Text>
+                                    <Text style={styles.miniRoleTagText}>{translateTag(role)}</Text>
                                 </View>
                             ))}
                             {project.tags?.map((tag, i) => (
                                 <View key={`tag-${i}`} style={styles.miniThemeTag}>
-                                    <Text style={styles.miniThemeTagText}>#{tag}</Text>
+                                    <Text style={styles.miniThemeTagText}>#{translateTag(tag)}</Text>
                                 </View>
                             ))}
                         </View>
