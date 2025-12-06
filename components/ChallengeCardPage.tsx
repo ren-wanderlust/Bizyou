@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Modal
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Theme } from '../types';
+import { SHADOWS } from '../constants/DesignSystem';
 
 interface ThemeCardProps {
     icon: string;
@@ -283,11 +284,7 @@ const styles = StyleSheet.create({
         width: (Dimensions.get('window').width - 32 - 12) / 2,
         height: (Dimensions.get('window').width - 32 - 12) / 2 * 1.1, // Slightly taller
         borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
+        ...SHADOWS.lg,
         marginBottom: 4,
     },
     cardBackground: {

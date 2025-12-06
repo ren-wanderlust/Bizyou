@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Dimensions, SafeAreaView, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { SHADOWS } from '../constants/DesignSystem';
 
 const { width, height } = Dimensions.get('window');
 
@@ -235,14 +236,7 @@ const styles = StyleSheet.create({
     button: {
         borderRadius: 100,
         overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 5,
+        ...SHADOWS.lg,
     },
     buttonGradient: {
         flexDirection: 'row',

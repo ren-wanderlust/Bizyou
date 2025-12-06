@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Profile } from '../types';
 import { HapticTouchable } from './HapticButton';
+import { SHADOWS } from '../constants/DesignSystem';
 
 interface BottomNavProps {
     activeTab: string;
@@ -138,11 +139,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: -20,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 8,
+        ...SHADOWS.xl,
     },
     tabLabel: {
         fontSize: 10,

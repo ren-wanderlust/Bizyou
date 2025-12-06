@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import { SHADOWS } from '../constants/DesignSystem';
 
 const { width, height } = Dimensions.get('window');
 
@@ -281,14 +282,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 9999,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    ...SHADOWS.lg,
   },
   primaryButtonText: {
     color: 'white',

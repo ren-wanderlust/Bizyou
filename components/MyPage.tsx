@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { ProjectDetail } from './ProjectDetail';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
+import { SHADOWS } from '../constants/DesignSystem';
 
 interface MyPageProps {
     profile: Profile;
@@ -669,11 +670,7 @@ const projectCardStyles = StyleSheet.create({
         width: '100%',
         backgroundColor: 'white',
         borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 3,
+        ...SHADOWS.md,
     },
     cardInner: {
         flexDirection: 'row',
