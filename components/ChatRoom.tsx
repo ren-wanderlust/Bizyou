@@ -14,6 +14,7 @@ import {
     ActivityIndicator,
     Modal
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
@@ -232,7 +233,25 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
             setLoading(false);
         };
 
+        const markAsRead = async () => {
+            if (!isGroup) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase
+                        .from('messages')
+                        .update({ is_read: true })
+                        .eq('receiver_id', user.id)
+                        .eq('sender_id', partnerId)
+                        .eq('is_read', false);
+                }
+            } else {
+                // For group chats, save last read time locally
+                await AsyncStorage.setItem(`readTime_${partnerId}`, new Date().toISOString());
+            }
+        };
+
         initializeChat();
+        markAsRead();
 
         return () => {
             supabase.channel('public:messages').unsubscribe();

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ActivityIndicator, RefreshControl, Dimensions } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 
@@ -15,7 +16,8 @@ interface ChatRoom {
     timestamp: string;
     isOnline?: boolean;
     isUnreplied: boolean;
-    type: 'individual' | 'group'; // Add type
+    type: 'individual' | 'group';
+    rawTimestamp: string;
 }
 
 interface TalkPageProps {
@@ -23,7 +25,7 @@ interface TalkPageProps {
 }
 
 export function TalkPage({ onOpenChat }: TalkPageProps) {
-    const [talkTab, setTalkTab] = useState<'individual' | 'team'>('individual');
+    const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
     const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
     const [loading, setLoading] = useState(true);
@@ -44,6 +46,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
                 fetchChatRooms();
             })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
+                fetchChatRooms(); // Handle read status changes
+            })
             .subscribe();
 
         // Subscribe to new likes (matches)
@@ -57,9 +62,15 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             })
             .subscribe();
 
+        // Polling fallback for reliability (every 5 seconds)
+        const pollInterval = setInterval(() => {
+            fetchChatRooms();
+        }, 5000);
+
         return () => {
             supabase.removeChannel(messageSubscription);
             supabase.removeChannel(likesSubscription);
+            clearInterval(pollInterval);
         };
     }, []);
 
@@ -118,6 +129,19 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                 }
             });
 
+            // Fetch unread counts per individual chat
+            // Count messages sent TO me that are not read
+            const { data: unreadData } = await supabase
+                .from('messages')
+                .select('sender_id')
+                .eq('receiver_id', user.id)
+                .or('is_read.is.null,is_read.eq.false');
+
+            const unreadMap = new Map<string, number>();
+            unreadData?.forEach((m: any) => {
+                unreadMap.set(m.sender_id, (unreadMap.get(m.sender_id) || 0) + 1);
+            });
+
             const partnerIds = Array.from(individualRoomsMap.keys());
             let individualRooms: ChatRoom[] = [];
 
@@ -144,8 +168,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         partnerLocation: partnerProfile?.location || '',
                         partnerImage: partnerProfile?.image || 'https://via.placeholder.com/150',
                         lastMessage: roomData.lastMessage,
-                        unreadCount: roomData.unreadCount,
+                        unreadCount: unreadMap.get(partnerId) || 0,
                         timestamp: timestamp,
+                        rawTimestamp: roomData.timestamp,
                         isOnline: false,
                         isUnreplied: roomData.lastSenderId === partnerId,
                         type: 'individual'
@@ -192,6 +217,15 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         }
                     }
 
+                    // Get unread count (messages from others after lastReadTime)
+                    const lastReadTime = await AsyncStorage.getItem(`readTime_${room.id}`);
+                    const { count: unreadCount } = await supabase
+                        .from('messages')
+                        .select('id', { count: 'exact', head: true })
+                        .eq('chat_room_id', room.id)
+                        .gt('created_at', lastReadTime || '1970-01-01')
+                        .neq('sender_id', user.id);
+
                     return {
                         id: room.id,
                         partnerId: room.id, // Use room ID as partnerId for group
@@ -200,8 +234,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                         partnerLocation: '',
                         partnerImage: room.project?.owner?.image || room.project?.image_url || 'https://via.placeholder.com/150',
                         lastMessage: lastMsg?.content || 'チームチャットが作成されました',
-                        unreadCount: 0,
+                        unreadCount: unreadCount || 0,
                         timestamp: timestamp,
+                        rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z', // Fallback to old for empty rooms
                         isOnline: false,
                         isUnreplied: false,
                         type: 'group' as const
@@ -212,15 +247,10 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             }
 
             // Merge and Sort
-            // Note: We might want to keep them separate in state if we want strict tabs.
-            // But current code merges then filters in render? 
-            // Actually existing code fetched only individual and setChatRooms.
-            // TalkPage renders separate lists but uses `chatRooms` state for individual? 
-            // Wait, existing renderIndividualList uses `chatRooms`.
-            // renderTeamList was placeholder.
-            // I should use separate state or filter `chatRooms`.
+            const allRooms = [...individualRooms, ...teamRooms];
+            allRooms.sort((a, b) => new Date(b.rawTimestamp).getTime() - new Date(a.rawTimestamp).getTime());
 
-            setChatRooms([...individualRooms, ...teamRooms]);
+            setChatRooms(allRooms);
 
         } catch (error) {
             console.error('Error fetching chat rooms:', error);
@@ -261,8 +291,10 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                     </View>
                                     <View style={styles.rightInfo}>
                                         <Text style={styles.timestamp}>{item.timestamp}</Text>
-                                        {item.isUnreplied && (
-                                            <Text style={styles.unrepliedBadge}>未返信</Text>
+                                        {item.unreadCount > 0 && (
+                                            <View style={styles.unreadBadge}>
+                                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                            </View>
                                         )}
                                     </View>
                                 </View>
@@ -271,11 +303,12 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                     <Text style={styles.lastMessage} numberOfLines={1}>
                                         {item.lastMessage}
                                     </Text>
-                                    {/* ... badge logic ... */}
                                 </View>
                             </View>
 
-                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {item.unreadCount === 0 && (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            )}
                         </TouchableOpacity>
                     )}
                     contentContainerStyle={styles.listContent}
@@ -333,6 +366,11 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                     </View>
                                     <View style={styles.rightInfo}>
                                         <Text style={styles.timestamp}>{item.timestamp}</Text>
+                                        {item.unreadCount > 0 && (
+                                            <View style={styles.unreadBadge}>
+                                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
 
@@ -343,7 +381,9 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                                 </View>
                             </View>
 
-                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            {item.unreadCount === 0 && (
+                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                            )}
                         </TouchableOpacity>
                     )}
                     contentContainerStyle={styles.listContent}
@@ -382,22 +422,22 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             <View style={styles.header}>
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
-                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setTalkTab('individual');
-                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
-                        }}
-                    >
-                        <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
                         style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
                         onPress={() => {
                             setTalkTab('team');
-                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
                         }}
                     >
                         <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setTalkTab('individual');
+                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
+                    >
+                        <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -405,14 +445,14 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
             {/* Content */}
             <FlatList
                 ref={talkListRef}
-                data={['individual', 'team']}
+                data={['team', 'individual']}
                 horizontal
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item) => item}
                 onMomentumScrollEnd={(e) => {
                     const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                    setTalkTab(index === 0 ? 'individual' : 'team');
+                    setTalkTab(index === 0 ? 'team' : 'individual');
                 }}
                 getItemLayout={(data, index) => (
                     { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
@@ -420,7 +460,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                 initialScrollIndex={0}
                 renderItem={({ item }) => (
                     <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                        {item === 'individual' ? renderIndividualList() : renderTeamList()}
+                        {item === 'team' ? renderTeamList() : renderIndividualList()}
                     </View>
                 )}
             />
@@ -523,7 +563,8 @@ const styles = StyleSheet.create({
     },
     rightInfo: {
         alignItems: 'flex-end',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+        gap: 6,
     },
     name: {
         fontSize: 16,
@@ -556,17 +597,18 @@ const styles = StyleSheet.create({
         marginRight: 8,
     },
     unreadBadge: {
-        backgroundColor: '#f97316', // orange-500
-        minWidth: 20,
-        height: 20,
-        borderRadius: 10,
+        backgroundColor: '#009688', // Brand color (Green)
+        minWidth: 22,
+        height: 22,
+        borderRadius: 11,
         alignItems: 'center',
         justifyContent: 'center',
         paddingHorizontal: 6,
+        marginTop: 4,
     },
     unreadText: {
         color: 'white',
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 'bold',
     },
     emptyContainer: {

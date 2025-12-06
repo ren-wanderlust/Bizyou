@@ -23,6 +23,7 @@ import { ThemeDetailPage } from './components/ThemeDetailPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProjectPage } from './components/UserProjectPage';
 import { Profile, Theme } from './types';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -92,6 +93,7 @@ function AppContent() {
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
 
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -236,6 +238,113 @@ function AppContent() {
       clearInterval(interval);
     };
   }, [session?.user]);
+
+  // Fetch unread messages count (Individual + Group)
+  React.useEffect(() => {
+    if (!session?.user) return;
+    const fetchUnreadMessages = async () => {
+      try {
+        // 1. Individual Chats (DB is_read)
+        const { count: dmCount, error: dmError } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('receiver_id', session.user.id)
+          .neq('is_read', true);
+
+        // 2. Group Chats (Local Storage Time)
+        const { data: groups } = await supabase
+          .from('chat_rooms')
+          .select('id')
+          .eq('type', 'group');
+
+        let groupCount = 0;
+        if (groups && groups.length > 0) {
+          const groupPromises = groups.map(async (group: any) => {
+            const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+            const { count } = await supabase
+              .from('messages')
+              .select('id', { count: 'exact', head: true })
+              .eq('chat_room_id', group.id)
+              .gt('created_at', lastReadTime || '1970-01-01')
+              .neq('sender_id', session.user.id);
+            return count || 0;
+          });
+          const counts = await Promise.all(groupPromises);
+          groupCount = counts.reduce((a, b) => a + b, 0);
+        }
+
+        if (!dmError) {
+          setUnreadMessagesCount((dmCount || 0) + groupCount);
+        }
+      } catch (e) {
+        console.log('Error fetching unread messages:', e);
+      }
+    };
+
+    fetchUnreadMessages();
+
+    // Subscribe to messages (Insert and Update)
+    const channel = supabase.channel('unread_messages_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
+        fetchUnreadMessages();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
+        fetchUnreadMessages(); // Listen for ALL updates (including is_read changes)
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchUnreadMessages, 3000); // Poll every 3s for responsiveness
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [session?.user]);
+
+  // Refresh unread count when closing a chat
+  const prevActiveChatRoom = React.useRef(activeChatRoom);
+  React.useEffect(() => {
+    // If chat was open and is now closed, refresh unread count immediately
+    if (prevActiveChatRoom.current !== null && activeChatRoom === null && session?.user) {
+      // Trigger immediate refresh by re-running the fetch logic
+      const refreshUnreadCounts = async () => {
+        try {
+          const { count: dmCount } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('receiver_id', session.user.id)
+            .neq('is_read', true);
+
+          const { data: groups } = await supabase
+            .from('chat_rooms')
+            .select('id')
+            .eq('type', 'group');
+
+          let groupCount = 0;
+          if (groups && groups.length > 0) {
+            const groupPromises = groups.map(async (group: any) => {
+              const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+              const { count } = await supabase
+                .from('messages')
+                .select('id', { count: 'exact', head: true })
+                .eq('chat_room_id', group.id)
+                .gt('created_at', lastReadTime || '1970-01-01')
+                .neq('sender_id', session.user.id);
+              return count || 0;
+            });
+            const counts = await Promise.all(groupPromises);
+            groupCount = counts.reduce((a, b) => a + b, 0);
+          }
+
+          setUnreadMessagesCount((dmCount || 0) + groupCount);
+        } catch (e) {
+          console.log('Error refreshing unread count:', e);
+        }
+      };
+      refreshUnreadCounts();
+    }
+    prevActiveChatRoom.current = activeChatRoom;
+  }, [activeChatRoom, session?.user]);
 
   // Fetch current user profile
   const fetchCurrentUser = async () => {
@@ -784,10 +893,10 @@ function AppContent() {
           )}
         </View>
 
-        <BottomNav activeTab={activeTab} onTabChange={(tab) => {
-          LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        <BottomNav activeTab={activeTab} onTabChange={(tab: any) => {
+          // LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
           setActiveTab(tab);
-        }} currentUser={currentUser} badges={{ profile: pendingAppsCount }} />
+        }} currentUser={currentUser} badges={{ profile: pendingAppsCount, talk: unreadMessagesCount }} />
       </View>
 
       {/* Modals */}
