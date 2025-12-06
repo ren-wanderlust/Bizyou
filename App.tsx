@@ -1,5 +1,5 @@
 // Trigger rebuild
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +31,7 @@ import { Alert } from 'react-native';
 import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
+import { FadeTabContent } from './components/AnimatedTabView';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -66,6 +67,7 @@ function AppContent() {
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [matchedProfileIds, setMatchedProfileIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('search');
+  const [previousTab, setPreviousTab] = useState<string | null>(null);
   const [searchTab, setSearchTab] = useState<'users' | 'projects'>('projects');
   const searchListRef = useRef<FlatList>(null);
   const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
@@ -847,7 +849,7 @@ function AppContent() {
 
         {/* Content */}
         <View style={styles.contentArea}>
-          {activeTab === 'search' && (
+          <FadeTabContent activeTab={activeTab} tabId="search">
             <FlatList
               ref={searchListRef}
               data={['projects', 'users']}
@@ -913,16 +915,16 @@ function AppContent() {
                 </View>
               )}
             />
-          )}
-          {activeTab === 'likes' && (
+          </FadeTabContent>
+          <FadeTabContent activeTab={activeTab} tabId="likes">
             <LikesPage
               likedProfileIds={likedProfiles}
               allProfiles={displayProfiles}
               onProfileSelect={setSelectedProfile}
               onLike={handleLike}
             />
-          )}
-          {activeTab === 'talk' && (
+          </FadeTabContent>
+          <FadeTabContent activeTab={activeTab} tabId="talk">
             <TalkPage
               onOpenChat={(room) => setActiveChatRoom({
                 partnerId: room.partnerId,
@@ -931,9 +933,9 @@ function AppContent() {
                 isGroup: room.type === 'group',
               })}
             />
-          )}
-          {activeTab === 'profile' && (
-            isLoadingUser ? (
+          </FadeTabContent>
+          <FadeTabContent activeTab={activeTab} tabId="profile">
+            {isLoadingUser ? (
               <View style={styles.centerContainer}>
                 <ActivityIndicator size="large" color="#009688" />
                 <Text>プロフィールを読み込み中...</Text>
@@ -958,13 +960,14 @@ function AppContent() {
                   <Text style={{ color: 'red' }}>ログアウト</Text>
                 </TouchableOpacity>
               </View>
-            )
-          )}
+            )}
+          </FadeTabContent>
         </View>
 
         <BottomNav
           activeTab={activeTab}
           onTabChange={(tab: any) => {
+            setPreviousTab(activeTab);
             setActiveTab(tab);
           }}
           currentUser={currentUser}
@@ -1172,7 +1175,7 @@ function AppContent() {
           }
         }}
       />
-    </SafeAreaView>
+    </SafeAreaView >
   );
 }
 
