@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedHeartButton } from './AnimatedLikeButton';
+import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
 
 interface ProfileCardProps {
     profile: Profile;
@@ -135,41 +136,33 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
 const styles = StyleSheet.create({
     cardContainer: {
         width: CARD_WIDTH,
-        height: 240, // Adjusted height since buttons are removed
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
+        height: 240,
+        backgroundColor: COLORS.background.primary,
+        borderRadius: RADIUS.lg,
+        padding: SPACING.lg,
+        marginBottom: SPACING.lg,
         position: 'relative',
-        // Soft shadow
-        shadowColor: "#000",
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.05,
-        shadowRadius: 12,
-        elevation: 3,
+        ...SHADOWS.md,
         borderWidth: 1,
-        borderColor: '#F3F4F6',
+        borderColor: COLORS.background.tertiary,
     },
     likeButtonContainer: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: SPACING.sm,
+        right: SPACING.sm,
         zIndex: 10,
     },
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
-        gap: 10,
+        marginBottom: SPACING.lg,
+        gap: SPACING.md,
     },
     avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#f3f4f6',
+        width: AVATAR.lg.size,
+        height: AVATAR.lg.size,
+        borderRadius: AVATAR.lg.radius,
+        backgroundColor: COLORS.background.tertiary,
     },
     headerInfo: {
         flex: 1,
@@ -179,8 +172,8 @@ const styles = StyleSheet.create({
         alignSelf: 'flex-start',
         paddingHorizontal: 6,
         paddingVertical: 2,
-        borderRadius: 4,
-        marginBottom: 4,
+        borderRadius: RADIUS.xs,
+        marginBottom: SPACING.xs,
     },
     statusBadgeText: {
         color: 'white',
@@ -227,15 +220,15 @@ const styles = StyleSheet.create({
         marginBottom: 0, // Removed bottom margin as it's the last element
     },
     skillTag: {
-        backgroundColor: '#F3F4F6',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        maxWidth: '100%', // Prevent overflow
+        backgroundColor: COLORS.background.tertiary,
+        paddingHorizontal: SPACING.sm,
+        paddingVertical: SPACING.xs,
+        borderRadius: RADIUS.sm,
+        maxWidth: '100%',
     },
     skillText: {
         fontSize: 10,
-        color: '#4B5563',
+        color: COLORS.text.secondary,
         fontWeight: '500',
     },
 

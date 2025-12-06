@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, RefreshControl, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { ProjectDetail } from './ProjectDetail';
 import { ProjectListSkeleton } from './Skeleton';
+import { CustomRefreshControl } from './CustomRefreshControl';
+import { RADIUS, COLORS, SHADOWS, SPACING, AVATAR } from '../constants/DesignSystem';
 
 interface Project {
     id: string;
@@ -152,11 +154,10 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 style={styles.content}
                 showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl
+                    <CustomRefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={['#009688']}
-                        tintColor="#009688"
+                        title="プロジェクトを更新"
                     />
                 }
             >
@@ -256,25 +257,21 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        backgroundColor: 'white',
-        borderRadius: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 4,
-        elevation: 3,
+        backgroundColor: COLORS.background.primary,
+        borderRadius: RADIUS.lg,
+        ...SHADOWS.md,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 16,
+        padding: SPACING.lg,
         alignItems: 'flex-start',
     },
     authorIcon: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        marginRight: 16,
-        backgroundColor: '#EEE',
+        width: AVATAR.xl.size,
+        height: AVATAR.xl.size,
+        borderRadius: AVATAR.xl.radius,
+        marginRight: SPACING.lg,
+        backgroundColor: COLORS.background.tertiary,
     },
     cardContent: {
         flex: 1,

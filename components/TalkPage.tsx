@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, RefreshControl, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
+import { SimpleRefreshControl } from './CustomRefreshControl';
+import { RADIUS, COLORS, SPACING, AVATAR } from '../constants/DesignSystem';
 
 interface ChatRoom {
     id: string;
@@ -314,7 +316,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     )}
                     contentContainerStyle={styles.listContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
                 />
             );
@@ -389,7 +391,7 @@ export function TalkPage({ onOpenChat }: TalkPageProps) {
                     )}
                     contentContainerStyle={styles.listContent}
                     refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
                     }
                 />
             );
@@ -538,13 +540,13 @@ const styles = StyleSheet.create({
     },
     avatarContainer: {
         position: 'relative',
-        marginRight: 12,
+        marginRight: SPACING.md,
     },
     avatar: {
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: '#e5e7eb',
+        width: AVATAR.xl.size - 8,
+        height: AVATAR.xl.size - 8,
+        borderRadius: (AVATAR.xl.size - 8) / 2,
+        backgroundColor: COLORS.background.tertiary,
     },
     onlineBadge: {
         position: 'absolute',

@@ -1,6 +1,6 @@
 // Trigger rebuild
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, RefreshControl, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Platform, ActivityIndicator, Modal, UIManager, LayoutAnimation, Dimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +32,7 @@ import { TERMS_OF_SERVICE, PRIVACY_POLICY } from './constants/LegalTexts';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
 import { FadeTabContent } from './components/AnimatedTabView';
+import { CustomRefreshControl } from './components/CustomRefreshControl';
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -895,7 +896,7 @@ function AppContent() {
                         ) : null
                       }
                       refreshControl={
-                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#009688']} />
+                        <CustomRefreshControl refreshing={refreshing} onRefresh={onRefresh} title="ユーザーを更新" />
                       }
                     />
                   ) : (
