@@ -19,6 +19,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { SHADOWS } from '../constants/DesignSystem';
+import { HapticTouchable } from './HapticButton';
 
 interface ProfileEditProps {
     initialProfile: Profile;
@@ -37,16 +39,52 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     const [image, setImage] = useState(initialProfile.image || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const seekingForOptions = ['起業に興味あり', 'ビジネスメンバー探し', 'アイデア模索中', 'まずは話してみたい', 'コミュニティ形成', '壁打ち相手募集'];
-
-    const skillCategories = [
-        { title: '開発・技術', skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'AI / データ', 'インフラ / クラウド', 'ブロックチェーン', 'ゲーム開発'] },
-        { title: 'デザイン', skills: ['UI / UXデザイン', 'グラフィック / イラスト', 'Webデザイン'] },
-        { title: 'ビジネス', skills: ['マーケティング', 'セールス / BizDev', 'PM / ディレクター', '広報 / PR', 'ファイナンス / 経理'] },
-        { title: 'その他', skills: ['動画 / クリエイター', 'ライティング'] }
+    const seekingForOptions = [
+        { id: '起業に興味あり', icon: '🚀' },
+        { id: 'ビジネスメンバー探し', icon: '🤝' },
+        { id: 'アイデア模索中', icon: '💡' },
+        { id: 'まずは話してみたい', icon: '💬' },
+        { id: 'コミュニティ形成', icon: '👥' },
+        { id: '壁打ち相手募集', icon: '🎯' },
     ];
 
-    const seekingOptions = ['💻 エンジニア', '🎨 デザイナー', '📣 マーケ / 広報', '💼 セールス / BizDev', '1️⃣ PM / ディレクター', '💰 ファイナンス', '🗣️ 壁打ち相手', '🤔 まだ分からない'];
+    const skillCategories = [
+        {
+            title: '開発・技術',
+            icon: 'code-slash',
+            color: '#3B82F6',
+            skills: ['フロントエンド', 'バックエンド', 'モバイルアプリ', 'AI / データ', 'インフラ / クラウド', 'ブロックチェーン', 'ゲーム開発']
+        },
+        {
+            title: 'デザイン',
+            icon: 'color-palette',
+            color: '#EC4899',
+            skills: ['UI / UXデザイン', 'グラフィック / イラスト', 'Webデザイン']
+        },
+        {
+            title: 'ビジネス',
+            icon: 'briefcase',
+            color: '#F59E0B',
+            skills: ['マーケティング', 'セールス / BizDev', 'PM / ディレクター', '広報 / PR', 'ファイナンス / 経理']
+        },
+        {
+            title: 'その他',
+            icon: 'sparkles',
+            color: '#8B5CF6',
+            skills: ['動画 / クリエイター', 'ライティング']
+        }
+    ];
+
+    const seekingOptions = [
+        { id: 'エンジニア', icon: '💻' },
+        { id: 'デザイナー', icon: '🎨' },
+        { id: 'マーケ / 広報', icon: '📣' },
+        { id: 'セールス / BizDev', icon: '💼' },
+        { id: 'PM / ディレクター', icon: '📋' },
+        { id: 'ファイナンス', icon: '💰' },
+        { id: '壁打ち相手', icon: '🗣️' },
+        { id: 'まだ分からない', icon: '🤔' },
+    ];
 
     const handleImageChange = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
@@ -153,163 +191,247 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
         }
     };
 
+    const isFormValid = name.trim() && age.trim() && university.trim();
+
     return (
         <SafeAreaView style={styles.container}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                 style={{ flex: 1 }}
             >
-                {/* Header */}
+                {/* Modern Header */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onCancel} style={styles.headerButton} disabled={isSubmitting}>
-                        <Text style={styles.cancelText}>キャンセル</Text>
-                    </TouchableOpacity>
+                    <HapticTouchable onPress={onCancel} style={styles.headerButtonLeft} hapticType="light">
+                        <Ionicons name="close" size={24} color="#6B7280" />
+                    </HapticTouchable>
+
                     <Text style={styles.headerTitle}>プロフィール編集</Text>
-                    <TouchableOpacity onPress={handleSave} style={styles.headerButton} disabled={isSubmitting}>
+
+                    <HapticTouchable
+                        onPress={handleSave}
+                        style={[styles.saveButton, !isFormValid && styles.saveButtonDisabled]}
+                        hapticType="success"
+                        disabled={isSubmitting || !isFormValid}
+                    >
                         {isSubmitting ? (
-                            <ActivityIndicator size="small" color="#009688" />
+                            <ActivityIndicator size="small" color="white" />
                         ) : (
-                            <Text style={styles.saveText}>保存</Text>
+                            <Text style={[styles.saveButtonText, !isFormValid && styles.saveButtonTextDisabled]}>保存</Text>
                         )}
-                    </TouchableOpacity>
+                    </HapticTouchable>
                 </View>
 
-                <ScrollView contentContainerStyle={styles.scrollContent}>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                >
                     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
                         <View>
-                            {/* Basic Info */}
-                            <View style={styles.section}>
-                                <View style={styles.imageEditContainer}>
+                            {/* Profile Image Section */}
+                            <View style={styles.imageSection}>
+                                <View style={styles.imageWrapper}>
                                     <Image source={{ uri: image }} style={styles.profileImage} />
-                                    <TouchableOpacity style={styles.changeImageButton} onPress={handleImageChange}>
-                                        <Ionicons name="camera" size={20} color="white" />
-                                        <Text style={styles.changeImageText}>写真を変更</Text>
+                                    <TouchableOpacity
+                                        style={styles.editImageBadge}
+                                        onPress={handleImageChange}
+                                        activeOpacity={0.8}
+                                    >
+                                        <Ionicons name="camera" size={18} color="white" />
                                     </TouchableOpacity>
                                 </View>
+                                <TouchableOpacity onPress={handleImageChange}>
+                                    <Text style={styles.changePhotoText}>写真を変更</Text>
+                                </TouchableOpacity>
+                            </View>
 
-                                <Text style={styles.sectionTitle}>基本情報</Text>
-
-                                <View style={styles.formGroup}>
-                                    <Text style={styles.label}>ニックネーム</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={name}
-                                        onChangeText={setName}
-                                        placeholder="例: タロウ"
-                                    />
+                            {/* Basic Info Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={styles.cardIconContainer}>
+                                        <Ionicons name="person" size={18} color="#009688" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>基本情報</Text>
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.label}>年齢</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={age}
-                                        onChangeText={setAge}
-                                        placeholder="例: 20"
-                                        keyboardType="numeric"
-                                    />
+                                    <View style={styles.labelRow}>
+                                        <Text style={styles.label}>ニックネーム</Text>
+                                        <Text style={styles.requiredBadge}>必須</Text>
+                                    </View>
+                                    <View style={styles.inputWrapper}>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={name}
+                                            onChangeText={setName}
+                                            placeholder="例: タロウ"
+                                            placeholderTextColor="#9CA3AF"
+                                        />
+                                    </View>
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.label}>職種 / 大学名</Text>
-                                    <TextInput
-                                        style={styles.input}
-                                        value={university}
-                                        onChangeText={setUniversity}
-                                        placeholder="例: 東京大学 / 株式会社〇〇"
-                                    />
+                                    <View style={styles.labelRow}>
+                                        <Text style={styles.label}>年齢</Text>
+                                        <Text style={styles.requiredBadge}>必須</Text>
+                                    </View>
+                                    <View style={styles.inputWrapper}>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={age}
+                                            onChangeText={setAge}
+                                            placeholder="例: 22"
+                                            placeholderTextColor="#9CA3AF"
+                                            keyboardType="numeric"
+                                        />
+                                    </View>
                                 </View>
 
                                 <View style={styles.formGroup}>
-                                    <Text style={styles.label}>自己紹介文</Text>
-                                    <TextInput
-                                        style={[styles.input, styles.textArea]}
-                                        value={bio}
-                                        onChangeText={setBio}
-                                        placeholder="自己紹介を入力してください"
-                                        multiline
-                                        numberOfLines={4}
-                                        textAlignVertical="top"
-                                    />
+                                    <View style={styles.labelRow}>
+                                        <Text style={styles.label}>職種 / 大学名</Text>
+                                        <Text style={styles.requiredBadge}>必須</Text>
+                                    </View>
+                                    <View style={styles.inputWrapper}>
+                                        <TextInput
+                                            style={styles.input}
+                                            value={university}
+                                            onChangeText={setUniversity}
+                                            placeholder="例: 東京大学 / 株式会社〇〇"
+                                            placeholderTextColor="#9CA3AF"
+                                        />
+                                    </View>
+                                </View>
+
+                                <View style={styles.formGroup}>
+                                    <Text style={styles.label}>自己紹介</Text>
+                                    <View style={styles.textAreaWrapper}>
+                                        <TextInput
+                                            style={styles.textArea}
+                                            value={bio}
+                                            onChangeText={setBio}
+                                            placeholder="あなたの経歴、興味、目標などを書いてみましょう"
+                                            placeholderTextColor="#9CA3AF"
+                                            multiline
+                                            numberOfLines={4}
+                                            textAlignVertical="top"
+                                        />
+                                    </View>
                                 </View>
                             </View>
 
-                            {/* Tags Section A */}
-                            <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                    <Ionicons name="flag-outline" size={20} color="#0d9488" />
-                                    <Text style={styles.sectionTitle}>現在のステータス・目的</Text>
+                            {/* Status & Purpose Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FEF3C7' }]}>
+                                        <Ionicons name="flag" size={18} color="#F59E0B" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>現在のステータス・目的</Text>
                                 </View>
-                                <View style={styles.chipContainer}>
+                                <Text style={styles.cardSubtitle}>あなたの状況に当てはまるものを選んでください</Text>
+                                <View style={styles.chipGrid}>
                                     {seekingForOptions.map((option) => (
-                                        <TouchableOpacity
-                                            key={option}
-                                            onPress={() => handleToggle(option, seekingFor, setSeekingFor)}
+                                        <HapticTouchable
+                                            key={option.id}
+                                            onPress={() => handleToggle(option.id, seekingFor, setSeekingFor)}
                                             style={[
                                                 styles.chip,
-                                                seekingFor.includes(option) ? styles.chipSelected : styles.chipUnselected
+                                                seekingFor.includes(option.id) && styles.chipSelected
                                             ]}
+                                            hapticType="selection"
                                         >
-                                            <Text style={seekingFor.includes(option) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                                {option}
+                                            <Text style={styles.chipEmoji}>{option.icon}</Text>
+                                            <Text style={[
+                                                styles.chipText,
+                                                seekingFor.includes(option.id) && styles.chipTextSelected
+                                            ]}>
+                                                {option.id}
                                             </Text>
-                                        </TouchableOpacity>
+                                            {seekingFor.includes(option.id) && (
+                                                <Ionicons name="checkmark-circle" size={16} color="#009688" style={{ marginLeft: 4 }} />
+                                            )}
+                                        </HapticTouchable>
                                     ))}
                                 </View>
                             </View>
 
-                            {/* Tags Section B */}
-                            <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                    <Ionicons name="flash-outline" size={20} color="#0d9488" />
-                                    <Text style={styles.sectionTitle}>持っているスキル</Text>
+                            {/* Skills Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                                        <Ionicons name="flash" size={18} color="#3B82F6" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>持っているスキル</Text>
                                 </View>
+                                <Text style={styles.cardSubtitle}>あなたが得意なスキルを選んでください</Text>
+
                                 {skillCategories.map((category, categoryIndex) => (
-                                    <View key={categoryIndex}>
-                                        <Text style={styles.categoryTitle}>{category.title}</Text>
+                                    <View key={categoryIndex} style={styles.skillCategory}>
+                                        <View style={styles.categoryHeader}>
+                                            <View style={[styles.categoryIconContainer, { backgroundColor: category.color + '20' }]}>
+                                                <Ionicons name={category.icon as any} size={14} color={category.color} />
+                                            </View>
+                                            <Text style={styles.categoryTitle}>{category.title}</Text>
+                                        </View>
                                         <View style={styles.chipContainer}>
                                             {category.skills.map((skill) => (
-                                                <TouchableOpacity
+                                                <HapticTouchable
                                                     key={skill}
                                                     onPress={() => handleToggle(skill, skills, setSkills)}
                                                     style={[
-                                                        styles.chip,
-                                                        skills.includes(skill) ? styles.chipSelected : styles.chipUnselected
+                                                        styles.skillChip,
+                                                        skills.includes(skill) && styles.skillChipSelected
                                                     ]}
+                                                    hapticType="selection"
                                                 >
-                                                    <Text style={skills.includes(skill) ? styles.chipTextSelected : styles.chipTextUnselected}>
+                                                    <Text style={[
+                                                        styles.skillChipText,
+                                                        skills.includes(skill) && styles.skillChipTextSelected
+                                                    ]}>
                                                         {skill}
                                                     </Text>
-                                                </TouchableOpacity>
+                                                </HapticTouchable>
                                             ))}
                                         </View>
                                     </View>
                                 ))}
                             </View>
 
-                            {/* Tags Section C */}
-                            <View style={styles.section}>
-                                <View style={styles.sectionHeader}>
-                                    <Ionicons name="people-outline" size={20} color="#0d9488" />
-                                    <Text style={styles.sectionTitle}>求める仲間や条件等</Text>
+                            {/* Seeking Roles Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#FCE7F3' }]}>
+                                        <Ionicons name="people" size={18} color="#EC4899" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>求める仲間</Text>
                                 </View>
-                                <View style={styles.chipContainer}>
+                                <Text style={styles.cardSubtitle}>一緒に活動したい仲間のタイプを選んでください</Text>
+                                <View style={styles.chipGrid}>
                                     {seekingOptions.map((role) => (
-                                        <TouchableOpacity
-                                            key={role}
-                                            onPress={() => handleToggle(role, seekingRoles, setSeekingRoles)}
+                                        <HapticTouchable
+                                            key={role.id}
+                                            onPress={() => handleToggle(role.id, seekingRoles, setSeekingRoles)}
                                             style={[
                                                 styles.chip,
-                                                seekingRoles.includes(role) ? styles.chipSelected : styles.chipUnselected
+                                                seekingRoles.includes(role.id) && styles.chipSelected
                                             ]}
+                                            hapticType="selection"
                                         >
-                                            <Text style={seekingRoles.includes(role) ? styles.chipTextSelected : styles.chipTextUnselected}>
-                                                {role}
+                                            <Text style={styles.chipEmoji}>{role.icon}</Text>
+                                            <Text style={[
+                                                styles.chipText,
+                                                seekingRoles.includes(role.id) && styles.chipTextSelected
+                                            ]}>
+                                                {role.id}
                                             </Text>
-                                        </TouchableOpacity>
+                                            {seekingRoles.includes(role.id) && (
+                                                <Ionicons name="checkmark-circle" size={16} color="#009688" style={{ marginLeft: 4 }} />
+                                            )}
+                                        </HapticTouchable>
                                     ))}
                                 </View>
                             </View>
+
+                            <View style={{ height: 40 }} />
                         </View>
                     </TouchableWithoutFeedback>
                 </ScrollView>
@@ -321,7 +443,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#F8FAFC',
     },
     header: {
         flexDirection: 'row',
@@ -331,125 +453,236 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         backgroundColor: 'white',
         borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        borderBottomColor: '#E5E7EB',
     },
-    headerButton: {
-        padding: 8,
+    headerButtonLeft: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     headerTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 17,
+        fontWeight: '600',
         color: '#111827',
     },
-    cancelText: {
-        fontSize: 16,
-        color: '#6b7280',
+    saveButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 20,
+        backgroundColor: '#009688',
     },
-    saveText: {
-        fontSize: 16,
-        color: '#0d9488',
-        fontWeight: 'bold',
+    saveButtonDisabled: {
+        backgroundColor: '#E5E7EB',
+    },
+    saveButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: 'white',
+    },
+    saveButtonTextDisabled: {
+        color: '#9CA3AF',
     },
     scrollContent: {
-        padding: 20,
-        paddingBottom: 40,
+        padding: 16,
     },
-    section: {
+    imageSection: {
+        alignItems: 'center',
         marginBottom: 24,
+        paddingTop: 8,
     },
-    sectionHeader: {
+    imageWrapper: {
+        position: 'relative',
+        marginBottom: 12,
+    },
+    profileImage: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: '#E5E7EB',
+        borderWidth: 4,
+        borderColor: 'white',
+        ...SHADOWS.md,
+    },
+    editImageBadge: {
+        position: 'absolute',
+        bottom: 4,
+        right: 4,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#009688',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 3,
+        borderColor: 'white',
+    },
+    changePhotoText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#009688',
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 20,
+        marginBottom: 16,
+        ...SHADOWS.sm,
+    },
+    cardHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
-        marginBottom: 12,
+        marginBottom: 8,
     },
-    sectionTitle: {
+    cardIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#E0F2F1',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+    },
+    cardTitle: {
         fontSize: 16,
-        fontWeight: 'bold',
+        fontWeight: '600',
         color: '#111827',
-        marginBottom: 12,
+    },
+    cardSubtitle: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginBottom: 16,
+        marginLeft: 42,
     },
     formGroup: {
         marginBottom: 16,
+    },
+    labelRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
     },
     label: {
         fontSize: 14,
         fontWeight: '500',
         color: '#374151',
-        marginBottom: 8,
+    },
+    requiredBadge: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: '#DC2626',
+        backgroundColor: '#FEE2E2',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        marginLeft: 8,
+    },
+    inputWrapper: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        overflow: 'hidden',
     },
     input: {
-        backgroundColor: 'white',
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 8,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 14,
         fontSize: 16,
         color: '#111827',
     },
+    textAreaWrapper: {
+        backgroundColor: '#F9FAFB',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        overflow: 'hidden',
+    },
     textArea: {
-        height: 100,
-        textAlignVertical: 'top',
+        padding: 14,
+        fontSize: 15,
+        color: '#111827',
+        minHeight: 120,
+        lineHeight: 22,
+    },
+    chipGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    chip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 14,
+        borderRadius: 12,
+        backgroundColor: '#F9FAFB',
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
+    },
+    chipSelected: {
+        backgroundColor: '#E0F2F1',
+        borderColor: '#009688',
+    },
+    chipEmoji: {
+        fontSize: 16,
+        marginRight: 6,
+    },
+    chipText: {
+        fontSize: 14,
+        color: '#374151',
+        fontWeight: '500',
+    },
+    chipTextSelected: {
+        color: '#009688',
+        fontWeight: '600',
+    },
+    skillCategory: {
+        marginTop: 16,
+    },
+    categoryHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    categoryIconContainer: {
+        width: 24,
+        height: 24,
+        borderRadius: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 8,
+    },
+    categoryTitle: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#6B7280',
     },
     chipContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 8,
     },
-    chip: {
+    skillChip: {
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 20,
+        backgroundColor: '#F9FAFB',
         borderWidth: 1,
+        borderColor: '#E5E7EB',
     },
-    chipUnselected: {
-        backgroundColor: 'white',
-        borderColor: '#d1d5db',
+    skillChipSelected: {
+        backgroundColor: '#E0F2F1',
+        borderColor: '#009688',
     },
-    chipSelected: {
-        backgroundColor: '#f0fdfa',
-        borderColor: '#0d9488',
-    },
-    chipTextUnselected: {
-        color: '#374151',
-        fontSize: 14,
-    },
-    chipTextSelected: {
-        color: '#0d9488',
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-    categoryTitle: {
+    skillChipText: {
         fontSize: 13,
-        fontWeight: 'bold',
-        color: '#6b7280',
-        marginTop: 16,
-        marginBottom: 8,
+        color: '#374151',
+        fontWeight: '500',
     },
-    imageEditContainer: {
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    profileImage: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
-        marginBottom: 12,
-        backgroundColor: '#e5e7eb',
-    },
-    changeImageButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#4b5563',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
-        gap: 8,
-    },
-    changeImageText: {
-        color: 'white',
-        fontSize: 14,
-        fontWeight: 'bold',
+    skillChipTextSelected: {
+        color: '#009688',
+        fontWeight: '600',
     },
 });
