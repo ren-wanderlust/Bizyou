@@ -937,10 +937,30 @@ function AppContent() {
                       keyExtractor={(item) => item.id}
                       numColumns={2}
                       contentContainerStyle={styles.listContent}
-                      columnWrapperStyle={styles.columnWrapper}
+                      columnWrapperStyle={sortedProfiles.length > 0 ? styles.columnWrapper : undefined}
                       showsVerticalScrollIndicator={false}
                       onEndReached={loadMoreProfiles}
                       onEndReachedThreshold={0.5}
+                      ListEmptyComponent={
+                        <View style={styles.emptyStateContainer}>
+                          <View style={styles.emptyStateIconContainer}>
+                            <Ionicons name="people-outline" size={64} color="#009688" />
+                          </View>
+                          <Text style={styles.emptyStateTitle}>ユーザーが見つかりません</Text>
+                          <Text style={styles.emptyStateSubtitle}>
+                            まだ登録しているユーザーがいないか、{'\n'}フィルター条件に一致するユーザーがいません
+                          </Text>
+                          <TouchableOpacity
+                            style={styles.emptyStateButton}
+                            onPress={() => {
+                              setFilterCriteria(null);
+                              onRefresh();
+                            }}
+                          >
+                            <Text style={styles.emptyStateButtonText}>フィルターをリセット</Text>
+                          </TouchableOpacity>
+                        </View>
+                      }
                       ListFooterComponent={
                         loadingMore ? (
                           <View style={{ paddingVertical: 20 }}>
@@ -1250,12 +1270,6 @@ function AppContent() {
           <SettingsPage
             onBack={() => setShowSettings(false)}
             onLogout={signOut}
-            onOpenTerms={() => {
-              setLegalDocument({ title: '利用規約', content: TERMS_OF_SERVICE });
-            }}
-            onOpenPrivacy={() => {
-              setLegalDocument({ title: 'プライバシーポリシー', content: PRIVACY_POLICY });
-            }}
           />
         </SafeAreaProvider>
       </Modal>
@@ -1565,6 +1579,47 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: '#FF5252',
+  },
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 80,
+  },
+  emptyStateIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E0F2F1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  emptyStateButton: {
+    backgroundColor: '#009688',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  emptyStateButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 
