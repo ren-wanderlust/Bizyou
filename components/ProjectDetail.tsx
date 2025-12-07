@@ -464,29 +464,42 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                                 申請中のメンバー ({applicants.filter(a => a.status === 'pending').length}人)
                             </Text>
                             {applicants.filter(a => a.status === 'pending').length > 0 ? (
-                                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.applicantsList}>
+                                <View style={styles.pendingCardsList}>
                                     {applicants.filter(a => a.status === 'pending').map((applicant) => (
-                                        <TouchableOpacity
-                                            key={applicant.id}
-                                            style={styles.applicantItem}
-                                            onPress={() => handleApplicantPress(applicant)}
-                                        >
-                                            <View style={styles.pendingBadgeContainer}>
+                                        <View key={applicant.id} style={styles.pendingCard}>
+                                            <View style={styles.pendingCardHeader}>
                                                 <Image
                                                     source={{ uri: applicant.user.image || 'https://via.placeholder.com/40' }}
-                                                    style={[styles.applicantImage, { borderColor: '#F59E0B', borderWidth: 2 }]}
+                                                    style={styles.pendingCardImage}
                                                 />
-                                                <View style={styles.badgeIcon}>
-                                                    <Ionicons name="alert-circle" size={16} color="#F59E0B" />
+                                                <View style={styles.pendingCardInfo}>
+                                                    <Text style={styles.pendingCardName} numberOfLines={1}>
+                                                        {applicant.user.name}
+                                                    </Text>
+                                                    <Text style={styles.pendingCardUniversity} numberOfLines={1}>
+                                                        {applicant.user.university || '所属なし'}
+                                                    </Text>
                                                 </View>
                                             </View>
-                                            <Text style={styles.applicantName} numberOfLines={1}>
-                                                {applicant.user.name}
-                                            </Text>
-                                            <Text style={styles.actionHint}>タップで管理</Text>
-                                        </TouchableOpacity>
+                                            <View style={styles.pendingCardActions}>
+                                                <TouchableOpacity
+                                                    style={styles.rejectButton}
+                                                    onPress={() => updateApplicantStatus(applicant.id, 'rejected', applicant.user.name)}
+                                                >
+                                                    <Ionicons name="close" size={18} color="#EF4444" />
+                                                    <Text style={styles.rejectButtonText}>棄却</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={styles.approveButton}
+                                                    onPress={() => updateApplicantStatus(applicant.id, 'approved', applicant.user.name)}
+                                                >
+                                                    <Ionicons name="checkmark" size={18} color="white" />
+                                                    <Text style={styles.approveButtonText}>承認</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
                                     ))}
-                                </ScrollView>
+                                </View>
                             ) : (
                                 <Text style={styles.noApplicantsText}>現在、申請はありません</Text>
                             )}
@@ -699,6 +712,80 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
         fontStyle: 'italic',
         marginTop: 8,
+    },
+    // New pending application card styles
+    pendingCardsList: {
+        gap: 12,
+        marginTop: 12,
+    },
+    pendingCard: {
+        backgroundColor: '#FFFBEB',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#FDE68A',
+    },
+    pendingCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    pendingCardImage: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        borderWidth: 2,
+        borderColor: '#F59E0B',
+    },
+    pendingCardInfo: {
+        flex: 1,
+        marginLeft: 12,
+    },
+    pendingCardName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#111827',
+    },
+    pendingCardUniversity: {
+        fontSize: 13,
+        color: '#6B7280',
+        marginTop: 2,
+    },
+    pendingCardActions: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    rejectButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#FEE2E2',
+        borderWidth: 1,
+        borderColor: '#FECACA',
+        gap: 4,
+    },
+    rejectButtonText: {
+        color: '#EF4444',
+        fontWeight: '600',
+        fontSize: 14,
+    },
+    approveButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 10,
+        backgroundColor: '#009688',
+        gap: 4,
+    },
+    approveButtonText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 14,
     },
     divider: {
         height: 1,
