@@ -1096,6 +1096,7 @@ function AppContent() {
                             isLiked={likedProfiles.has(item.id)}
                             onLike={() => handleLike(item.id)}
                             onSelect={() => setSelectedProfile(item)}
+                            animateOnLike={true}
                           />
                         </View>
                       )}
