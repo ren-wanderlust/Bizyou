@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
@@ -227,12 +226,19 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     }
 
                     // Get unread count (messages from others after lastReadTime)
-                    const lastReadTime = await AsyncStorage.getItem(`readTime_${room.id}`);
+                    const { data: readStatus } = await supabase
+                        .from('chat_room_read_status')
+                        .select('last_read_at')
+                        .eq('user_id', user.id)
+                        .eq('chat_room_id', room.id)
+                        .single();
+                    
+                    const lastReadTime = readStatus?.last_read_at || '1970-01-01';
                     const { count: unreadCount } = await supabase
                         .from('messages')
                         .select('id', { count: 'exact', head: true })
                         .eq('chat_room_id', room.id)
-                        .gt('created_at', lastReadTime || '1970-01-01')
+                        .gt('created_at', lastReadTime)
                         .neq('sender_id', user.id);
 
                     return {

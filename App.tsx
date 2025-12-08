@@ -300,8 +300,6 @@ function AppContent() {
           .is('chat_room_id', null)  // Exclude group messages
           .or('is_read.is.null,is_read.eq.false');  // Unread messages
 
-        console.log('DM unread count:', dmCount);
-
         // 2. Group Chats (Local Storage Time) - only count groups where user is a member
         // First, get groups where user is owner or approved member
         const { data: ownedProjects } = await supabase
