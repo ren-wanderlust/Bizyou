@@ -98,6 +98,7 @@ function AppContent() {
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [unreadLikesCount, setUnreadLikesCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
 
   // Initialize push notifications
@@ -371,6 +372,69 @@ function AppContent() {
       .subscribe();
 
     const interval = setInterval(fetchUnreadMessages, 3000); // Poll every 3s for responsiveness
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [session?.user]);
+
+  // Fetch unread likes count ("あなたに興味あり" badge)
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchUnreadLikes = async () => {
+      try {
+        // Get my likes (to exclude mutual matches)
+        const { data: myLikes } = await supabase
+          .from('likes')
+          .select('receiver_id')
+          .eq('sender_id', session.user.id);
+        
+        const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
+
+        // Get blocked users
+        const { data: blocks } = await supabase
+          .from('blocks')
+          .select('blocked_id')
+          .eq('blocker_id', session.user.id);
+        
+        const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
+
+        // Get unread likes received (excluding mutual matches and blocked users)
+        const { data: receivedLikes } = await supabase
+          .from('likes')
+          .select('sender_id')
+          .eq('receiver_id', session.user.id)
+          .eq('is_read', false);
+
+        // Filter out mutual matches and blocked users
+        const unreadCount = receivedLikes?.filter(
+          l => !myLikedIds.has(l.sender_id) && !blockedIds.has(l.sender_id)
+        ).length || 0;
+
+        setUnreadLikesCount(unreadCount);
+      } catch (e) {
+        console.log('Error fetching unread likes:', e);
+      }
+    };
+
+    fetchUnreadLikes();
+
+    // Subscribe to likes changes
+    const channel = supabase.channel('unread_likes_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchUnreadLikes, 5000); // Poll every 5s
 
     return () => {
       supabase.removeChannel(channel);
@@ -1145,7 +1209,7 @@ function AppContent() {
             setActiveTab(tab);
           }}
           currentUser={currentUser}
-          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount }}
+          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount, likes: unreadLikesCount }}
           onCreateProject={() => {
             if (!currentUser) {
               Alert.alert('ログインが必要です', 'プロジェクトを作成するにはログインしてください');

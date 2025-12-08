@@ -8,3 +8,16 @@ ALTER TABLE likes ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT FALSE;
 
 -- 既存のレコードはすべて未読として扱う（falseに設定）
 UPDATE likes SET is_read = FALSE WHERE is_read IS NULL;
+
+-- =============================================
+-- UPDATE ポリシーを追加（既読にするため）
+-- =============================================
+
+-- 既存のポリシーがあれば削除
+DROP POLICY IF EXISTS "Users can mark received likes as read" ON public.likes;
+
+-- 受信者が自分宛のいいねを既読に更新できるポリシー
+CREATE POLICY "Users can mark received likes as read"
+ON public.likes FOR UPDATE
+USING (auth.uid() = receiver_id)
+WITH CHECK (auth.uid() = receiver_id);
