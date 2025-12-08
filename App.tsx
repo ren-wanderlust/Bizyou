@@ -614,12 +614,22 @@ function AppContent() {
     }
   };
 
+  // Track previous session to detect login
+  const prevSession = React.useRef(session);
+  
   React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
       fetchProfiles();
       fetchMatches();
+      
+      // Reset to default tab when user logs in (session changes from null to user)
+      if (!prevSession.current?.user && session?.user) {
+        setActiveTab('search');
+        setSearchTab('projects');
+      }
     }
+    prevSession.current = session;
   }, [session]);
 
   // Realtime subscription for matching
@@ -1015,6 +1025,9 @@ function AppContent() {
           onComplete={async () => {
             await refreshSession();
             setShowSignup(false);
+            // Reset to default tab (projects page)
+            setActiveTab('search');
+            setSearchTab('projects');
           }}
           onCancel={() => setShowSignup(false)}
         />
