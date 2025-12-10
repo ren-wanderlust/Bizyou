@@ -380,7 +380,7 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  // Fetch unread likes count ("興味あり" + "未確認マッチング" badge)
+  // Fetch unread likes count ("興味あり" + "未確認マッチング" + "未読募集" badge)
   React.useEffect(() => {
     if (!session?.user) return;
 
@@ -408,10 +408,10 @@ function AppContent() {
           .select('sender_id, is_read, is_read_as_match')
           .eq('receiver_id', session.user.id);
 
-        // Count unread:
+        // Count unread likes:
         // - 興味あり: is_read = false AND not matched (I haven't liked them back)
         // - マッチング: is_read_as_match = false AND matched (I have liked them back)
-        const unreadCount = receivedLikes?.filter(l => {
+        const unreadLikesCount = receivedLikes?.filter(l => {
           if (blockedIds.has(l.sender_id)) return false;
 
           const isMatched = myLikedIds.has(l.sender_id);
@@ -424,7 +424,27 @@ function AppContent() {
           }
         }).length || 0;
 
-        setUnreadLikesCount(unreadCount);
+        // Count unread recruiting applications (自分のプロジェクトへの未読応募)
+        const { data: myProjects } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('owner_id', session.user.id);
+
+        const myProjectIds = myProjects?.map(p => p.id) || [];
+        let unreadRecruitingCount = 0;
+
+        if (myProjectIds.length > 0) {
+          const { count } = await supabase
+            .from('project_applications')
+            .select('id', { count: 'exact', head: true })
+            .in('project_id', myProjectIds)
+            .eq('is_read', false);
+
+          unreadRecruitingCount = count || 0;
+        }
+
+        // Total: unread likes + unread recruiting
+        setUnreadLikesCount(unreadLikesCount + unreadRecruitingCount);
       } catch (e) {
         console.log('Error fetching unread likes:', e);
       }
@@ -433,7 +453,7 @@ function AppContent() {
     fetchUnreadLikes();
 
     // Subscribe to likes changes
-    const channel = supabase.channel('unread_likes_count')
+    const likesChannel = supabase.channel('unread_likes_count')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
         fetchUnreadLikes();
       })
@@ -445,10 +465,21 @@ function AppContent() {
       })
       .subscribe();
 
+    // Subscribe to project_applications changes
+    const applicationsChannel = supabase.channel('unread_applications_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'project_applications' }, () => {
+        fetchUnreadLikes();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_applications' }, () => {
+        fetchUnreadLikes();
+      })
+      .subscribe();
+
     const interval = setInterval(fetchUnreadLikes, 5000); // Poll every 5s
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(likesChannel);
+      supabase.removeChannel(applicationsChannel);
       clearInterval(interval);
     };
   }, [session?.user]);

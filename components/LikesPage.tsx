@@ -1,12 +1,42 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { ProfileListSkeleton } from './Skeleton';
+import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
 import { LikesEmptyState } from './EmptyState';
+import { translateTag } from '../constants/TagConstants';
+
+interface Project {
+    id: string;
+    title: string;
+    description: string;
+    image_url: string | null;
+    owner_id: string;
+    created_at: string;
+    deadline?: string | null;
+    required_roles?: string[];
+    tags?: string[];
+    owner?: {
+        id: string;
+        name: string;
+        image: string;
+        university: string;
+    };
+}
+
+interface Application {
+    id: string;
+    user_id: string;
+    project_id: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    is_read?: boolean;
+    user?: Profile;
+    project?: Project;
+}
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -17,22 +47,40 @@ interface LikesPageProps {
 
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
-    const [activeTab, setActiveTab] = useState<'received' | 'sent' | 'matched'>('received');
+    
+    // Top level tab: Project or User
+    const [mainTab, setMainTab] = useState<'project' | 'user'>('user');
+    
+    // User sub-tabs
+    const [userTab, setUserTab] = useState<'received' | 'sent' | 'matched'>('received');
+    
+    // Project sub-tabs
+    const [projectTab, setProjectTab] = useState<'recruiting' | 'applied'>('recruiting');
+    
+    // User data
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
-    const [unreadInterestIds, setUnreadInterestIds] = useState<Set<string>>(new Set()); // Track unread "興味あり" by sender_id
-    const [unreadMatchIds, setUnreadMatchIds] = useState<Set<string>>(new Set()); // Track unread "マッチング" by sender_id
-    const [loading, setLoading] = useState(true);
-    const listRef = useRef<FlatList>(null);
+    const [unreadInterestIds, setUnreadInterestIds] = useState<Set<string>>(new Set());
+    const [unreadMatchIds, setUnreadMatchIds] = useState<Set<string>>(new Set());
+    const [loadingUser, setLoadingUser] = useState(true);
+    
+    // Project data
+    const [recruitingApplications, setRecruitingApplications] = useState<Application[]>([]);
+    const [appliedApplications, setAppliedApplications] = useState<Application[]>([]);
+    const [unreadRecruitingIds, setUnreadRecruitingIds] = useState<Set<string>>(new Set()); // Track unread applications by id
+    const [loadingProject, setLoadingProject] = useState(true);
+    
+    const userListRef = useRef<FlatList>(null);
+    const projectListRef = useRef<FlatList>(null);
 
-    React.useEffect(() => {
+    // Fetch user likes data
+    useEffect(() => {
         const fetchReceivedLikes = async () => {
             if (!session?.user) {
-                setLoading(false);
+                setLoadingUser(false);
                 return;
             }
 
             try {
-                // Fetch likes with both is_read and is_read_as_match status
                 const { data: likes, error } = await supabase
                     .from('likes')
                     .select('sender_id, is_read, is_read_as_match')
@@ -44,13 +92,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 }
 
                 if (likes && likes.length > 0) {
-                    // Track unread "興味あり" (is_read = false)
                     const unreadInterest = new Set<string>(
                         likes.filter(l => !l.is_read).map(l => l.sender_id)
                     );
                     setUnreadInterestIds(unreadInterest);
 
-                    // Track unread "マッチング" (is_read_as_match = false)
                     const unreadMatch = new Set<string>(
                         likes.filter(l => !l.is_read_as_match).map(l => l.sender_id)
                     );
@@ -97,14 +143,139 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             } catch (error) {
                 console.error('Error in fetchReceivedLikes:', error);
             } finally {
-                setLoading(false);
+                setLoadingUser(false);
             }
         };
 
         fetchReceivedLikes();
     }, [session]);
 
-    // Mark "興味あり" as read when profile is opened from received tab
+    // Fetch project applications data
+    useEffect(() => {
+        const fetchProjectApplications = async () => {
+            if (!session?.user) {
+                setLoadingProject(false);
+                return;
+            }
+
+            try {
+                // 1. Fetch applications to my projects (募集)
+                const { data: myProjects } = await supabase
+                    .from('projects')
+                    .select('id')
+                    .eq('owner_id', session.user.id);
+
+                const myProjectIds = myProjects?.map(p => p.id) || [];
+
+                if (myProjectIds.length > 0) {
+                    const { data: recruiting, error: recruitingError } = await supabase
+                        .from('project_applications')
+                        .select(`
+                            *,
+                            user:profiles!user_id (*),
+                            project:projects!project_id (
+                                id,
+                                title
+                            )
+                        `)
+                        .in('project_id', myProjectIds)
+                        .order('created_at', { ascending: false });
+
+                    if (recruitingError) {
+                        console.error('Error fetching recruiting applications:', recruitingError);
+                    } else if (recruiting) {
+                        // Track unread applications
+                        const unreadIds = new Set<string>(
+                            recruiting.filter((app: any) => !app.is_read).map((app: any) => app.id)
+                        );
+                        setUnreadRecruitingIds(unreadIds);
+
+                        const mappedRecruiting = recruiting.map((app: any) => ({
+                            id: app.id,
+                            user_id: app.user_id,
+                            project_id: app.project_id,
+                            status: app.status,
+                            created_at: app.created_at,
+                            is_read: app.is_read,
+                            user: app.user ? {
+                                id: app.user.id,
+                                name: app.user.name,
+                                age: app.user.age,
+                                location: app.user.location || '',
+                                university: app.user.university,
+                                company: app.user.company,
+                                grade: app.user.grade || '',
+                                image: app.user.image,
+                                challengeTheme: app.user.challenge_theme || '',
+                                theme: app.user.theme || '',
+                                bio: app.user.bio,
+                                skills: app.user.skills || [],
+                                seekingFor: app.user.seeking_for || [],
+                                seekingRoles: app.user.seeking_roles || [],
+                                statusTags: app.user.status_tags || [],
+                                isStudent: app.user.is_student,
+                                createdAt: app.user.created_at,
+                            } : undefined,
+                            project: app.project,
+                        }));
+                        setRecruitingApplications(mappedRecruiting);
+                    }
+                }
+
+                // 2. Fetch my applications (応募)
+                const { data: applied, error: appliedError } = await supabase
+                    .from('project_applications')
+                    .select(`
+                        id,
+                        user_id,
+                        project_id,
+                        status,
+                        created_at,
+                        project:projects!project_id (
+                            id,
+                            title,
+                            description,
+                            image_url,
+                            owner_id,
+                            created_at,
+                            deadline,
+                            required_roles,
+                            tags,
+                            owner:profiles!owner_id (
+                                id,
+                                name,
+                                image,
+                                university
+                            )
+                        )
+                    `)
+                    .eq('user_id', session.user.id)
+                    .order('created_at', { ascending: false });
+
+                if (appliedError) {
+                    console.error('Error fetching applied applications:', appliedError);
+                } else if (applied) {
+                    const mappedApplied = applied.map((app: any) => ({
+                        id: app.id,
+                        user_id: app.user_id,
+                        project_id: app.project_id,
+                        status: app.status,
+                        created_at: app.created_at,
+                        project: app.project,
+                    }));
+                    setAppliedApplications(mappedApplied);
+                }
+            } catch (error) {
+                console.error('Error fetching project applications:', error);
+            } finally {
+                setLoadingProject(false);
+            }
+        };
+
+        fetchProjectApplications();
+    }, [session]);
+
+    // Mark "興味あり" as read
     const markInterestAsRead = async (senderId: string) => {
         if (!session?.user || !unreadInterestIds.has(senderId)) return;
 
@@ -115,7 +286,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .eq('receiver_id', session.user.id)
                 .eq('sender_id', senderId);
 
-            // Update local state
             setUnreadInterestIds(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(senderId);
@@ -126,7 +296,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         }
     };
 
-    // Mark "マッチング" as read when profile is opened from matched tab
+    // Mark "マッチング" as read
     const markMatchAsRead = async (senderId: string) => {
         if (!session?.user || !unreadMatchIds.has(senderId)) return;
 
@@ -137,7 +307,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .eq('receiver_id', session.user.id)
                 .eq('sender_id', senderId);
 
-            // Update local state
             setUnreadMatchIds(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(senderId);
@@ -148,53 +317,177 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         }
     };
 
-    // Handle profile select from "興味あり" tab
+    // Mark "募集" application as read
+    const markRecruitingAsRead = async (applicationId: string) => {
+        if (!session?.user || !unreadRecruitingIds.has(applicationId)) return;
+
+        try {
+            await supabase
+                .from('project_applications')
+                .update({ is_read: true })
+                .eq('id', applicationId);
+
+            setUnreadRecruitingIds(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(applicationId);
+                return newSet;
+            });
+        } catch (error) {
+            console.error('Error marking recruiting application as read:', error);
+        }
+    };
+
     const handleInterestProfileSelect = (profile: Profile) => {
         markInterestAsRead(profile.id);
         onProfileSelect(profile);
     };
 
-    // Handle profile select from "マッチング" tab
     const handleMatchProfileSelect = (profile: Profile) => {
         markMatchAsRead(profile.id);
         onProfileSelect(profile);
     };
 
-    // Filter profiles based on likedProfileIds
-    // Exclude those who are also in receivedLikes (Matched)
+    // Handle applicant profile select from "募集" tab
+    const handleApplicantProfileSelect = (application: Application) => {
+        markRecruitingAsRead(application.id);
+        if (application.user) {
+            onProfileSelect(application.user);
+        }
+    };
+
+    // Filter user profiles
     const receivedLikeIds = new Set(receivedLikes.map(p => p.id));
     const sentLikes = allProfiles.filter(profile =>
         likedProfileIds.has(profile.id) && !receivedLikeIds.has(profile.id)
     );
-
-    // Filter receivedLikes to exclude those who are also in likedProfileIds (Matched)
     const displayReceivedLikes = receivedLikes.filter(profile =>
         !likedProfileIds.has(profile.id)
     );
-
-    // Matched profiles: both liked each other
     const matchedProfiles = receivedLikes.filter(profile =>
         likedProfileIds.has(profile.id)
     );
 
-    // Unread "興味あり" count (excluding matched profiles)
     const unreadInterestCount = displayReceivedLikes.filter(profile =>
         unreadInterestIds.has(profile.id)
     ).length;
-
-    // Unread "マッチング" count
     const unreadMatchCount = matchedProfiles.filter(profile =>
         unreadMatchIds.has(profile.id)
     ).length;
 
-    const renderReceivedList = () => {
-        if (loading) {
-            return <ProfileListSkeleton count={4} />;
-        }
+    // Count unread applications for recruiting
+    const unreadRecruitingCount = unreadRecruitingIds.size;
 
-        if (displayReceivedLikes.length === 0) {
-            return <LikesEmptyState type="received" />;
-        }
+    // ===== RENDER FUNCTIONS =====
+
+    // Project Card for "応募" tab
+    const renderApplicationProjectCard = ({ item }: { item: Application }) => {
+        const project = item.project;
+        if (!project) return null;
+
+        const deadlineDate = project.deadline ? new Date(project.deadline) : null;
+        const deadlineString = deadlineDate
+            ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
+            : '';
+
+        const getStatusInfo = () => {
+            switch (item.status) {
+                case 'pending':
+                    return { icon: 'time-outline', color: '#F59E0B', text: '承認待ち' };
+                case 'approved':
+                    return { icon: 'checkmark-circle', color: '#10B981', text: '参加決定' };
+                case 'rejected':
+                    return { icon: 'close-circle', color: '#EF4444', text: '見送り' };
+                default:
+                    return { icon: 'help-circle-outline', color: '#6B7280', text: '不明' };
+            }
+        };
+
+        const statusInfo = getStatusInfo();
+
+        return (
+            <TouchableOpacity style={styles.projectCard} activeOpacity={0.7}>
+                <View style={styles.projectCardInner}>
+                    <Image
+                        source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                        style={styles.projectAuthorIcon}
+                    />
+                    <View style={styles.projectCardContent}>
+                        <View style={styles.projectCardHeader}>
+                            <Text style={styles.projectCardTitle} numberOfLines={1}>{project.title}</Text>
+                            {deadlineString ? (
+                                <View style={styles.deadlineBadge}>
+                                    <Ionicons name="time-outline" size={14} color="#D32F2F" />
+                                    <Text style={styles.deadlineText}>{deadlineString}</Text>
+                                </View>
+                            ) : null}
+                        </View>
+                        <Text style={styles.projectCardDescription} numberOfLines={2}>{project.description}</Text>
+                        
+                        {/* Status Badge */}
+                        <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
+                            <Ionicons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
+                            <Text style={[styles.statusBadgeText, { color: statusInfo.color }]}>{statusInfo.text}</Text>
+                        </View>
+                    </View>
+                </View>
+            </TouchableOpacity>
+        );
+    };
+
+    // Applicant Card for "募集" tab
+    const renderApplicantCard = ({ item }: { item: Application }) => {
+        const user = item.user;
+        if (!user) return null;
+
+        const getStatusInfo = () => {
+            switch (item.status) {
+                case 'pending':
+                    return { color: '#F59E0B', text: '承認待ち' };
+                case 'approved':
+                    return { color: '#10B981', text: '参加決定' };
+                case 'rejected':
+                    return { color: '#EF4444', text: '見送り' };
+                default:
+                    return { color: '#6B7280', text: '不明' };
+            }
+        };
+
+        const statusInfo = getStatusInfo();
+        const isUnread = unreadRecruitingIds.has(item.id);
+
+        return (
+            <View style={styles.gridItem}>
+                <View style={styles.applicantCardWrapper}>
+                    {/* Unread indicator */}
+                    {isUnread && (
+                        <View style={styles.unreadDot} />
+                    )}
+                    {/* Status indicator */}
+                    <View style={[styles.applicantStatusBadge, { backgroundColor: statusInfo.color }]}>
+                        <Text style={styles.applicantStatusText}>{statusInfo.text}</Text>
+                    </View>
+                    <ProfileCard
+                        profile={user}
+                        isLiked={likedProfileIds.has(user.id)}
+                        onLike={() => onLike(user.id)}
+                        onSelect={() => handleApplicantProfileSelect(item)}
+                        hideHeartButton={true}
+                    />
+                    {/* Project name */}
+                    <View style={styles.projectNameBadge}>
+                        <Text style={styles.projectNameText} numberOfLines={1}>
+                            {item.project?.title || 'プロジェクト'}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+        );
+    };
+
+    // User tab - Received likes
+    const renderReceivedList = () => {
+        if (loadingUser) return <ProfileListSkeleton count={4} />;
+        if (displayReceivedLikes.length === 0) return <LikesEmptyState type="received" />;
 
         return (
             <FlatList
@@ -218,10 +511,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         );
     };
 
+    // User tab - Sent likes
     const renderSentList = () => {
-        if (sentLikes.length === 0) {
-            return <LikesEmptyState type="sent" />;
-        }
+        if (sentLikes.length === 0) return <LikesEmptyState type="sent" />;
 
         return (
             <FlatList
@@ -245,10 +537,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         );
     };
 
+    // User tab - Matched profiles
     const renderMatchedList = () => {
-        if (matchedProfiles.length === 0) {
-            return <LikesEmptyState type="matched" />;
-        }
+        if (matchedProfiles.length === 0) return <LikesEmptyState type="matched" />;
 
         return (
             <FlatList
@@ -274,85 +565,212 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         );
     };
 
-    const tabs = ['received', 'sent', 'matched'] as const;
-    const getTabIndex = (tab: typeof activeTab) => tabs.indexOf(tab);
+    // Project tab - Recruiting (応募者一覧)
+    const renderRecruitingList = () => {
+        if (loadingProject) return <ProfileListSkeleton count={4} />;
+        if (recruitingApplications.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="people-outline" size={64} color="#d1d5db" />
+                    <Text style={styles.emptyText}>応募者はまだいません</Text>
+                    <Text style={styles.emptySubText}>プロジェクトを作成すると、応募者がここに表示されます</Text>
+                </View>
+            );
+        }
+
+        return (
+            <FlatList
+                data={recruitingApplications}
+                renderItem={renderApplicantCard}
+                keyExtractor={(item) => item.id}
+                numColumns={2}
+                contentContainerStyle={styles.listContent}
+                columnWrapperStyle={styles.columnWrapper}
+                showsVerticalScrollIndicator={false}
+            />
+        );
+    };
+
+    // Project tab - Applied (応募したプロジェクト)
+    const renderAppliedList = () => {
+        if (loadingProject) return <ProjectListSkeleton count={4} />;
+        if (appliedApplications.length === 0) {
+            return (
+                <View style={styles.emptyContainer}>
+                    <Ionicons name="briefcase-outline" size={64} color="#d1d5db" />
+                    <Text style={styles.emptyText}>応募したプロジェクトはありません</Text>
+                    <Text style={styles.emptySubText}>気になるプロジェクトに応募してみましょう</Text>
+                </View>
+            );
+        }
+
+        return (
+            <FlatList
+                data={appliedApplications}
+                renderItem={renderApplicationProjectCard}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+        );
+    };
+
+    const userTabs = ['received', 'sent', 'matched'] as const;
+    const projectTabs = ['recruiting', 'applied'] as const;
 
     return (
         <View style={styles.container}>
-            {/* Header */}
+            {/* Main Tab Header */}
             <View style={styles.header}>
-                {/* Tabs */}
-                <View style={styles.tabContainer}>
+                {/* Top Level Tabs: Project / User */}
+                <View style={styles.mainTabContainer}>
                     <TouchableOpacity
-                        style={[styles.tabButton, activeTab === 'received' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setActiveTab('received');
-                            listRef.current?.scrollToIndex({ index: 0, animated: true });
-                        }}
+                        style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
+                        onPress={() => setMainTab('project')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'received' && styles.tabTextActive]}>
-                            興味あり
-                        </Text>
-                        {unreadInterestCount > 0 && (
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{unreadInterestCount}</Text>
-                            </View>
-                        )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, activeTab === 'sent' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setActiveTab('sent');
-                            listRef.current?.scrollToIndex({ index: 1, animated: true });
-                        }}
-                    >
-                        <Text style={[styles.tabText, activeTab === 'sent' && styles.tabTextActive]}>
-                            送った
+                        <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
+                            Project
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                        style={[styles.tabButton, activeTab === 'matched' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setActiveTab('matched');
-                            listRef.current?.scrollToIndex({ index: 2, animated: true });
-                        }}
+                        style={[styles.mainTabButton, mainTab === 'user' && styles.mainTabButtonActive]}
+                        onPress={() => setMainTab('user')}
                     >
-                        <Text style={[styles.tabText, activeTab === 'matched' && styles.tabTextActive]}>
-                            マッチング
+                        <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
+                            User
                         </Text>
-                        {unreadMatchCount > 0 && (
-                            <View style={styles.badge}>
-                                <Text style={styles.badgeText}>{unreadMatchCount}</Text>
-                            </View>
-                        )}
                     </TouchableOpacity>
                 </View>
-            </View>
 
-            {/* Swipeable Content */}
-            <FlatList
-                ref={listRef}
-                data={tabs}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item}
-                onMomentumScrollEnd={(e) => {
-                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                    setActiveTab(tabs[index]);
-                }}
-                getItemLayout={(data, index) => (
-                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-                )}
-                initialScrollIndex={0}
-                renderItem={({ item }) => (
-                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                        {item === 'received' && renderReceivedList()}
-                        {item === 'sent' && renderSentList()}
-                        {item === 'matched' && renderMatchedList()}
+                {/* Sub Tabs */}
+                {mainTab === 'user' ? (
+                    <View style={styles.subTabContainer}>
+                        <TouchableOpacity
+                            style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
+                            onPress={() => {
+                                setUserTab('received');
+                                userListRef.current?.scrollToIndex({ index: 0, animated: true });
+                            }}
+                        >
+                            <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
+                                興味あり
+                            </Text>
+                            {unreadInterestCount > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{unreadInterestCount}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
+                            onPress={() => {
+                                setUserTab('sent');
+                                userListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            }}
+                        >
+                            <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
+                                送った
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
+                            onPress={() => {
+                                setUserTab('matched');
+                                userListRef.current?.scrollToIndex({ index: 2, animated: true });
+                            }}
+                        >
+                            <Text style={[styles.subTabText, userTab === 'matched' && styles.subTabTextActive]}>
+                                マッチング
+                            </Text>
+                            {unreadMatchCount > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{unreadMatchCount}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                ) : (
+                    <View style={styles.subTabContainer}>
+                        <TouchableOpacity
+                            style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
+                            onPress={() => {
+                                setProjectTab('recruiting');
+                                projectListRef.current?.scrollToIndex({ index: 0, animated: true });
+                            }}
+                        >
+                            <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
+                                募集
+                            </Text>
+                            {unreadRecruitingCount > 0 && (
+                                <View style={styles.badge}>
+                                    <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
+                            onPress={() => {
+                                setProjectTab('applied');
+                                projectListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            }}
+                        >
+                            <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
+                                応募
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 )}
-            />
+            </View>
+
+            {/* Content */}
+            {mainTab === 'user' ? (
+                <FlatList
+                    ref={userListRef}
+                    data={userTabs}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item) => item}
+                    onMomentumScrollEnd={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                        setUserTab(userTabs[index]);
+                    }}
+                    getItemLayout={(data, index) => (
+                        { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                    )}
+                    initialScrollIndex={0}
+                    renderItem={({ item }) => (
+                        <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                            {item === 'received' && renderReceivedList()}
+                            {item === 'sent' && renderSentList()}
+                            {item === 'matched' && renderMatchedList()}
+                        </View>
+                    )}
+                />
+            ) : (
+                <FlatList
+                    ref={projectListRef}
+                    data={projectTabs}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item) => item}
+                    onMomentumScrollEnd={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                        setProjectTab(projectTabs[index]);
+                    }}
+                    getItemLayout={(data, index) => (
+                        { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                    )}
+                    initialScrollIndex={0}
+                    renderItem={({ item }) => (
+                        <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                            {item === 'recruiting' && renderRecruitingList()}
+                            {item === 'applied' && renderAppliedList()}
+                        </View>
+                    )}
+                />
+            )}
         </View>
     );
 }
@@ -364,26 +782,41 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 16,
+        paddingTop: 8,
         paddingBottom: 0,
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
-        alignItems: 'center',
     },
-    headerTitle: {
-        fontSize: 18,
+    // Main tabs (Project / User)
+    mainTabContainer: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 32,
+        paddingBottom: 8,
+    },
+    mainTabButton: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+    },
+    mainTabButtonActive: {},
+    mainTabText: {
+        fontSize: 20,
         fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: 16,
+        color: '#D1D5DB',
+    },
+    mainTabTextActive: {
         color: '#111827',
     },
-    tabContainer: {
+    // Sub tabs
+    subTabContainer: {
         flexDirection: 'row',
-        paddingHorizontal: 16,
         justifyContent: 'center',
         gap: 24,
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+        paddingTop: 8,
     },
-    tabButton: {
+    subTabButton: {
         paddingVertical: 8,
         paddingHorizontal: 4,
         flexDirection: 'row',
@@ -391,17 +824,16 @@ const styles = StyleSheet.create({
         borderBottomWidth: 2,
         borderBottomColor: 'transparent',
     },
-    tabButtonActive: {
-        borderBottomColor: '#009688',
+    subTabButtonActive: {
+        borderBottomColor: '#FF5252',
     },
-    tabText: {
-        fontSize: 14,
-        color: '#9ca3af',
-        fontWeight: '500',
-    },
-    tabTextActive: {
-        color: '#009688',
+    subTabText: {
+        fontSize: 16,
         fontWeight: 'bold',
+        color: '#9CA3AF',
+    },
+    subTabTextActive: {
+        color: '#FF5252',
     },
     badge: {
         backgroundColor: '#FF7F11',
@@ -445,10 +877,116 @@ const styles = StyleSheet.create({
     emptySubText: {
         fontSize: 14,
         color: '#9ca3af',
+        textAlign: 'center',
     },
-    loadingContainer: {
+    // Project Card styles
+    projectCard: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        marginBottom: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+    projectCardInner: {
+        flexDirection: 'row',
+        padding: 12,
+    },
+    projectAuthorIcon: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        marginRight: 12,
+    },
+    projectCardContent: {
         flex: 1,
-        justifyContent: 'center',
+    },
+    projectCardHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 4,
+    },
+    projectCardTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: '#111827',
+        flex: 1,
+        marginRight: 8,
+    },
+    projectCardDescription: {
+        fontSize: 14,
+        color: '#6B7280',
+        lineHeight: 20,
+        marginBottom: 8,
+    },
+    deadlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+    },
+    deadlineText: {
+        fontSize: 12,
+        color: '#D32F2F',
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+        alignSelf: 'flex-start',
+    },
+    statusBadgeText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    // Applicant card styles
+    applicantCardWrapper: {
+        position: 'relative',
+    },
+    unreadDot: {
+        position: 'absolute',
+        top: 4,
+        right: 4,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#10B981',
+        zIndex: 20,
+        borderWidth: 2,
+        borderColor: 'white',
+    },
+    applicantStatusBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 8,
+        zIndex: 10,
+    },
+    applicantStatusText: {
+        color: 'white',
+        fontSize: 10,
+        fontWeight: 'bold',
+    },
+    projectNameBadge: {
+        position: 'absolute',
+        bottom: 8,
+        left: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+    },
+    projectNameText: {
+        color: 'white',
+        fontSize: 11,
+        fontWeight: '500',
     },
 });
