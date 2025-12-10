@@ -1669,23 +1669,6 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         borderColor: '#e5e7eb',
     },
-    imagePickerError: {
-        borderColor: '#ef4444',
-        borderWidth: 2,
-    },
-    profileImage: {
-        width: '100%',
-        height: '100%',
-    },
-    imagePlaceholder: {
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    imagePlaceholderText: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginTop: 8,
-    },
     nextButtonText: {
         color: '#FF8C00',
         fontSize: 16,
