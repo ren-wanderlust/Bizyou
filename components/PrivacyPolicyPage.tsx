@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface PrivacyPolicyPageProps {
@@ -8,7 +8,7 @@ interface PrivacyPolicyPageProps {
 
 export function PrivacyPolicyPage({ onBack }: PrivacyPolicyPageProps) {
     return (
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={onBack} style={styles.backButton}>
@@ -65,7 +65,7 @@ export function PrivacyPolicyPage({ onBack }: PrivacyPolicyPageProps) {
 
                 <View style={{ height: 40 }} />
             </ScrollView>
-        </View>
+        </SafeAreaView>
     );
 }
 
