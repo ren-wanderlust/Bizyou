@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions } from 'react-native';
+import React, { useRef, useCallback, useState } from 'react';
+import { StyleSheet, Text, View, Image, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Profile } from '../types';
 import { AnimatedHeartButton } from './AnimatedLikeButton';
@@ -11,6 +11,9 @@ interface ProfileCardProps {
     isLiked: boolean;
     onLike: () => void;
     onSelect?: () => void;
+    hideHeartButton?: boolean;
+    isNewMatch?: boolean;
+    animateOnLike?: boolean;
 }
 
 const { width } = Dimensions.get('window');
@@ -18,21 +21,66 @@ const GAP = 12;
 const PADDING = 16;
 const CARD_WIDTH = (width - (PADDING * 2) - GAP) / 2;
 
-export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardProps) {
+export function ProfileCard({ profile, isLiked, onLike, onSelect, hideHeartButton, isNewMatch, animateOnLike }: ProfileCardProps) {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const opacityAnim = useRef(new Animated.Value(1)).current;
+    const [tempLiked, setTempLiked] = useState(false); // Temporary liked state for animation
+
+    const handleLikeWithAnimation = useCallback(() => {
+        if (animateOnLike && !isLiked && !tempLiked) {
+            // Step 1: Show red heart immediately
+            setTempLiked(true);
+            
+            // Step 2: Wait to show the red heart, then fade out
+            setTimeout(() => {
+                Animated.parallel([
+                    Animated.timing(scaleAnim, {
+                        toValue: 0.85,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(opacityAnim, {
+                        toValue: 0,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }),
+                ]).start(() => {
+                    // Step 3: After animation, actually trigger the like
+                    onLike();
+                });
+            }, 400); // Show red heart for 400ms
+        } else {
+            onLike();
+        }
+    }, [animateOnLike, isLiked, tempLiked, onLike, scaleAnim, opacityAnim]);
+
+    // Use tempLiked or actual isLiked for display
+    const displayLiked = isLiked || tempLiked;
+
     return (
-        <TouchableOpacity
-            style={styles.cardContainer}
-            onPress={onSelect}
-            activeOpacity={0.9}
-        >
-            {/* Like Button - Top Right */}
-            <View style={styles.likeButtonContainer}>
-                <AnimatedHeartButton
-                    isLiked={isLiked}
-                    onPress={onLike}
-                    size="small"
-                />
-            </View>
+        <Animated.View style={{ transform: [{ scale: scaleAnim }], opacity: opacityAnim }}>
+            <TouchableOpacity
+                style={styles.cardContainer}
+                onPress={onSelect}
+                activeOpacity={0.9}
+            >
+                {/* Like Button - Top Right */}
+                {!hideHeartButton && (
+                    <View style={styles.likeButtonContainer}>
+                        <AnimatedHeartButton
+                            isLiked={displayLiked}
+                            onPress={handleLikeWithAnimation}
+                            size="small"
+                        />
+                    </View>
+                )}
+
+            {/* New Match Badge - Top Right */}
+            {isNewMatch && (
+                <View style={styles.newMatchBadge}>
+                    <View style={styles.newMatchDot} />
+                </View>
+            )}
 
             {/* Header: Avatar + Name */}
             <View style={styles.header}>
@@ -78,7 +126,8 @@ export function ProfileCard({ profile, isLiked, onLike, onSelect }: ProfileCardP
                     </View>
                 )}
             </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </Animated.View>
     );
 }
 
@@ -100,6 +149,20 @@ const styles = StyleSheet.create({
         top: SPACING.sm,
         right: SPACING.sm,
         zIndex: 10,
+    },
+    newMatchBadge: {
+        position: 'absolute',
+        top: SPACING.sm,
+        right: SPACING.sm,
+        zIndex: 10,
+    },
+    newMatchDot: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        backgroundColor: '#10B981', // Green color
+        borderWidth: 2,
+        borderColor: 'white',
     },
     header: {
         flexDirection: 'row',

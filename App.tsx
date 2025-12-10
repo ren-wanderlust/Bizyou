@@ -22,7 +22,6 @@ import { HelpPage } from './components/HelpPage';
 import { LegalDocumentPage } from './components/LegalDocumentPage';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { MatchingModal } from './components/MatchingModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProjectPage } from './components/UserProjectPage';
 import { UsersEmptyState } from './components/EmptyState';
 import { Profile } from './types';
@@ -99,6 +98,8 @@ function AppContent() {
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [unreadLikesCount, setUnreadLikesCount] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
 
   // Initialize push notifications
@@ -300,8 +301,6 @@ function AppContent() {
           .is('chat_room_id', null)  // Exclude group messages
           .or('is_read.is.null,is_read.eq.false');  // Unread messages
 
-        console.log('DM unread count:', dmCount);
-
         // 2. Group Chats (Local Storage Time) - only count groups where user is a member
         // First, get groups where user is owner or approved member
         const { data: ownedProjects } = await supabase
@@ -330,10 +329,15 @@ function AppContent() {
 
           if (groups && groups.length > 0) {
             const groupPromises = groups.map(async (group: any) => {
-              const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+              // Get last read time from database
+              const { data: readStatus } = await supabase
+                .from('chat_room_read_status')
+                .select('last_read_at')
+                .eq('user_id', session.user.id)
+                .eq('chat_room_id', group.id)
+                .single();
 
-              // If never read, don't count as unread (new group)
-              if (!lastReadTime) return 0;
+              const lastReadTime = readStatus?.last_read_at || '1970-01-01';
 
               const { count } = await supabase
                 .from('messages')
@@ -376,6 +380,122 @@ function AppContent() {
     };
   }, [session?.user]);
 
+  // Fetch unread likes count ("興味あり" + "未確認マッチング" badge)
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchUnreadLikes = async () => {
+      try {
+        // Get my likes (to determine matches)
+        const { data: myLikes } = await supabase
+          .from('likes')
+          .select('receiver_id')
+          .eq('sender_id', session.user.id);
+        
+        const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
+
+        // Get blocked users
+        const { data: blocks } = await supabase
+          .from('blocks')
+          .select('blocked_id')
+          .eq('blocker_id', session.user.id);
+        
+        const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
+
+        // Get all received likes with both read statuses
+        const { data: receivedLikes } = await supabase
+          .from('likes')
+          .select('sender_id, is_read, is_read_as_match')
+          .eq('receiver_id', session.user.id);
+
+        // Count unread:
+        // - 興味あり: is_read = false AND not matched (I haven't liked them back)
+        // - マッチング: is_read_as_match = false AND matched (I have liked them back)
+        const unreadCount = receivedLikes?.filter(l => {
+          if (blockedIds.has(l.sender_id)) return false;
+          
+          const isMatched = myLikedIds.has(l.sender_id);
+          if (isMatched) {
+            // Matched: count if is_read_as_match is false
+            return !l.is_read_as_match;
+          } else {
+            // Interest only: count if is_read is false
+            return !l.is_read;
+          }
+        }).length || 0;
+
+        setUnreadLikesCount(unreadCount);
+      } catch (e) {
+        console.log('Error fetching unread likes:', e);
+      }
+    };
+
+    fetchUnreadLikes();
+
+    // Subscribe to likes changes
+    const channel = supabase.channel('unread_likes_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
+        fetchUnreadLikes();
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchUnreadLikes, 5000); // Poll every 5s
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [session?.user]);
+
+  // Fetch unread notifications count (user-specific notifications only)
+  const fetchUnreadNotifications = useCallback(async () => {
+    if (!session?.user) return;
+    try {
+      // Only count user-specific notifications (いいね, マッチング etc.)
+      // Public notifications (user_id is null) are shared, so not tracked for read status
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', session.user.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        setUnreadNotificationsCount(count || 0);
+      }
+    } catch (e) {
+      console.log('Error fetching unread notifications:', e);
+    }
+  }, [session?.user]);
+
+  React.useEffect(() => {
+    if (!session?.user) return;
+
+    fetchUnreadNotifications();
+
+    // Subscribe to notifications changes
+    const channel = supabase.channel('unread_notifications_count')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadNotifications();
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'notifications' }, () => {
+        fetchUnreadNotifications();
+      })
+      .subscribe();
+
+    const interval = setInterval(fetchUnreadNotifications, 5000); // Poll every 5s
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [session?.user, fetchUnreadNotifications]);
+
   // Refresh unread count when closing a chat
   const prevActiveChatRoom = React.useRef(activeChatRoom);
   React.useEffect(() => {
@@ -417,10 +537,15 @@ function AppContent() {
 
             if (groups && groups.length > 0) {
               const groupPromises = groups.map(async (group: any) => {
-                const lastReadTime = await AsyncStorage.getItem(`readTime_${group.id}`);
+                // Get last read time from database
+                const { data: readStatus } = await supabase
+                  .from('chat_room_read_status')
+                  .select('last_read_at')
+                  .eq('user_id', session.user.id)
+                  .eq('chat_room_id', group.id)
+                  .single();
 
-                // If never read, don't count as unread (new group)
-                if (!lastReadTime) return 0;
+                const lastReadTime = readStatus?.last_read_at || '1970-01-01';
 
                 const { count } = await supabase
                   .from('messages')
@@ -489,12 +614,22 @@ function AppContent() {
     }
   };
 
+  // Track previous session to detect login
+  const prevSession = React.useRef(session);
+  
   React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
       fetchProfiles();
       fetchMatches();
+      
+      // Reset to default tab when user logs in (session changes from null to user)
+      if (!prevSession.current?.user && session?.user) {
+        setActiveTab('search');
+        setSearchTab('projects');
+      }
     }
+    prevSession.current = session;
   }, [session]);
 
   // Realtime subscription for matching
@@ -639,19 +774,55 @@ function AppContent() {
   const handleLike = async (profileId: string) => {
     if (!session?.user) return;
 
-    // Optimistic update
+    // Check if already liked (for unlike confirmation)
+    const isCurrentlyLiked = likedProfiles.has(profileId);
+
+    if (isCurrentlyLiked) {
+      // Show confirmation dialog before unliking
+      Alert.alert(
+        'いいねを取り消しますか？',
+        'この操作を行うと、いいねが取り消されます。',
+        [
+          { text: 'キャンセル', style: 'cancel' },
+          {
+            text: '取り消す',
+            style: 'destructive',
+            onPress: async () => {
+              // Update UI
+              setLikedProfiles((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(profileId);
+                return newSet;
+              });
+
+              // Delete from database
+              try {
+                await supabase
+                  .from('likes')
+                  .delete()
+                  .eq('sender_id', session.user.id)
+                  .eq('receiver_id', profileId);
+              } catch (error) {
+                console.error('Error unliking:', error);
+                // Revert on error
+                setLikedProfiles((prev) => new Set(prev).add(profileId));
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    // Optimistic update for new like
     setLikedProfiles((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(profileId)) {
-        newSet.delete(profileId);
-      } else {
-        newSet.add(profileId);
-      }
+      newSet.add(profileId);
       return newSet;
     });
 
     try {
-      // Check if already liked
+      // Check if already liked (shouldn't happen but just in case)
       const { data: existingLike } = await supabase
         .from('likes')
         .select('*')
@@ -660,11 +831,8 @@ function AppContent() {
         .maybeSingle();
 
       if (existingLike) {
-        // Unlike
-        await supabase
-          .from('likes')
-          .delete()
-          .eq('id', existingLike.id);
+        // Already liked, do nothing (UI already shows liked state)
+        return;
       } else {
         // Like
         await supabase
@@ -893,6 +1061,9 @@ function AppContent() {
           onComplete={async () => {
             await refreshSession();
             setShowSignup(false);
+            // Reset to default tab (projects page)
+            setActiveTab('search');
+            setSearchTab('projects');
           }}
           onCancel={() => setShowSignup(false)}
         />
@@ -925,6 +1096,9 @@ function AppContent() {
                 onPress={() => setShowNotifications(true)}
               >
                 <Ionicons name="notifications-outline" size={24} color="#374151" />
+                {unreadNotificationsCount > 0 && (
+                  <View style={styles.notificationBadgeDot} />
+                )}
               </TouchableOpacity>
             </View>
           )}
@@ -959,6 +1133,9 @@ function AppContent() {
                     onPress={() => setShowNotifications(true)}
                   >
                     <Ionicons name="notifications-outline" size={24} color="#374151" />
+                    {unreadNotificationsCount > 0 && (
+                      <View style={styles.notificationBadgeDot} />
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -1018,6 +1195,7 @@ function AppContent() {
                             isLiked={likedProfiles.has(item.id)}
                             onLike={() => handleLike(item.id)}
                             onSelect={() => setSelectedProfile(item)}
+                            animateOnLike={true}
                           />
                         </View>
                       )}
@@ -1174,7 +1352,7 @@ function AppContent() {
             setActiveTab(tab);
           }}
           currentUser={currentUser}
-          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount }}
+          badges={{ profile: pendingAppsCount, talk: unreadMessagesCount, likes: unreadLikesCount }}
           onCreateProject={() => {
             if (!currentUser) {
               Alert.alert('ログインが必要です', 'プロジェクトを作成するにはログインしてください');
@@ -1217,6 +1395,7 @@ function AppContent() {
                     setSelectedProfile(null);
                   }}
                   isLiked={likedProfiles.has(selectedProfile.id)}
+                  isMatched={matchedProfileIds.has(selectedProfile.id)}
                 />
               ) : (
                 <ChatRoom
@@ -1325,6 +1504,7 @@ function AppContent() {
                 });
               }}
               isLiked={likedProfiles.has(selectedProfile.id)}
+              isMatched={matchedProfileIds.has(selectedProfile.id)}
             />
           )}
         </SafeAreaProvider>
@@ -1342,7 +1522,10 @@ function AppContent() {
 
       <Modal visible={showNotifications} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotifications(false)}>
         <SafeAreaProvider>
-          <NotificationsPage onBack={() => setShowNotifications(false)} />
+          <NotificationsPage 
+            onBack={() => setShowNotifications(false)} 
+            onNotificationsRead={fetchUnreadNotifications}
+          />
         </SafeAreaProvider>
       </Modal>
 
@@ -1525,6 +1708,15 @@ const styles = StyleSheet.create({
   },
   notificationButton: {
     padding: 4,
+  },
+  notificationBadgeDot: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444',
   },
   searchControlBar: {
     flexDirection: 'row',

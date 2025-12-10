@@ -14,7 +14,6 @@ import {
     ActivityIndicator,
     Modal
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
@@ -278,19 +277,28 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         };
 
         const markAsRead = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            
             if (!isGroup) {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await supabase
-                        .from('messages')
-                        .update({ is_read: true })
-                        .eq('receiver_id', user.id)
-                        .eq('sender_id', partnerId)
-                        .eq('is_read', false);
-                }
+                // For individual chats, update is_read flag
+                await supabase
+                    .from('messages')
+                    .update({ is_read: true })
+                    .eq('receiver_id', user.id)
+                    .eq('sender_id', partnerId)
+                    .eq('is_read', false);
             } else {
-                // For group chats, save last read time locally
-                await AsyncStorage.setItem(`readTime_${partnerId}`, new Date().toISOString());
+                // For group chats, upsert last read time to database
+                await supabase
+                    .from('chat_room_read_status')
+                    .upsert({
+                        user_id: user.id,
+                        chat_room_id: partnerId,
+                        last_read_at: new Date().toISOString(),
+                    }, {
+                        onConflict: 'user_id,chat_room_id'
+                    });
             }
         };
 
