@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
+import { FilterCriteria } from './FilterModal';
 import { ProjectDetail } from './ProjectDetail';
 import { ProjectListSkeleton } from './Skeleton';
 import { CustomRefreshControl } from './CustomRefreshControl';
@@ -33,6 +34,7 @@ interface UserProjectPageProps {
     currentUser: Profile | null;
     onChat: (ownerId: string, ownerName: string, ownerImage: string) => void;
     sortOrder?: 'recommended' | 'newest' | 'deadline';
+    filterCriteria?: FilterCriteria | null;
 }
 
 const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
@@ -80,7 +82,7 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     );
 };
 
-export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended' }: UserProjectPageProps) {
+export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria }: UserProjectPageProps) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -142,6 +144,62 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
         setShowCreateModal(true);
     };
 
+    // Filter projects
+    const filteredProjects = projects.filter(project => {
+        if (!filterCriteria) return true;
+
+        const { keyword, themes, seekingRoles } = filterCriteria;
+
+        // Keyword filter (Title, Description, Tags)
+        if (keyword) {
+            const lowerKeyword = keyword.toLowerCase();
+            const matchTitle = project.title.toLowerCase().includes(lowerKeyword);
+            const matchDesc = project.description.toLowerCase().includes(lowerKeyword);
+            const matchTags = project.tags?.some(tag => tag.toLowerCase().includes(lowerKeyword)) || false;
+            const matchRoles = project.required_roles?.some(role => translateTag(role).toLowerCase().includes(lowerKeyword)) || false;
+
+            if (!matchTitle && !matchDesc && !matchTags && !matchRoles) return false;
+        }
+
+        // Theme filter (OR logic: show project if it has ANY of the selected themes)
+        if (themes && themes.length > 0) {
+            const hasMatchingTheme = project.tags?.some(tag => themes.includes(tag)) || false;
+            if (!hasMatchingTheme) return false;
+        }
+
+        // Seeking Roles filter
+        if (seekingRoles && seekingRoles.length > 0) {
+            // Check if project requires ANY of the seeking roles
+            // role IDs in project.required_roles might be "エンジニア" etc.
+            // role IDs in filter might be "engineer" etc.
+            // We need to match them. FilterModal uses "engineer", "designer".
+            // CreateProjectModal uses "エンジニア", "デザイナー".
+            // We need a mapping or check `label`.
+
+            // Actually, CreateProjectModal saves "エンジニア".
+            // FilterModal uses IDs "engineer", "designer".
+            // SEEKING_ROLE_OPTIONS in FilterModal has labels "エンジニア", "デザイナー".
+
+            // Helper to map filter IDs to Japanese labels
+            const roleMap: { [key: string]: string } = {
+                'engineer': 'エンジニア',
+                'designer': 'デザイナー',
+                'marketer': 'マーケター',
+                'ideaman': 'アイディアマン',
+                'creator': 'クリエイター',
+                'kabeuchi': '壁打ち相手',
+                'other': 'その他'
+            };
+
+            const selectedRoleLabels = seekingRoles.map(r => roleMap[r] || r);
+            const hasMatchingRole = project.required_roles?.some(role => selectedRoleLabels.includes(role)) || false;
+
+            if (!hasMatchingRole) return false;
+        }
+
+        return true;
+    });
+
     if (loading && !refreshing) {
         return (
             <View style={styles.container}>
@@ -164,9 +222,9 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 }
             >
                 <View style={styles.gridContainer}>
-                    {projects.length > 0 ? (
+                    {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
-                            {projects.map((item) => (
+                            {filteredProjects.map((item) => (
                                 <ProjectCard
                                     key={item.id}
                                     project={item}

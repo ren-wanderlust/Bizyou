@@ -391,7 +391,7 @@ function AppContent() {
           .from('likes')
           .select('receiver_id')
           .eq('sender_id', session.user.id);
-        
+
         const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
 
         // Get blocked users
@@ -399,7 +399,7 @@ function AppContent() {
           .from('blocks')
           .select('blocked_id')
           .eq('blocker_id', session.user.id);
-        
+
         const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
 
         // Get all received likes with both read statuses
@@ -413,7 +413,7 @@ function AppContent() {
         // - マッチング: is_read_as_match = false AND matched (I have liked them back)
         const unreadCount = receivedLikes?.filter(l => {
           if (blockedIds.has(l.sender_id)) return false;
-          
+
           const isMatched = myLikedIds.has(l.sender_id);
           if (isMatched) {
             // Matched: count if is_read_as_match is false
@@ -616,13 +616,13 @@ function AppContent() {
 
   // Track previous session to detect login
   const prevSession = React.useRef(session);
-  
+
   React.useEffect(() => {
     if (session?.user) {
       fetchCurrentUser();
       fetchProfiles();
       fetchMatches();
-      
+
       // Reset to default tab when user logs in (session changes from null to user)
       if (!prevSession.current?.user && session?.user) {
         setActiveTab('search');
@@ -1229,6 +1229,7 @@ function AppContent() {
                     <UserProjectPage
                       sortOrder={sortOrder}
                       currentUser={currentUser}
+                      filterCriteria={filterCriteria}
                       onChat={(partnerId, partnerName, partnerImage) => {
                         setActiveChatRoom({
                           partnerId,
@@ -1522,8 +1523,8 @@ function AppContent() {
 
       <Modal visible={showNotifications} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowNotifications(false)}>
         <SafeAreaProvider>
-          <NotificationsPage 
-            onBack={() => setShowNotifications(false)} 
+          <NotificationsPage
+            onBack={() => setShowNotifications(false)}
             onNotificationsRead={fetchUnreadNotifications}
           />
         </SafeAreaProvider>
@@ -1563,6 +1564,7 @@ function AppContent() {
           setIsFilterOpen(false);
         }}
         initialCriteria={filterCriteria || undefined}
+        mode={searchTab === 'projects' ? 'projects' : 'users'}
       />
 
       <Modal

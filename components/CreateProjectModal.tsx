@@ -40,7 +40,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const [themes, setThemes] = useState<Theme[]>([]);
     const [selectedRoles, setSelectedRoles] = useState<string[]>(project?.required_roles || []);
     const [selectedThemes, setSelectedThemes] = useState<string[]>(project?.tags || []);
 
@@ -51,19 +50,14 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         { id: 'アイディアマン', icon: 'bulb' },
     ];
 
-    useEffect(() => {
-        fetchThemes();
-    }, []);
-
-    const fetchThemes = async () => {
-        try {
-            const { data, error } = await supabase.from('themes').select('*');
-            if (error) throw error;
-            if (data) setThemes(data);
-        } catch (error) {
-            console.error('Error fetching themes:', error);
-        }
-    };
+    const THEMES = [
+        { id: 'theme-1', title: '個人開発', color: '#3B82F6', bgColor: '#EFF6FF' },        // Blue
+        { id: 'theme-2', title: '起業', color: '#8B5CF6', bgColor: '#F5F3FF' },            // Purple
+        { id: 'theme-3', title: 'クリエイティブ', color: '#EC4899', bgColor: '#FDF2F8' },  // Pink
+        { id: 'theme-4', title: 'コミュニティづくり', color: '#F97316', bgColor: '#FFF7ED' }, // Orange
+        { id: 'theme-5', title: '教育', color: '#10B981', bgColor: '#ECFDF5' },            // Green
+        { id: 'theme-6', title: 'コンテスト', color: '#EF4444', bgColor: '#FEF2F2' },      // Red
+    ];
 
     const toggleRole = (role: string) => {
         if (selectedRoles.includes(role)) {
@@ -73,11 +67,12 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         }
     };
 
-    const toggleTheme = (themeTitle: string) => {
+    const handleThemeSelect = (themeTitle: string) => {
+        // Enforce single selection
         if (selectedThemes.includes(themeTitle)) {
-            setSelectedThemes(selectedThemes.filter(t => t !== themeTitle));
+            setSelectedThemes([]); // Deselect if already selected
         } else {
-            setSelectedThemes([...selectedThemes, themeTitle]);
+            setSelectedThemes([themeTitle]); // Select new and clear others
         }
     };
 
@@ -256,25 +251,34 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                             <Text style={styles.sectionTitle}>プロジェクトのテーマ</Text>
                         </View>
                         <View style={styles.chipContainer}>
-                            {themes.map((theme) => (
-                                <HapticTouchable
-                                    key={theme.id}
-                                    style={[
-                                        styles.chip,
-                                        selectedThemes.includes(theme.title) && styles.chipActive
-                                    ]}
-                                    onPress={() => toggleTheme(theme.title)}
-                                    hapticType="selection"
-                                >
-                                    {selectedThemes.includes(theme.title) && (
-                                        <Ionicons name="checkmark-circle" size={16} color="#009688" style={{ marginRight: 4 }} />
-                                    )}
-                                    <Text style={[
-                                        styles.chipText,
-                                        selectedThemes.includes(theme.title) && styles.chipTextActive
-                                    ]}>{theme.title}</Text>
-                                </HapticTouchable>
-                            ))}
+                            {THEMES.map((theme) => {
+                                const isSelected = selectedThemes.includes(theme.title);
+                                return (
+                                    <HapticTouchable
+                                        key={theme.id}
+                                        style={[
+                                            styles.chip,
+                                            isSelected && {
+                                                backgroundColor: theme.bgColor,
+                                                borderColor: theme.color
+                                            }
+                                        ]}
+                                        onPress={() => handleThemeSelect(theme.title)}
+                                        hapticType="selection"
+                                    >
+                                        {isSelected && (
+                                            <Ionicons name="checkmark-circle" size={16} color={theme.color} style={{ marginRight: 4 }} />
+                                        )}
+                                        <Text style={[
+                                            styles.chipText,
+                                            isSelected && {
+                                                color: theme.color,
+                                                fontWeight: '600'
+                                            }
+                                        ]}>{theme.title}</Text>
+                                    </HapticTouchable>
+                                );
+                            })}
                         </View>
                     </View>
 
