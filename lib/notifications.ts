@@ -84,6 +84,18 @@ export async function savePushToken(token: string): Promise<boolean> {
             return false;
         }
 
+        // Check if profile exists first
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user.id)
+            .single();
+
+        if (profileError || !profile) {
+            console.log('Profile not found, cannot save push token yet');
+            return false;
+        }
+
         // Upsert the token (insert or update if exists)
         const { error } = await supabase
             .from('push_tokens')

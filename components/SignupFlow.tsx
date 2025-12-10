@@ -1347,15 +1347,17 @@ const styles = StyleSheet.create({
     },
     nextButtonHeader: {
         paddingVertical: 8,
-        width: 160,
-        height: 160,
-        borderRadius: 80,
-        backgroundColor: '#f9fafb',
-        overflow: 'hidden',
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        backgroundColor: '#ffffff',
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 2,
-        borderColor: '#e5e7eb',
+        minWidth: 60,
+    },
+    nextButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#FDB022',
     },
     imagePickerError: {
         borderColor: '#ef4444',
@@ -1668,10 +1670,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: '#e5e7eb',
-    },
-    nextButtonText: {
-        color: '#FF8C00',
-        fontSize: 16,
-        fontWeight: '600',
     },
 });
