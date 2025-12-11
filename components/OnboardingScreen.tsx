@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, Dimensions, SafeAreaView, Image } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, Dimensions, SafeAreaView, Image, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SHADOWS } from '../constants/DesignSystem';
@@ -8,29 +8,45 @@ const { width, height } = Dimensions.get('window');
 
 interface OnboardingSlide {
     id: string;
+    emoji: string;
     title: string;
     description: string;
     image: string;
+    highlights: string[];
 }
 
 const slides: OnboardingSlide[] = [
     {
         id: '1',
-        title: '一緒に挑戦する仲間が見つかる',
-        description: '起業、ハッカソン、プロジェクト立ち上げ。\n同じ熱量を持つパートナーと出会い、\nあなたのビジョンを加速させましょう。',
+        emoji: '🎓',
+        title: '早慶MARCHの\n学生限定ネットワーク',
+        description: 'トップ大学の学生が集まる\nプロジェクト型コミュニティ',
         image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+        highlights: ['同じ志を持つ仲間', '質の高い出会い', '実績ある学生たち'],
     },
     {
         id: '2',
-        title: '最適なパートナーを推薦',
-        description: 'スキルや興味のあるテーマに基づいて、\nあなたにぴったりのメンバーを提案。\n効率的にチームビルディングが可能です。',
+        emoji: '🔍',
+        title: 'プロジェクトを探す',
+        description: 'スワイプで興味のある\nプロジェクトを発見しよう',
         image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80',
+        highlights: ['絞り込み機能', 'スキルマッチング', 'おすすめ順表示'],
     },
     {
         id: '3',
-        title: 'アイデアを形にする場所',
-        description: 'チャットで気軽に壁打ちしたり、\nプロジェクトを開始したり。\nNakamaは、挑戦するすべての人のための\nプラットフォームです。',
+        emoji: '✨',
+        title: 'マッチングで繋がる',
+        description: '相互に「いいね」したら\nメッセージ開始！',
+        image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80',
+        highlights: ['即座にチャット', 'グループ作成', 'チーム形成'],
+    },
+    {
+        id: '4',
+        emoji: '🚀',
+        title: 'プロジェクトを\n立ち上げよう',
+        description: 'アイデアを形にする\n最高の仲間を募集',
         image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
+        highlights: ['簡単作成', 'メンバー管理', 'プロジェクト進行'],
     },
 ];
 
@@ -41,10 +57,32 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     const [currentIndex, setCurrentIndex] = useState(0);
     const flatListRef = useRef<FlatList>(null);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+    React.useEffect(() => {
+        // アニメーション開始
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }),
+            Animated.spring(scaleAnim, {
+                toValue: 1,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [currentIndex]);
 
     const handleNext = () => {
         if (currentIndex < slides.length - 1) {
-            flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
+            // アニメーションをリセット
+            fadeAnim.setValue(0);
+            scaleAnim.setValue(0.8);
+            flatListRef.current?.scrollToIndex({ index: currentIndex + 1, animated: true });
         } else {
             onComplete();
         }
@@ -54,22 +92,51 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
         onComplete();
     };
 
-    const renderItem = ({ item }: { item: OnboardingSlide }) => {
+    const renderItem = ({ item, index }: { item: OnboardingSlide; index: number }) => {
+        const isActive = index === currentIndex;
+
         return (
             <View style={styles.slide}>
+                {/* 背景画像 */}
                 <View style={styles.imageContainer}>
                     <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
                     <LinearGradient
-                        colors={['transparent', 'rgba(255,255,255,0.8)', 'white']}
+                        colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
                         style={styles.gradientOverlay}
-                        start={{ x: 0, y: 0.6 }}
-                        end={{ x: 0, y: 1 }}
                     />
                 </View>
-                <View style={styles.textContainer}>
+
+                {/* コンテンツ */}
+                <Animated.View
+                    style={[
+                        styles.contentContainer,
+                        {
+                            opacity: isActive ? fadeAnim : 0.3,
+                            transform: [{ scale: isActive ? scaleAnim : 0.8 }],
+                        }
+                    ]}
+                >
+                    {/* 絵文字 */}
+                    <View style={styles.emojiContainer}>
+                        <Text style={styles.emoji}>{item.emoji}</Text>
+                    </View>
+
+                    {/* タイトル */}
                     <Text style={styles.title}>{item.title}</Text>
+
+                    {/* 説明 */}
                     <Text style={styles.description}>{item.description}</Text>
-                </View>
+
+                    {/* ハイライトポイント */}
+                    <View style={styles.highlightsContainer}>
+                        {item.highlights.map((highlight, idx) => (
+                            <View key={idx} style={styles.highlightItem}>
+                                <View style={styles.highlightDot} />
+                                <Text style={styles.highlightText}>{highlight}</Text>
+                            </View>
+                        ))}
+                    </View>
+                </Animated.View>
             </View>
         );
     };
@@ -90,9 +157,10 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 }}
                 style={styles.list}
                 bounces={false}
+                scrollEventThrottle={16}
             />
 
-            {/* Header Skip Button (Absolute) */}
+            {/* ヘッダー - スキップボタン */}
             {currentIndex !== slides.length - 1 && (
                 <SafeAreaView style={styles.headerOverlay}>
                     <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
@@ -101,41 +169,53 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
                 </SafeAreaView>
             )}
 
-            {/* Footer Controls (Absolute) */}
-            <View style={styles.footerOverlay}>
-                <View style={styles.pagination}>
-                    {slides.map((_, index) => (
-                        <View
-                            key={index}
-                            style={[
-                                styles.dot,
-                                currentIndex === index && styles.activeDot,
-                                { backgroundColor: currentIndex === index ? '#009688' : '#CFD8DC' }
-                            ]}
-                        />
-                    ))}
-                </View>
+            {/* フッター - ページネーション & ボタン */}
+            <SafeAreaView style={styles.footerOverlay}>
+                <View style={styles.footerContent}>
+                    {/* ページインジケーター */}
+                    <View style={styles.pagination}>
+                        {slides.map((_, index) => (
+                            <Animated.View
+                                key={index}
+                                style={[
+                                    styles.dot,
+                                    currentIndex === index && styles.activeDot,
+                                    {
+                                        backgroundColor: currentIndex === index ? '#FFD700' : 'rgba(255,255,255,0.3)',
+                                    }
+                                ]}
+                            />
+                        ))}
+                    </View>
 
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={handleNext}
-                    activeOpacity={0.9}
-                >
-                    <LinearGradient
-                        colors={currentIndex === slides.length - 1 ? ['#009688', '#00796b'] : ['#374151', '#1f2937']}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={styles.buttonGradient}
+                    {/* 次へ/始めるボタン */}
+                    <TouchableOpacity
+                        style={styles.button}
+                        onPress={handleNext}
+                        activeOpacity={0.8}
                     >
-                        <Text style={styles.buttonText}>
-                            {currentIndex === slides.length - 1 ? 'はじめる' : '次へ'}
-                        </Text>
-                        {currentIndex !== slides.length - 1 && (
-                            <Ionicons name="arrow-forward" size={20} color="white" />
-                        )}
-                    </LinearGradient>
-                </TouchableOpacity>
-            </View>
+                        <LinearGradient
+                            colors={currentIndex === slides.length - 1
+                                ? ['#FFD700', '#FFA500']
+                                : ['#009688', '#00796B']
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.buttonGradient}
+                        >
+                            <Text style={styles.buttonText}>
+                                {currentIndex === slides.length - 1 ? '始める！' : '次へ'}
+                            </Text>
+                            {currentIndex !== slides.length - 1 && (
+                                <Ionicons name="arrow-forward" size={22} color="white" />
+                            )}
+                            {currentIndex === slides.length - 1 && (
+                                <Ionicons name="rocket" size={22} color="white" />
+                            )}
+                        </LinearGradient>
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
         </View>
     );
 }
@@ -143,7 +223,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: '#000',
     },
     list: {
         flex: 1,
@@ -151,12 +231,11 @@ const styles = StyleSheet.create({
     slide: {
         width: width,
         height: height,
-        alignItems: 'center',
     },
     imageContainer: {
+        position: 'absolute',
         width: width,
-        height: height * 0.6, // 60% height for image
-        position: 'relative',
+        height: height,
     },
     image: {
         width: '100%',
@@ -166,29 +245,70 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
+        top: 0,
         bottom: 0,
-        height: 150, // Increased fade height
     },
-    textContainer: {
+    contentContainer: {
         flex: 1,
-        width: width,
-        paddingHorizontal: 32,
-        paddingTop: 10,
+        justifyContent: 'center',
         alignItems: 'center',
+        paddingHorizontal: 32,
+        paddingTop: 100,
+    },
+    emojiContainer: {
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        backgroundColor: 'rgba(255,255,255,0.15)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 32,
+        borderWidth: 3,
+        borderColor: 'rgba(255,255,255,0.3)',
+    },
+    emoji: {
+        fontSize: 64,
     },
     title: {
-        fontSize: 26, // Slightly larger
+        fontSize: 32,
         fontWeight: 'bold',
-        color: '#1A237E', // Navy Blue
-        marginBottom: 20,
+        color: 'white',
+        marginBottom: 16,
         textAlign: 'center',
-        letterSpacing: 0.5,
+        lineHeight: 40,
+        textShadowColor: 'rgba(0, 0, 0, 0.5)',
+        textShadowOffset: { width: 0, height: 2 },
+        textShadowRadius: 4,
     },
     description: {
-        fontSize: 15,
-        color: '#546E7A', // Blue Grey
+        fontSize: 17,
+        color: 'rgba(255,255,255,0.95)',
         textAlign: 'center',
-        lineHeight: 28, // Increased line height
+        lineHeight: 26,
+        marginBottom: 32,
+        fontWeight: '500',
+        textShadowColor: 'rgba(0, 0, 0, 0.3)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 2,
+    },
+    highlightsContainer: {
+        gap: 12,
+        marginTop: 8,
+    },
+    highlightItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    highlightDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: '#FFD700',
+    },
+    highlightText: {
+        fontSize: 15,
+        color: 'rgba(255,255,255,0.9)',
         fontWeight: '500',
     },
     headerOverlay: {
@@ -200,38 +320,40 @@ const styles = StyleSheet.create({
     skipButton: {
         paddingHorizontal: 24,
         paddingVertical: 16,
+        backgroundColor: 'rgba(0,0,0,0.3)',
+        borderBottomLeftRadius: 20,
     },
     skipText: {
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
-        textShadowColor: 'rgba(0, 0, 0, 0.3)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 2,
     },
     footerOverlay: {
         position: 'absolute',
         bottom: 0,
         left: 0,
         right: 0,
+        zIndex: 10,
+    },
+    footerContent: {
         padding: 24,
-        paddingBottom: 48,
-        backgroundColor: 'white',
+        paddingBottom: 16,
     },
     pagination: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 32,
-        gap: 12, // Increased gap
+        marginBottom: 24,
+        gap: 8,
     },
     dot: {
         width: 8,
         height: 8,
         borderRadius: 4,
+        backgroundColor: 'rgba(255,255,255,0.3)',
     },
     activeDot: {
-        width: 24, // Pill shape
-        borderRadius: 4,
+        width: 32,
+        backgroundColor: '#FFD700',
     },
     button: {
         borderRadius: 100,
@@ -242,12 +364,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 16,
+        paddingVertical: 18,
         gap: 8,
     },
     buttonText: {
         color: 'white',
         fontSize: 18,
         fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
 });

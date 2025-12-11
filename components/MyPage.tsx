@@ -16,6 +16,7 @@ interface MyPageProps {
     onHelpPress?: () => void;
     onChat?: (ownerId: string, ownerName: string, ownerImage: string) => void;
     onBadgeUpdate?: (count: number) => void;
+    onShowOnboarding?: () => void; // 追加
 }
 
 interface MenuItem {
@@ -66,7 +67,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     );
 };
 
-export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat, onBadgeUpdate }: MyPageProps) {
+export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat, onBadgeUpdate, onShowOnboarding }: MyPageProps) {
     const [projects, setProjects] = useState<any[]>([]);
     const [participatingProjects, setParticipatingProjects] = useState<any[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -217,6 +218,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
 
     const menuItems: MenuItem[] = [
         { id: 'notifications', icon: 'notifications-outline', label: 'お知らせ' },
+        { id: 'tutorial', icon: 'book-outline', label: 'チュートリアル', color: '#009688' },
         { id: 'settings', icon: 'settings-outline', label: '各種設定' },
         { id: 'help', icon: 'help-circle-outline', label: 'ヘルプ・ガイドライン' },
         { id: 'logout', icon: 'log-out-outline', label: 'ログアウト', color: '#EF4444' },
@@ -374,6 +376,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                                 onPress={() => {
                                     setIsMenuVisible(false);
                                     if (item.id === 'notifications' && onOpenNotifications) onOpenNotifications();
+                                    else if (item.id === 'tutorial' && onShowOnboarding) onShowOnboarding();
                                     else if (item.id === 'settings' && onSettingsPress) onSettingsPress();
                                     else if (item.id === 'help' && onHelpPress) onHelpPress();
                                     else if (item.id === 'logout' && onLogout) onLogout();

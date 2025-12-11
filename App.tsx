@@ -56,15 +56,21 @@ function AppContent() {
   const [showSignup, setShowSignup] = useState(false);
 
   React.useEffect(() => {
-    // Simulate checking onboarding status
+    // Check onboarding status
     const checkOnboarding = async () => {
-      // In a real app, check AsyncStorage here
-      setTimeout(() => {
-        setHasCompletedOnboarding(true);
-      }, 1000);
+      try {
+        const hasSeenOnboarding = await SecureStore.getItemAsync('hasSeenOnboarding');
+        if (!hasSeenOnboarding && session?.user) {
+          // 初回起動時、ログイン済みならオンボーディングを表示
+          setShowOnboarding(true);
+        }
+      } catch (error) {
+        console.log('Error checking onboarding:', error);
+      }
+      setHasCompletedOnboarding(true);
     };
     checkOnboarding();
-  }, []);
+  }, [session?.user]);
 
   const [likedProfiles, setLikedProfiles] = useState<Set<string>>(new Set());
   const [matchedProfileIds, setMatchedProfileIds] = useState<Set<string>>(new Set());
@@ -103,6 +109,7 @@ function AppContent() {
   const [unreadLikesCount, setUnreadLikesCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
 
   // Initialize push notifications
   React.useEffect(() => {
@@ -1480,6 +1487,7 @@ function AppContent() {
                 onSettingsPress={() => setShowSettings(true)}
                 onHelpPress={() => setShowHelp(true)}
                 onBadgeUpdate={setPendingAppsCount}
+                onShowOnboarding={() => setShowOnboarding(true)}
               />
             ) : (
               <View style={styles.centerContainer}>
@@ -1829,6 +1837,25 @@ function AppContent() {
           }
         }}
       />
+
+      {/* Onboarding Tutorial Modal */}
+      <Modal
+        visible={showOnboarding}
+        animationType="fade"
+        presentationStyle="fullScreen"
+      >
+        <OnboardingScreen
+          onComplete={async () => {
+            setShowOnboarding(false);
+            // 表示済みフラグを保存
+            try {
+              await SecureStore.setItemAsync('hasSeenOnboarding', 'true');
+            } catch (error) {
+              console.log('Error saving onboarding status:', error);
+            }
+          }}
+        />
+      </Modal>
     </SafeAreaView >
   );
 }
