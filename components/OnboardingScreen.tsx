@@ -11,7 +11,7 @@ interface OnboardingSlide {
     emoji: string;
     title: string;
     description: string;
-    image: string;
+    image: any; // ローカル画像（require）またはURL（{uri: string}）
     highlights: string[];
 }
 
@@ -19,34 +19,34 @@ const slides: OnboardingSlide[] = [
     {
         id: '1',
         emoji: '🎓',
-        title: '早慶MARCHの\n学生限定ネットワーク',
-        description: 'トップ大学の学生が集まる\nプロジェクト型コミュニティ',
-        image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
-        highlights: ['同じ志を持つ仲間', '質の高い出会い', '実績ある学生たち'],
+        title: '東大早慶MARCHの\n学生中心のコミュニティ',
+        description: 'トップ大学を中心に\n意欲的な学生が集まる場所',
+        image: require('../assets/onboarding_community.png'),
+        highlights: ['東大・早慶・MARCH中心', '誰でも参加歓迎', '質の高い出会い'],
     },
     {
         id: '2',
-        emoji: '🔍',
-        title: 'プロジェクトを探す',
-        description: 'スワイプで興味のある\nプロジェクトを発見しよう',
-        image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80',
-        highlights: ['絞り込み機能', 'スキルマッチング', 'おすすめ順表示'],
+        emoji: '🤝',
+        title: '個人でマッチング',
+        description: '気になる人に「いいね」を送って\n繋がろう',
+        image: require('../assets/onboarding_matching.png'),
+        highlights: ['プロフィール閲覧', '相互いいねでマッチ', '即座にチャット'],
     },
     {
         id: '3',
-        emoji: '✨',
-        title: 'マッチングで繋がる',
-        description: '相互に「いいね」したら\nメッセージ開始！',
-        image: 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80',
-        highlights: ['即座にチャット', 'グループ作成', 'チーム形成'],
+        emoji: '📋',
+        title: 'プロジェクトを\n見つける・参加する',
+        description: '興味のあるプロジェクトに\n応募して仲間になろう',
+        image: require('../assets/onboarding_projects.png'),
+        highlights: ['絞り込み機能', 'プロジェクト応募', 'チームで活動'],
     },
     {
         id: '4',
         emoji: '🚀',
         title: 'プロジェクトを\n立ち上げよう',
         description: 'アイデアを形にする\n最高の仲間を募集',
-        image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80',
-        highlights: ['簡単作成', 'メンバー管理', 'プロジェクト進行'],
+        image: require('../assets/onboarding_create.png'),
+        highlights: ['簡単作成', 'メンバー募集', 'グループチャット'],
     },
 ];
 
@@ -99,7 +99,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
             <View style={styles.slide}>
                 {/* 背景画像 */}
                 <View style={styles.imageContainer}>
-                    <Image source={{ uri: item.image }} style={styles.image} resizeMode="cover" />
+                    <Image source={item.image} style={styles.image} resizeMode="cover" />
                     <LinearGradient
                         colors={['rgba(0,0,0,0.2)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.7)']}
                         style={styles.gradientOverlay}
