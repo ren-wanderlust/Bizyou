@@ -240,7 +240,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                         .eq('user_id', user.id)
                         .eq('chat_room_id', room.id)
                         .single();
-                    
+
                     const lastReadTime = readStatus?.last_read_at || '1970-01-01';
                     const { count: unreadCount } = await supabase
                         .from('messages')
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
         borderBottomColor: 'transparent',
     },
     tabButtonActive: {
-        borderBottomColor: '#FF5252',
+        borderBottomColor: '#009688',
     },
     tabText: {
         fontSize: 18,
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
         color: '#9CA3AF',
     },
     tabTextActive: {
-        color: '#FF5252',
+        color: '#009688',
     },
     tabLabelRow: {
         flexDirection: 'row',
