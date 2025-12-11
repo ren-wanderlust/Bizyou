@@ -365,6 +365,9 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                     placeholderTextColor="#9CA3AF"
                                     style={styles.bioInput}
                                     maxLength={maxBioLength}
+                                    multiline={true}
+                                    textAlignVertical="top"
+                                    numberOfLines={4}
                                 />
                                 <Text style={styles.characterCount}>
                                     {bioLength} / {maxBioLength}
@@ -803,7 +806,7 @@ const styles = StyleSheet.create({
         padding: 14,
         fontSize: 16,
         color: '#111827',
-        minHeight: 60,
+        minHeight: 120,
     },
     characterCount: {
         fontSize: 12,
