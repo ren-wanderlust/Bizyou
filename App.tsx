@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import * as SecureStore from 'expo-secure-store';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { LoginScreen } from './components/LoginScreen';
 import { ProfileCard } from './components/ProfileCard';
 import { ProfileDetail } from './components/ProfileDetail';
@@ -1261,39 +1262,61 @@ function AppContent() {
 
           {activeTab === 'search' && (
             <View>
-              <View style={styles.headerTop}>
-                <View style={{ flex: 1 }} />
-                <View style={styles.tabContainer}>
-                  <TouchableOpacity
-                    style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
-                    onPress={() => {
-                      setSearchTab('projects');
-                      searchListRef.current?.scrollToIndex({ index: 0, animated: true });
-                    }}
-                  >
-                    <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
-                    onPress={() => {
-                      setSearchTab('users');
-                      searchListRef.current?.scrollToIndex({ index: 1, animated: true });
-                    }}
-                  >
-                    <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                  <TouchableOpacity
-                    style={styles.notificationButton}
-                    onPress={() => setShowNotifications(true)}
-                  >
-                    <Ionicons name="notifications-outline" size={24} color="#374151" />
-                    {unreadNotificationsCount > 0 && (
-                      <View style={styles.notificationBadgeDot} />
-                    )}
-                  </TouchableOpacity>
-                </View>
+              {/* Modern Header with Gradient */}
+              <View style={styles.searchHeader}>
+                <LinearGradient
+                  colors={['#FFFFFF', '#F9FAFB']}
+                  style={styles.searchHeaderGradient}
+                >
+                  <View style={styles.headerTop}>
+                    <View style={{ flex: 1 }} />
+                    <View style={styles.tabContainer}>
+                      <TouchableOpacity
+                        style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
+                        onPress={() => {
+                          setSearchTab('projects');
+                          searchListRef.current?.scrollToIndex({ index: 0, animated: true });
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={searchTab === 'projects' ? "folder" : "folder-outline"}
+                          size={20}
+                          color={searchTab === 'projects' ? '#009688' : '#9CA3AF'}
+                          style={styles.tabIcon}
+                        />
+                        <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
+                        onPress={() => {
+                          setSearchTab('users');
+                          searchListRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Ionicons
+                          name={searchTab === 'users' ? "people" : "people-outline"}
+                          size={20}
+                          color={searchTab === 'users' ? '#009688' : '#9CA3AF'}
+                          style={styles.tabIcon}
+                        />
+                        <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                      <TouchableOpacity
+                        style={styles.notificationButton}
+                        onPress={() => setShowNotifications(true)}
+                      >
+                        <Ionicons name="notifications-outline" size={24} color="#374151" />
+                        {unreadNotificationsCount > 0 && (
+                          <View style={styles.notificationBadgeDot} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </LinearGradient>
               </View>
 
               <View style={styles.searchControlBar}>
@@ -2045,24 +2068,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 24,
+    gap: 16,
   },
   tabButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    gap: 8,
+    borderBottomWidth: 0, // Remove old bottom border
   },
   tabButtonActive: {
-    borderBottomColor: '#FF5252',
+    backgroundColor: '#E0F2F1',
+  },
+  tabIcon: {
+    marginRight: 4,
   },
   tabText: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '700',
     color: '#9CA3AF',
+    letterSpacing: 0.2,
   },
   tabTextActive: {
-    color: '#FF5252',
+    color: '#009688',
+  },
+  searchHeader: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  searchHeaderGradient: {
+    paddingTop: 16,
+    paddingBottom: 16,
   },
   emptyStateContainer: {
     flex: 1,
