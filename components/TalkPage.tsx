@@ -314,7 +314,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                     <View style={styles.nameContainer}>
                                         <Text style={styles.name}>{item.partnerName}</Text>
                                         <Text style={styles.details}>
-                                            {item.partnerAge}歳 · {item.partnerLocation}
+                                            {item.partnerLocation}
                                         </Text>
                                     </View>
                                     <Text style={styles.timestamp}>{item.timestamp}</Text>
