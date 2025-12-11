@@ -48,6 +48,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         { id: 'デザイナー', icon: 'color-palette' },
         { id: 'マーケター', icon: 'megaphone' },
         { id: 'アイディアマン', icon: 'bulb' },
+        { id: '誰でも', icon: 'people' },
     ];
 
     const THEMES = [
