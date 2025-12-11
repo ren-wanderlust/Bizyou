@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
@@ -47,28 +48,28 @@ interface LikesPageProps {
 
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
-    
+
     // Top level tab: Project or User
     const [mainTab, setMainTab] = useState<'project' | 'user'>('project');
-    
+
     // User sub-tabs
     const [userTab, setUserTab] = useState<'received' | 'sent' | 'matched'>('received');
-    
+
     // Project sub-tabs
     const [projectTab, setProjectTab] = useState<'recruiting' | 'applied'>('recruiting');
-    
+
     // User data
     const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
     const [unreadInterestIds, setUnreadInterestIds] = useState<Set<string>>(new Set());
     const [unreadMatchIds, setUnreadMatchIds] = useState<Set<string>>(new Set());
     const [loadingUser, setLoadingUser] = useState(true);
-    
+
     // Project data
     const [recruitingApplications, setRecruitingApplications] = useState<Application[]>([]);
     const [appliedApplications, setAppliedApplications] = useState<Application[]>([]);
     const [unreadRecruitingIds, setUnreadRecruitingIds] = useState<Set<string>>(new Set()); // Track unread applications by id
     const [loadingProject, setLoadingProject] = useState(true);
-    
+
     const userListRef = useRef<FlatList>(null);
     const projectListRef = useRef<FlatList>(null);
 
@@ -368,8 +369,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             if (error) throw error;
 
             // Update local state
-            setRecruitingApplications(prev => 
-                prev.map(app => 
+            setRecruitingApplications(prev =>
+                prev.map(app =>
                     app.id === applicationId ? { ...app, status: newStatus } : app
                 )
             );
@@ -448,7 +449,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             ) : null}
                         </View>
                         <Text style={styles.projectCardDescription} numberOfLines={2}>{project.description}</Text>
-                        
+
                         {/* Status Badge */}
                         <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '20' }]}>
                             <Ionicons name={statusInfo.icon as any} size={16} color={statusInfo.color} />
@@ -476,9 +477,9 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 {isUnread && (
                     <View style={styles.recruitingUnreadDot} />
                 )}
-                
+
                 {/* Profile confirm button - top right (slightly inset) */}
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.profileConfirmButton}
                     onPress={() => handleApplicantProfileSelect(item)}
                 >
@@ -528,13 +529,13 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     </View>
                 ) : (
                     <View style={[
-                        styles.statusResultBadge, 
+                        styles.statusResultBadge,
                         { backgroundColor: isApproved ? '#D1FAE5' : '#FEE2E2' }
                     ]}>
-                        <Ionicons 
-                            name={isApproved ? 'checkmark-circle' : 'close-circle'} 
-                            size={16} 
-                            color={isApproved ? '#10B981' : '#EF4444'} 
+                        <Ionicons
+                            name={isApproved ? 'checkmark-circle' : 'close-circle'}
+                            size={16}
+                            color={isApproved ? '#10B981' : '#EF4444'}
                         />
                         <Text style={[
                             styles.statusResultText,
@@ -613,7 +614,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         <ProfileCard
                             profile={item}
                             isLiked={true}
-                            onLike={() => {}}
+                            onLike={() => { }}
                             onSelect={() => handleMatchProfileSelect(item)}
                             hideHeartButton={true}
                             isNewMatch={unreadMatchIds.has(item.id)}
@@ -694,106 +695,131 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     return (
         <View style={styles.container}>
-            {/* Main Tab Header */}
+            {/* Modern Header with Gradient */}
             <View style={styles.header}>
-                {/* Top Level Tabs: プロジェクト / ユーザー */}
-                <View style={styles.mainTabContainer}>
-                    <TouchableOpacity
-                        style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
-                        onPress={() => setMainTab('project')}
-                    >
-                        <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
-                            プロジェクト
-                        </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.mainTabButton, mainTab === 'user' && styles.mainTabButtonActive]}
-                        onPress={() => setMainTab('user')}
-                    >
-                        <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
-                            ユーザー
-                        </Text>
-                    </TouchableOpacity>
-                </View>
+                {/* Gradient Background */}
+                <LinearGradient
+                    colors={['#FFFFFF', '#F9FAFB']}
+                    style={styles.headerGradient}
+                >
+                    {/* Top Level Tabs: プロジェクト / ユーザー */}
+                    <View style={styles.mainTabContainer}>
+                        <TouchableOpacity
+                            style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
+                            onPress={() => setMainTab('project')}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={mainTab === 'project' ? "folder" : "folder-outline"}
+                                size={20}
+                                color={mainTab === 'project' ? '#009688' : '#9CA3AF'}
+                                style={styles.mainTabIcon}
+                            />
+                            <Text style={[styles.mainTabText, mainTab === 'project' && styles.mainTabTextActive]}>
+                                プロジェクト
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.mainTabButton, mainTab === 'user' && styles.mainTabButtonActive]}
+                            onPress={() => setMainTab('user')}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons
+                                name={mainTab === 'user' ? "people" : "people-outline"}
+                                size={20}
+                                color={mainTab === 'user' ? '#009688' : '#9CA3AF'}
+                                style={styles.mainTabIcon}
+                            />
+                            <Text style={[styles.mainTabText, mainTab === 'user' && styles.mainTabTextActive]}>
+                                ユーザー
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
-                {/* Sub Tabs */}
-                {mainTab === 'user' ? (
-                    <View style={styles.subTabContainer}>
-                        <TouchableOpacity
-                            style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
-                            onPress={() => {
-                                setUserTab('received');
-                                userListRef.current?.scrollToIndex({ index: 0, animated: true });
-                            }}
-                        >
-                            <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
-                                興味あり
-                            </Text>
-                            {unreadInterestCount > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{unreadInterestCount}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
-                            onPress={() => {
-                                setUserTab('sent');
-                                userListRef.current?.scrollToIndex({ index: 1, animated: true });
-                            }}
-                        >
-                            <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
-                                送った
-                            </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
-                            onPress={() => {
-                                setUserTab('matched');
-                                userListRef.current?.scrollToIndex({ index: 2, animated: true });
-                            }}
-                        >
-                            <Text style={[styles.subTabText, userTab === 'matched' && styles.subTabTextActive]}>
-                                マッチング
-                            </Text>
-                            {unreadMatchCount > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{unreadMatchCount}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                ) : (
-                    <View style={styles.subTabContainer}>
-                        <TouchableOpacity
-                            style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
-                            onPress={() => {
-                                setProjectTab('recruiting');
-                                projectListRef.current?.scrollToIndex({ index: 0, animated: true });
-                            }}
-                        >
-                            <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
-                                募集
-                            </Text>
-                            {unreadRecruitingCount > 0 && (
-                                <View style={styles.badge}>
-                                    <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
-                                </View>
-                            )}
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
-                            onPress={() => {
-                                setProjectTab('applied');
-                                projectListRef.current?.scrollToIndex({ index: 1, animated: true });
-                            }}
-                        >
-                            <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
-                                応募
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
+                    {/* Sub Tabs with Modern Design */}
+                    {mainTab === 'user' ? (
+                        <View style={styles.subTabContainer}>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setUserTab('received');
+                                    userListRef.current?.scrollToIndex({ index: 0, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
+                                    興味あり
+                                </Text>
+                                {unreadInterestCount > 0 && (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{unreadInterestCount}</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setUserTab('sent');
+                                    userListRef.current?.scrollToIndex({ index: 1, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
+                                    送った
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setUserTab('matched');
+                                    userListRef.current?.scrollToIndex({ index: 2, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, userTab === 'matched' && styles.subTabTextActive]}>
+                                    マッチング
+                                </Text>
+                                {unreadMatchCount > 0 && (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{unreadMatchCount}</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <View style={styles.subTabContainer}>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setProjectTab('recruiting');
+                                    projectListRef.current?.scrollToIndex({ index: 0, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
+                                    募集
+                                </Text>
+                                {unreadRecruitingCount > 0 && (
+                                    <View style={styles.badge}>
+                                        <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
+                                onPress={() => {
+                                    setProjectTab('applied');
+                                    projectListRef.current?.scrollToIndex({ index: 1, animated: true });
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
+                                    応募
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </LinearGradient>
             </View>
 
             {/* Content */}
@@ -856,58 +882,78 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 8,
-        paddingBottom: 0,
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 6,
+        borderBottomWidth: 0, // 削除
+    },
+    headerGradient: {
+        paddingTop: 16,
+        paddingBottom: 4,
     },
     // Main tabs (Project / User)
     mainTabContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 32,
-        paddingBottom: 8,
+        gap: 16,
+        paddingBottom: 16,
+        paddingHorizontal: 24,
     },
     mainTabButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 16,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 24,
+        borderRadius: 24,
+        backgroundColor: 'transparent',
+        gap: 8,
     },
-    mainTabButtonActive: {},
+    mainTabButtonActive: {
+        backgroundColor: '#E0F2F1',
+    },
+    mainTabIcon: {
+        marginRight: 4,
+    },
     mainTabText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#D1D5DB',
+        fontSize: 17,
+        fontWeight: '700',
+        color: '#9CA3AF',
+        letterSpacing: 0.2,
     },
     mainTabTextActive: {
-        color: '#111827',
+        color: '#009688',
     },
     // Sub tabs
     subTabContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 24,
+        gap: 32,
+        paddingTop: 12,
+        paddingBottom: 16,
         borderTopWidth: 1,
-        borderTopColor: '#f3f4f6',
-        paddingTop: 8,
+        borderTopColor: '#F3F4F6',
     },
     subTabButton: {
-        paddingVertical: 8,
-        paddingHorizontal: 4,
+        paddingVertical: 10,
+        paddingHorizontal: 6,
         flexDirection: 'row',
         alignItems: 'center',
-        borderBottomWidth: 2,
+        borderBottomWidth: 3,
         borderBottomColor: 'transparent',
     },
     subTabButtonActive: {
-        borderBottomColor: '#FF5252',
+        borderBottomColor: '#009688',
     },
     subTabText: {
-        fontSize: 16,
-        fontWeight: 'bold',
+        fontSize: 15,
+        fontWeight: '600',
         color: '#9CA3AF',
+        letterSpacing: 0.3,
     },
     subTabTextActive: {
-        color: '#FF5252',
+        color: '#009688',
     },
     badge: {
         backgroundColor: '#FF7F11',
