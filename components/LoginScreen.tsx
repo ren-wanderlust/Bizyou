@@ -58,17 +58,31 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     <View style={styles.container}>
       <StatusBar style="light" />
 
-      {/* Background Image with Overlay */}
+      {/* Background with Gradient and Network Pattern */}
       <View style={styles.backgroundContainer}>
         <Image
-          source={{ uri: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
+          source={{ uri: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
           style={styles.backgroundImage}
           resizeMode="cover"
         />
+        {/* Modern Gradient Overlay */}
         <LinearGradient
-          colors={['rgba(0, 0, 0, 0.3)', 'rgba(0, 0, 0, 0.5)', 'rgba(0, 0, 0, 0.7)']}
+          colors={[
+            'rgba(15, 23, 42, 0.75)',
+            'rgba(30, 58, 138, 0.85)',
+            'rgba(15, 23, 42, 0.95)'
+          ]}
+          locations={[0, 0.5, 1]}
           style={styles.overlay}
         />
+        {/* Network Pattern Overlay */}
+        <View style={styles.networkPatternContainer}>
+          <Image
+            source={require('../assets/network-pattern.png')}
+            style={styles.networkPattern}
+            resizeMode="cover"
+          />
+        </View>
       </View>
 
       {/* Content */}
@@ -83,13 +97,13 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
               </View>
               <Text style={styles.appName}>Pogg</Text>
             </View>
-            <Text style={styles.logoSubtitle}>共創のストーリーを見つける</Text>
+            <Text style={styles.logoSubtitle}>Elite Student Network</Text>
           </View>
 
           {/* Main Message - Centered */}
           <View style={styles.messageContainer}>
             <Text style={styles.title}>
-              挑戦のために、{'\n'}仲間を
+              東大・早慶・MARCHで{'\n'}未来を創る仲間を見つける
             </Text>
           </View>
 
@@ -286,6 +300,14 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
   },
+  networkPatternContainer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.05,
+  },
+  networkPattern: {
+    width: '100%',
+    height: '100%',
+  },
   contentContainer: {
     flex: 1,
   },
@@ -309,23 +331,23 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#FDB022',
+    backgroundColor: '#D4AF37',
     alignItems: 'center',
     justifyContent: 'center',
   },
   logoText: {
-    color: '#000000',
+    color: '#1E3A8A',
     fontSize: 28,
     fontWeight: 'bold',
   },
   appName: {
-    color: '#FDB022',
+    color: '#D4AF37',
     fontSize: 32,
     fontWeight: 'bold',
     letterSpacing: -0.5,
   },
   logoSubtitle: {
-    color: '#FDB022',
+    color: '#D4AF37',
     fontSize: 14,
     fontWeight: '500',
     letterSpacing: 0.5,
@@ -337,12 +359,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    color: '#FDB022',
-    fontSize: 48,
+    color: '#FFFFFF',
+    fontSize: 44,
     fontWeight: 'bold',
     textAlign: 'center',
-    lineHeight: 56,
-    letterSpacing: -1,
+    lineHeight: 52,
+    letterSpacing: -0.5,
   },
   subtitle: {
     color: 'rgba(255, 255, 255, 0.9)',
@@ -451,12 +473,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   forgotPasswordText: {
-    color: '#FDB022',
+    color: '#1E3A8A',
     fontSize: 14,
     fontWeight: '500',
   },
   loginButton: {
-    backgroundColor: '#FDB022',
+    backgroundColor: '#1E3A8A',
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -466,7 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#9CA3AF',
   },
   loginButtonText: {
-    color: '#000000',
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },
