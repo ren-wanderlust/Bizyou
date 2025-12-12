@@ -52,7 +52,7 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
     'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
     'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
-    '誰でも': { bg: '#E0E0E0', icon: '#616161' },        // Grey
+    '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
 };
 
 const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
@@ -80,14 +80,14 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
         if (iconCount === 0) {
             return null;
         } else if (iconCount === 1) {
-            // Single icon in center
+            // Single icon in center (larger size)
             return (
                 <View style={styles.iconsContainer}>
                     <View style={styles.iconSlotCenter}>
-                        <View style={[styles.iconCircle, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
+                        <View style={[styles.iconCircleLarge, { backgroundColor: rolesWithIcons[0].colors.bg }]}>
                             <Ionicons
                                 name={rolesWithIcons[0].icon as any}
-                                size={24}
+                                size={30}
                                 color={rolesWithIcons[0].colors.icon}
                             />
                         </View>
@@ -488,6 +488,13 @@ const styles = StyleSheet.create({
         width: 32,
         height: 32,
         borderRadius: 16,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconCircleLarge: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
     },

@@ -48,8 +48,18 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
         { id: 'デザイナー', icon: 'color-palette' },
         { id: 'マーケター', icon: 'megaphone' },
         { id: 'アイディアマン', icon: 'bulb' },
-        { id: '誰でも', icon: 'people' },
     ];
+
+    const ANYONE_ROLE = { id: '誰でも', icon: 'people' };
+
+    // Role to color mapping (matching UserProjectPage)
+    const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
+        'エンジニア': { bg: '#E3F2FD', icon: '#1976D2' },      // Blue
+        'デザイナー': { bg: '#F3E5F5', icon: '#7B1FA2' },    // Purple
+        'マーケター': { bg: '#FFF3E0', icon: '#E65100' },    // Orange
+        'アイディアマン': { bg: '#FFF9C4', icon: '#F57F17' }, // Yellow
+        '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
+    };
 
     const THEMES = [
         { id: 'theme-1', title: '個人開発', color: '#3B82F6', bgColor: '#EFF6FF' },        // Blue
@@ -61,12 +71,24 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     ];
 
     const toggleRole = (role: string) => {
-        if (selectedRoles.includes(role)) {
-            setSelectedRoles(selectedRoles.filter(r => r !== role));
+        if (role === '誰でも') {
+            // If "誰でも" is selected, clear all others and toggle "誰でも"
+            if (selectedRoles.includes('誰でも')) {
+                setSelectedRoles([]);
+            } else {
+                setSelectedRoles(['誰でも']);
+            }
         } else {
-            setSelectedRoles([...selectedRoles, role]);
+            // If other role is selected, remove "誰でも" if present
+            if (selectedRoles.includes(role)) {
+                setSelectedRoles(selectedRoles.filter(r => r !== role));
+            } else {
+                setSelectedRoles([...selectedRoles.filter(r => r !== '誰でも'), role]);
+            }
         }
     };
+
+    const isAnyoneSelected = selectedRoles.includes('誰でも');
 
     const handleThemeSelect = (themeTitle: string) => {
         // Enforce single selection
@@ -208,38 +230,79 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                             </View>
                             <Text style={styles.sectionTitle}>募集するメンバー</Text>
                         </View>
-                        <View style={styles.rolesGrid}>
-                            {ROLES.map((role) => (
+                        <View style={styles.rolesContainer}>
+                            <View style={styles.rolesGrid}>
+                                {ROLES.map((role) => {
+                                    const isSelected = selectedRoles.includes(role.id);
+                                    const colors = ROLE_COLORS[role.id] || { bg: '#F9FAFB', icon: '#6B7280' };
+                                    return (
+                                        <HapticTouchable
+                                            key={role.id}
+                                            style={[
+                                                styles.roleCard,
+                                                isSelected && { backgroundColor: colors.bg, borderColor: colors.icon }
+                                            ]}
+                                            onPress={() => toggleRole(role.id)}
+                                            hapticType="selection"
+                                            disabled={isAnyoneSelected}
+                                        >
+                                            <View style={[
+                                                styles.roleIconContainer,
+                                                isSelected && { backgroundColor: colors.bg }
+                                            ]}>
+                                                <Ionicons
+                                                    name={role.icon as any}
+                                                    size={20}
+                                                    color={isSelected ? colors.icon : (isAnyoneSelected ? '#D1D5DB' : '#6B7280')}
+                                                />
+                                            </View>
+                                            <Text style={[
+                                                styles.roleText,
+                                                isSelected && { color: colors.icon, fontWeight: '600' },
+                                                isAnyoneSelected && !isSelected && { color: '#D1D5DB' }
+                                            ]}>{role.id}</Text>
+                                            {isSelected && (
+                                                <View style={styles.checkBadge}>
+                                                    <Ionicons name="checkmark" size={12} color="white" />
+                                                </View>
+                                            )}
+                                        </HapticTouchable>
+                                    );
+                                })}
+                            </View>
+                            <View style={styles.orContainer}>
+                                <Text style={styles.orText}>or</Text>
+                            </View>
+                            <View style={styles.anyoneCardContainer}>
                                 <HapticTouchable
-                                    key={role.id}
                                     style={[
                                         styles.roleCard,
-                                        selectedRoles.includes(role.id) && styles.roleCardActive
+                                        isAnyoneSelected && { backgroundColor: ROLE_COLORS['誰でも'].bg, borderColor: ROLE_COLORS['誰でも'].icon }
                                     ]}
-                                    onPress={() => toggleRole(role.id)}
+                                    onPress={() => toggleRole('誰でも')}
                                     hapticType="selection"
                                 >
                                     <View style={[
                                         styles.roleIconContainer,
-                                        selectedRoles.includes(role.id) && styles.roleIconContainerActive
+                                        isAnyoneSelected && { backgroundColor: ROLE_COLORS['誰でも'].bg }
                                     ]}>
                                         <Ionicons
-                                            name={role.icon as any}
+                                            name={ANYONE_ROLE.icon as any}
                                             size={20}
-                                            color={selectedRoles.includes(role.id) ? '#009688' : '#6B7280'}
+                                            color={isAnyoneSelected ? ROLE_COLORS['誰でも'].icon : '#6B7280'}
                                         />
                                     </View>
                                     <Text style={[
                                         styles.roleText,
-                                        selectedRoles.includes(role.id) && styles.roleTextActive
-                                    ]}>{role.id}</Text>
-                                    {selectedRoles.includes(role.id) && (
+                                        isAnyoneSelected && { color: ROLE_COLORS['誰でも'].icon, fontWeight: '600' }
+                                    ]}>{ANYONE_ROLE.id}</Text>
+                                    {isAnyoneSelected && (
                                         <View style={styles.checkBadge}>
                                             <Ionicons name="checkmark" size={12} color="white" />
                                         </View>
                                     )}
                                 </HapticTouchable>
-                            ))}
+                            </View>
                         </View>
                     </View>
 
@@ -481,16 +544,28 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#9CA3AF',
     },
+    rolesContainer: {
+        gap: 10,
+    },
     rolesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 10,
     },
+    orContainer: {
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    orText: {
+        fontSize: 10,
+        color: '#9CA3AF',
+        fontWeight: '500',
+    },
     roleCard: {
         width: '48%',
         flexDirection: 'row',
         alignItems: 'center',
-        padding: 14,
+        padding: 12,
         backgroundColor: '#F9FAFB',
         borderRadius: 12,
         borderWidth: 1.5,
@@ -501,22 +576,29 @@ const styles = StyleSheet.create({
         backgroundColor: '#E0F2F1',
         borderColor: '#009688',
     },
+    anyoneCardContainer: {
+        width: '100%',
+        alignItems: 'center',
+    },
     roleIconContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: 32,
+        height: 32,
+        borderRadius: 8,
         backgroundColor: '#E5E7EB',
         alignItems: 'center',
         justifyContent: 'center',
-        marginRight: 10,
+        marginRight: 8,
+        flexShrink: 0,
     },
     roleIconContainerActive: {
         backgroundColor: '#B2DFDB',
     },
     roleText: {
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: '500',
         color: '#374151',
+        flex: 1,
+        marginRight: 8,
     },
     roleTextActive: {
         color: '#009688',
