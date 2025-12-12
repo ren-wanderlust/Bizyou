@@ -37,45 +37,82 @@ interface UserProjectPageProps {
     filterCriteria?: FilterCriteria | null;
 }
 
+// Random emoji generator for project cards
+const PROJECT_EMOJIS = ['🎉', '🚀', '🔥', '⚡', '💡', '✨', '🎯', '💪', '🌟', '🏆'];
+const getRandomEmoji = (projectId: string) => {
+    // Use project ID to consistently get same emoji for same project
+    const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return PROJECT_EMOJIS[hash % PROJECT_EMOJIS.length];
+};
+
+// Dark gradient colors for cards
+const CARD_GRADIENTS = [
+    ['#1e3a5f', '#2d4a6f'], // Deep blue
+    ['#1a2f4a', '#2a3f5a'], // Navy
+    ['#0f2027', '#203a43'], // Dark teal
+    ['#232526', '#414345'], // Charcoal
+    ['#141e30', '#243b55'], // Midnight blue
+];
+const getCardGradient = (projectId: string) => {
+    const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return CARD_GRADIENTS[hash % CARD_GRADIENTS.length];
+};
+
 const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
     const deadlineDate = project.deadline ? new Date(project.deadline) : null;
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
         : '';
+    const emoji = getRandomEmoji(project.id);
+    const gradientColors = getCardGradient(project.id);
+    const createdDate = new Date(project.created_at);
+    const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+    const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-            <View style={styles.cardInner}>
-                <Image
-                    source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
-                    style={styles.authorIcon}
-                />
-                <View style={styles.cardContent}>
-                    <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle} numberOfLines={1}>{project.title}</Text>
-                        {deadlineString ? (
-                            <View style={styles.deadlineBadge}>
-                                <Ionicons name="time-outline" size={14} color="#D32F2F" />
-                                <Text style={styles.deadlineText}>{deadlineString}</Text>
-                            </View>
-                        ) : null}
-                    </View>
-                    <Text style={styles.cardDescription} numberOfLines={4}>{project.description}</Text>
+        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+            <View style={[styles.cardInner, { backgroundColor: gradientColors[0] }]}>
+                {/* Emoji Icon */}
+                <View style={styles.emojiContainer}>
+                    <Text style={styles.emojiText}>{emoji}</Text>
+                </View>
 
+                {/* Card Content */}
+                <View style={styles.cardContent}>
+                    {/* Title */}
+                    <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
+
+                    {/* Tags */}
                     {((project.required_roles && project.required_roles.length > 0) || (project.tags && project.tags.length > 0)) && (
                         <View style={styles.cardTags}>
-                            {project.required_roles?.map((role, i) => (
+                            {project.required_roles?.slice(0, 2).map((role, i) => (
                                 <View key={`role-${i}`} style={styles.miniRoleTag}>
                                     <Text style={styles.miniRoleTagText}>{translateTag(role)}</Text>
                                 </View>
                             ))}
-                            {project.tags?.map((tag, i) => (
+                            {project.tags?.slice(0, 1).map((tag, i) => (
                                 <View key={`tag-${i}`} style={styles.miniThemeTag}>
                                     <Text style={styles.miniThemeTagText}>#{translateTag(tag)}</Text>
                                 </View>
                             ))}
                         </View>
                     )}
+
+                    {/* Author Info */}
+                    <View style={styles.authorRow}>
+                        <Image
+                            source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
+                            style={styles.authorIcon}
+                        />
+                        <Text style={styles.authorName} numberOfLines={1}>{project.owner?.name || '匿名'}</Text>
+                        <Text style={styles.timeAgo}>{timeAgo}</Text>
+                        {deadlineString ? (
+                            <View style={styles.deadlineBadge}>
+                                <Ionicons name="time-outline" size={12} color="#FF6B6B" />
+                                <Text style={styles.deadlineText}>{deadlineString}</Text>
+                            </View>
+                        ) : null}
+                    </View>
                 </View>
             </View>
         </TouchableOpacity>
@@ -305,29 +342,35 @@ const styles = StyleSheet.create({
     },
     grid: {
         flexDirection: 'column',
-        gap: 12,
+        gap: 16,
     },
     card: {
         width: '100%',
-        backgroundColor: COLORS.background.primary,
-        borderRadius: RADIUS.lg,
-        ...SHADOWS.md,
+        borderRadius: 16,
+        overflow: 'hidden',
+        ...SHADOWS.lg,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: SPACING.lg,
+        padding: 16,
         alignItems: 'flex-start',
+        borderRadius: 16,
     },
-    authorIcon: {
-        width: AVATAR.lg.size,
-        height: AVATAR.lg.size,
-        borderRadius: AVATAR.lg.radius,
-        marginRight: SPACING.md,
-        backgroundColor: COLORS.background.tertiary,
+    emojiContainer: {
+        width: 52,
+        height: 52,
+        borderRadius: 12,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 14,
+    },
+    emojiText: {
+        fontSize: 28,
     },
     cardContent: {
         flex: 1,
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
     },
     cardHeader: {
         flexDirection: 'row',
@@ -336,25 +379,26 @@ const styles = StyleSheet.create({
         marginBottom: 6,
     },
     cardTitle: {
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 'bold',
-        color: '#111827',
-        flex: 1,
-        marginRight: 8,
+        color: '#FFFFFF',
+        lineHeight: 22,
+        marginBottom: 8,
     },
     deadlineBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#FFEBEE',
+        backgroundColor: 'rgba(255, 107, 107, 0.2)',
         paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 12,
+        paddingVertical: 3,
+        borderRadius: 10,
+        marginLeft: 8,
     },
     deadlineText: {
-        fontSize: 12,
-        color: '#D32F2F',
-        fontWeight: 'bold',
-        marginLeft: 4,
+        fontSize: 11,
+        color: '#FF6B6B',
+        fontWeight: '600',
+        marginLeft: 3,
     },
     cardDescription: {
         fontSize: 14,
@@ -365,28 +409,52 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: 6,
-        marginTop: 8,
+        marginBottom: 10,
     },
     miniRoleTag: {
-        backgroundColor: '#E0F2F1',
-        paddingHorizontal: 8,
+        backgroundColor: 'rgba(0, 150, 136, 0.25)',
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 12,
+        borderRadius: 10,
     },
     miniRoleTagText: {
         fontSize: 11,
-        color: '#009688',
+        color: '#4DB6AC',
         fontWeight: '600',
     },
     miniThemeTag: {
-        backgroundColor: '#F3F4F6',
-        paddingHorizontal: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.12)',
+        paddingHorizontal: 10,
         paddingVertical: 4,
-        borderRadius: 12,
+        borderRadius: 10,
     },
     miniThemeTagText: {
         fontSize: 11,
-        color: '#4B5563',
+        color: 'rgba(255, 255, 255, 0.7)',
+    },
+    authorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    authorIcon: {
+        width: 22,
+        height: 22,
+        borderRadius: 11,
+        marginRight: 8,
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    },
+    authorName: {
+        fontSize: 12,
+        color: 'rgba(255, 255, 255, 0.8)',
+        fontWeight: '500',
+        marginRight: 8,
+        maxWidth: 100,
+    },
+    timeAgo: {
+        fontSize: 11,
+        color: 'rgba(255, 255, 255, 0.5)',
+        marginRight: 'auto',
     },
     emptyContainer: {
         alignItems: 'center',
