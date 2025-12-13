@@ -1248,13 +1248,13 @@ function AppContent() {
   // Main App Render with Modals
   return (
     <SafeAreaView style={styles.container} edges={['left', 'right']}>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" translucent={true} backgroundColor="transparent" />
       <View style={{ flex: 1 }}>
         {/* Header */}
         {/* Header */}
-        <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
+        <View style={styles.headerContainer}>
           {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
-            <View style={styles.headerTop}>
+            <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
               <View style={styles.headerLeft} />
               <Text style={styles.headerTitle}>Nakama</Text>
               <TouchableOpacity
@@ -1275,7 +1275,7 @@ function AppContent() {
               <View style={styles.searchHeader}>
                 <LinearGradient
                   colors={['#FFFFFF', '#F9FAFB']}
-                  style={styles.searchHeaderGradient}
+                  style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16 }]}
                 >
                   <View style={styles.headerTop}>
                     <View style={{ flex: 1 }} />

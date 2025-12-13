@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert, Modal } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
@@ -50,6 +51,7 @@ interface LikesPageProps {
 
 export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike }: LikesPageProps) {
     const { session } = useAuth();
+    const insets = useSafeAreaInsets();
 
     // Top level tab: Project or User
     const [mainTab, setMainTab] = useState<'project' | 'user'>('project');
@@ -883,7 +885,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 {/* Gradient Background */}
                 <LinearGradient
                     colors={['#FFFFFF', '#F9FAFB']}
-                    style={styles.headerGradient}
+                    style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
                 >
                     {/* Top Level Tabs: プロジェクト / ユーザー */}
                     <View style={styles.mainTabContainer}>
@@ -1097,7 +1099,7 @@ const styles = StyleSheet.create({
         borderBottomWidth: 0, // 削除
     },
     headerGradient: {
-        paddingTop: 16,
+        // paddingTop handled in component
         paddingBottom: 4,
     },
     // Main tabs (Project / User)

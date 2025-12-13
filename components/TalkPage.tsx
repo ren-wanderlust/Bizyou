@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
@@ -31,6 +32,7 @@ interface TalkPageProps {
 }
 
 export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageProps) {
+    const insets = useSafeAreaInsets();
     const [talkTab, setTalkTab] = useState<'individual' | 'team'>('team');
     const talkListRef = useRef<FlatList>(null);
     const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -423,7 +425,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         return (
             <View style={styles.container}>
                 {/* Header */}
-                <View style={styles.header}>
+                <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
                     <View style={styles.tabContainer}>
                         <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
                             <View style={styles.tabLabelRow}>
@@ -455,7 +457,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
                 <View style={styles.tabContainer}>
                     <TouchableOpacity
                         style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
@@ -529,7 +531,7 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        paddingTop: 16,
+        // paddingTop handled in component
         paddingBottom: 0, // Adjusted for tabs
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
