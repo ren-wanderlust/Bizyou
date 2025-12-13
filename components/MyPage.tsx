@@ -57,7 +57,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
     // Get roles with icons and colors, limit to 4
     const rolesWithIcons = project.required_roles
         ?.slice(0, 4)
-        .map(role => ({
+        .map((role: string) => ({
             role,
             icon: ROLE_ICONS[role] || 'help-circle-outline',
             colors: ROLE_COLORS[role] || { bg: '#F3F4F6', icon: '#6B7280' }
@@ -145,7 +145,7 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
             // Four icons in 2x2 grid
             return (
                 <View style={projectCardStyles.iconsContainer}>
-                    {rolesWithIcons.map((item, i) => (
+                    {rolesWithIcons.map((item: { role: string; icon: string; colors: { bg: string; icon: string } }, i: number) => (
                         <View key={`icon-${i}`} style={projectCardStyles.iconSlotGrid}>
                             <View style={[projectCardStyles.iconCircle, { backgroundColor: item.colors.bg }]}>
                                 <Ionicons
