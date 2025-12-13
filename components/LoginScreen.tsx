@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
-import { SHADOWS } from '../constants/DesignSystem';
+import { SHADOWS, FONTS } from '../constants/DesignSystem';
+import { ModernButton, ModernInput } from './ModernComponents';
 
 const { width, height } = Dimensions.get('window');
 
@@ -348,47 +349,43 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
                 </View>
 
                 <View style={styles.formContainer}>
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>メールアドレス</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="example@email.com"
-                      value={email}
-                      onChangeText={setEmail}
-                      autoCapitalize="none"
-                      keyboardType="email-address"
+                  <ModernInput
+                    label="メールアドレス"
+                    placeholder="example@email.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    icon="mail-outline"
+                  />
+
+                  <ModernInput
+                    label="パスワード"
+                    placeholder="パスワードを入力"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    icon="lock-closed-outline"
+                  />
+
+                  <View style={{ alignItems: 'flex-end', marginTop: -8 }}>
+                    <ModernButton
+                      title="パスワードを忘れた場合"
+                      onPress={handleForgotPassword}
+                      variant="ghost"
+                      size="small"
                     />
                   </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>パスワード</Text>
-                    <TextInput
-                      style={styles.input}
-                      placeholder="パスワードを入力"
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry
-                    />
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={handleForgotPassword}
-                    style={styles.forgotPasswordContainer}
-                  >
-                    <Text style={styles.forgotPasswordText}>パスワードを忘れた場合</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+                  <ModernButton
+                    title={loading ? "ログイン中..." : "ログイン"}
                     onPress={handleLogin}
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <ActivityIndicator color="white" />
-                    ) : (
-                      <Text style={styles.loginButtonText}>ログイン</Text>
-                    )}
-                  </TouchableOpacity>
+                    loading={loading}
+                    variant="primary"
+                    fullWidth
+                    size="large"
+                    icon="log-in-outline"
+                  />
                 </View>
               </View>
             </KeyboardAvoidingView>
@@ -653,6 +650,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
+    fontFamily: FONTS.bold,
     color: '#111827',
   },
   closeButton: {

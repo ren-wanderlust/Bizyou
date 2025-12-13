@@ -23,6 +23,8 @@ import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
 import universitiesData from '../assets/japanese_universities.json';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
+import { ModernInput } from './ModernComponents';
+import { FONTS } from '../constants/DesignSystem';
 
 interface SignupFlowProps {
     onComplete: () => void;
@@ -652,7 +654,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             </Text>
 
             <View style={styles.formGroup}>
-                <TextInput
+                <ModernInput
                     value={email}
                     onChangeText={(text) => {
                         setEmail(text);
@@ -662,19 +664,14 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     textContentType="emailAddress"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        errors.email && styles.inputError
-                    ]}
+                    autoComplete="email"
+                    icon="mail-outline"
+                    error={errors.email ? 'メールアドレスを確認してください' : undefined}
                 />
             </View>
 
             <View style={styles.formGroup}>
-                <TextInput
+                <ModernInput
                     value={password}
                     onChangeText={(text) => {
                         setPassword(text);
@@ -682,20 +679,15 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     }}
                     placeholder="パスワード（8文字以上）"
                     secureTextEntry={true}
-                    textContentType="oneTimeCode"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        errors.password && styles.inputError
-                    ]}
+                    textContentType="newPassword"
+                    autoComplete="password-new"
+                    icon="lock-closed-outline"
+                    error={errors.password ? 'パスワードは8文字以上で設定してください' : undefined}
                 />
             </View>
 
             <View style={styles.formGroup}>
-                <TextInput
+                <ModernInput
                     value={passwordConfirm}
                     onChangeText={(text) => {
                         setPasswordConfirm(text);
@@ -703,15 +695,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     }}
                     placeholder="パスワード（確認）"
                     secureTextEntry={true}
-                    textContentType="oneTimeCode"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        errors.passwordConfirm && styles.inputError
-                    ]}
+                    textContentType="newPassword"
+                    autoComplete="password-new"
+                    icon="lock-closed-outline"
+                    error={errors.passwordConfirm ? 'パスワードが一致しません' : undefined}
                 />
             </View>
 
@@ -764,7 +751,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
             {/* ニックネームを下に配置 */}
             <View style={styles.formGroup}>
-                <TextInput
+                <ModernInput
                     value={nickname}
                     onChangeText={(text) => {
                         setNickname(text);
@@ -772,15 +759,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     }}
                     placeholder="ニックネーム"
                     autoCapitalize="none"
-                    textContentType="none"
-                    autoComplete="off"
-                    importantForAutofill="no"
-                    autoCorrect={false}
-                    spellCheck={false}
-                    style={[
-                        styles.input,
-                        errors.nickname && styles.inputError
-                    ]}
+                    textContentType="username"
+                    icon="person-outline"
+                    error={errors.nickname ? 'ニックネームを入力してください' : undefined}
                 />
             </View>
         </View>
@@ -864,7 +845,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                                 onChangeText={(text) => {
                                     setSearchInput(text);
                                 }}
-                                placeholder="例: 東京、けいおう、とうきょう"
+                                placeholder="例: 東京大学、慶應義塾大学、早稲田大学"
                                 style={styles.searchInput}
                                 autoFocus={true}
                                 autoCapitalize="none"
@@ -1039,8 +1020,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
                 {isOtherSelected && (
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>その他の内容を記入</Text>
-                        <TextInput
+                        <ModernInput
+                            label="その他の内容を記入"
                             value={otherRoleText}
                             onChangeText={(text) => {
                                 setOtherRoleText(text);
@@ -1049,7 +1030,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             multiline
                             numberOfLines={3}
                             textAlignVertical="top"
-                            style={styles.textArea}
+                            style={{ height: 100, paddingTop: 12 }}
                         />
                     </View>
                 )}
@@ -1127,8 +1108,8 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
                 {isOtherSelected && (
                     <View style={styles.formGroup}>
-                        <Text style={styles.label}>その他の内容を記入</Text>
-                        <TextInput
+                        <ModernInput
+                            label="その他の内容を記入"
                             value={otherSeekingText}
                             onChangeText={(text) => {
                                 setOtherSeekingText(text);
@@ -1137,7 +1118,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             multiline
                             numberOfLines={3}
                             textAlignVertical="top"
-                            style={styles.textArea}
+                            style={{ height: 100, paddingTop: 12 }}
                         />
                     </View>
                 )}
@@ -1161,7 +1142,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </Text>
 
                 <View style={styles.formGroup}>
-                    <TextInput
+                    <ModernInput
                         value={bio}
                         onChangeText={(text) => {
                             if (text.length <= maxLength) {
@@ -1173,11 +1154,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         multiline
                         numberOfLines={4}
                         textAlignVertical="top"
-                        style={[
-                            styles.bioInput,
-                            errors.bio && styles.inputError
-                        ]}
                         maxLength={maxLength}
+                        style={{ height: 120, paddingTop: 12 }} // multiline用のスタイル調整
+                        error={errors.bio ? '20字以内で入力してください' : undefined}
                     />
                     <View style={styles.characterCountContainer}>
                         <Text style={[
@@ -1304,16 +1283,17 @@ const styles = StyleSheet.create({
     },
     stepTitle: {
         fontSize: 28,
-        fontWeight: '600',
         color: '#111827',
         marginBottom: 12,
         lineHeight: 36,
+        fontFamily: FONTS.bold,
     },
     stepSubtitle: {
         fontSize: 15,
         color: '#6b7280',
         marginBottom: 40,
         lineHeight: 22,
+        fontFamily: FONTS.regular,
     },
     formGroup: {
         marginBottom: 20,
