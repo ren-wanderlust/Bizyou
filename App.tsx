@@ -1917,7 +1917,6 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     backgroundColor: 'white',
-    paddingBottom: 16,
     // Remove shadow/elevation for flat look
     shadowColor: "transparent",
     elevation: 0,
@@ -1959,9 +1958,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     marginTop: 0,
     gap: 10,
-    backgroundColor: '#FAFAFA',
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    borderBottomColor: '#E5E7EB',
   },
   filterButton: {
     flex: 6, // 60%
