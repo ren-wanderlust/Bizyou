@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
 import { LikesEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
+import { ProjectDetail } from './ProjectDetail';
 
 interface Project {
     id: string;
@@ -69,6 +70,10 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     const [appliedApplications, setAppliedApplications] = useState<Application[]>([]);
     const [unreadRecruitingIds, setUnreadRecruitingIds] = useState<Set<string>>(new Set()); // Track unread applications by id
     const [loadingProject, setLoadingProject] = useState(true);
+
+    // Selected project for detail view
+    const [selectedProject, setSelectedProject] = useState<any>(null);
+    const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
     const userListRef = useRef<FlatList>(null);
     const projectListRef = useRef<FlatList>(null);
@@ -278,6 +283,68 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         fetchProjectApplications();
     }, [session]);
 
+    // Fetch current user profile
+    useEffect(() => {
+        const fetchCurrentUser = async () => {
+            if (!session?.user) return;
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (data && !error) {
+                setCurrentUserProfile({
+                    id: data.id,
+                    name: data.name,
+                    age: data.age,
+                    location: data.location || '',
+                    university: data.university,
+                    company: data.company,
+                    grade: data.grade || '',
+                    image: data.image,
+                    challengeTheme: data.challenge_theme || '',
+                    theme: data.theme || '',
+                    bio: data.bio,
+                    skills: data.skills || [],
+                    seekingFor: data.seeking_for || [],
+                    seekingRoles: data.seeking_roles || [],
+                    statusTags: data.status_tags || [],
+                    isStudent: data.is_student,
+                    createdAt: data.created_at,
+                });
+            }
+        };
+
+        fetchCurrentUser();
+    }, [session]);
+
+    // Fetch project details for viewing
+    const handleProjectSelect = async (projectId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('projects')
+                .select(`
+                    *,
+                    owner:profiles!owner_id (
+                        id,
+                        name,
+                        image,
+                        university
+                    )
+                `)
+                .eq('id', projectId)
+                .single();
+
+            if (data && !error) {
+                setSelectedProject(data);
+            }
+        } catch (error) {
+            console.error('Error fetching project details:', error);
+        }
+    };
+
     // Mark "興味あり" as read
     const markInterestAsRead = async (senderId: string) => {
         if (!session?.user || !unreadInterestIds.has(senderId)) return;
@@ -432,7 +499,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
         const statusInfo = getStatusInfo();
 
         return (
-            <TouchableOpacity style={styles.projectCard} activeOpacity={0.7}>
+            <TouchableOpacity
+                style={styles.projectCard}
+                activeOpacity={0.7}
+                onPress={() => handleProjectSelect(project.id)}
+            >
                 <View style={styles.projectCardInner}>
                     <Image
                         source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
@@ -871,6 +942,30 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     )}
                 />
             )}
+
+            {/* Project Detail Modal */}
+            <Modal
+                visible={!!selectedProject}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setSelectedProject(null)}
+            >
+                {selectedProject && currentUserProfile && (
+                    <ProjectDetail
+                        project={selectedProject}
+                        currentUser={currentUserProfile}
+                        onClose={() => setSelectedProject(null)}
+                        onChat={() => {
+                            // Chat functionality could be passed from parent
+                            setSelectedProject(null);
+                        }}
+                        onProjectUpdated={() => {
+                            // Refresh applied projects
+                            setSelectedProject(null);
+                        }}
+                    />
+                )}
+            </Modal>
         </View>
     );
 }
