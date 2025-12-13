@@ -312,9 +312,6 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
             <Text style={styles.subtitle}>
               プロジェクト・起業・ビジコン・学生団体{'\n'}挑戦する学生のつながり
             </Text>
-            <Text style={styles.description}>
-              学年・大学を超えてつながる
-            </Text>
           </View>
 
           {/* Action Buttons */}
