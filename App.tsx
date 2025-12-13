@@ -1253,104 +1253,111 @@ function AppContent() {
         {/* Header */}
         {/* Header */}
         <View style={styles.headerContainer}>
-          {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
-            <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
-              <View style={styles.headerLeft} />
-              <Text style={styles.headerTitle}>Nakama</Text>
-              <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() => setShowNotifications(true)}
-              >
-                <Ionicons name="notifications-outline" size={24} color="#374151" />
-                {unreadNotificationsCount > 0 && (
-                  <View style={styles.notificationBadgeDot} />
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {activeTab === 'search' && (
-            <View>
-              {/* Modern Header with Gradient */}
-              <View style={styles.searchHeader}>
-                <LinearGradient
-                  colors={['#FFFFFF', '#F9FAFB']}
-                  style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16 }]}
-                >
-                  <View style={styles.headerTop}>
-                    <View style={{ flex: 1 }} />
-                    <View style={styles.tabContainer}>
-                      <TouchableOpacity
-                        style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
-                        onPress={() => {
-                          setSearchTab('projects');
-                          searchListRef.current?.scrollToIndex({ index: 0, animated: true });
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name={searchTab === 'projects' ? "folder" : "folder-outline"}
-                          size={20}
-                          color={searchTab === 'projects' ? '#009688' : '#9CA3AF'}
-                          style={styles.tabIcon}
-                        />
-                        <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
-                        onPress={() => {
-                          setSearchTab('users');
-                          searchListRef.current?.scrollToIndex({ index: 1, animated: true });
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name={searchTab === 'users' ? "people" : "people-outline"}
-                          size={20}
-                          color={searchTab === 'users' ? '#009688' : '#9CA3AF'}
-                          style={styles.tabIcon}
-                        />
-                        <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                      <TouchableOpacity
-                        style={styles.notificationButton}
-                        onPress={() => setShowNotifications(true)}
-                      >
-                        <Ionicons name="notifications-outline" size={24} color="#374151" />
-                        {unreadNotificationsCount > 0 && (
-                          <View style={styles.notificationBadgeDot} />
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
-
-              <View style={styles.searchControlBar}>
+          <LinearGradient
+            colors={['#E0F2F1', '#FFFFFF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ width: '100%' }}
+          >
+            {activeTab !== 'search' && activeTab !== 'likes' && activeTab !== 'talk' && activeTab !== 'challenge' && activeTab !== 'profile' && (
+              <View style={[styles.headerTop, { paddingTop: insets.top + 10 }]}>
+                <View style={styles.headerLeft} />
+                <Text style={styles.headerTitle}>Nakama</Text>
                 <TouchableOpacity
-                  style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
-                  onPress={() => setIsFilterOpen(true)}
+                  style={styles.notificationButton}
+                  onPress={() => setShowNotifications(true)}
                 >
-                  <Ionicons name="search" size={16} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
-                  <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
-                    絞り込み
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.sortButton}
-                  onPress={() => setIsSortModalOpen(true)}
-                >
-                  <Text style={styles.controlButtonText}>
-                    {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
-                  </Text>
-                  <Ionicons name="chevron-down" size={14} color="#374151" />
+                  <Ionicons name="notifications-outline" size={24} color="#374151" />
+                  {unreadNotificationsCount > 0 && (
+                    <View style={styles.notificationBadgeDot} />
+                  )}
                 </TouchableOpacity>
               </View>
-            </View>
-          )}
+            )}
+
+            {activeTab === 'search' && (
+              <View>
+                {/* Modern Header with Gradient */}
+                <View style={styles.searchHeader}>
+                  <LinearGradient
+                    colors={['#E0F2F1', '#FFFFFF']}
+                    style={[styles.searchHeaderGradient, { paddingTop: insets.top + 16 }]}
+                  >
+                    <View style={styles.headerTop}>
+                      <View style={{ flex: 1 }} />
+                      <View style={styles.tabContainer}>
+                        <TouchableOpacity
+                          style={[styles.tabButton, searchTab === 'projects' && styles.tabButtonActive]}
+                          onPress={() => {
+                            setSearchTab('projects');
+                            searchListRef.current?.scrollToIndex({ index: 0, animated: true });
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={searchTab === 'projects' ? "folder" : "folder-outline"}
+                            size={20}
+                            color={searchTab === 'projects' ? '#009688' : '#9CA3AF'}
+                            style={styles.tabIcon}
+                          />
+                          <Text style={[styles.tabText, searchTab === 'projects' && styles.tabTextActive]}>プロジェクト</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.tabButton, searchTab === 'users' && styles.tabButtonActive]}
+                          onPress={() => {
+                            setSearchTab('users');
+                            searchListRef.current?.scrollToIndex({ index: 1, animated: true });
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Ionicons
+                            name={searchTab === 'users' ? "people" : "people-outline"}
+                            size={20}
+                            color={searchTab === 'users' ? '#009688' : '#9CA3AF'}
+                            style={styles.tabIcon}
+                          />
+                          <Text style={[styles.tabText, searchTab === 'users' && styles.tabTextActive]}>ユーザー</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                        <TouchableOpacity
+                          style={styles.notificationButton}
+                          onPress={() => setShowNotifications(true)}
+                        >
+                          <Ionicons name="notifications-outline" size={24} color="#374151" />
+                          {unreadNotificationsCount > 0 && (
+                            <View style={styles.notificationBadgeDot} />
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </LinearGradient>
+                </View>
+
+                <View style={styles.searchControlBar}>
+                  <TouchableOpacity
+                    style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
+                    onPress={() => setIsFilterOpen(true)}
+                  >
+                    <Ionicons name="search" size={16} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+                    <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
+                      絞り込み
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.sortButton}
+                    onPress={() => setIsSortModalOpen(true)}
+                  >
+                    <Text style={styles.controlButtonText}>
+                      {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
+                    </Text>
+                    <Ionicons name="chevron-down" size={14} color="#374151" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </LinearGradient>
         </View>
 
         {/* Content */}
@@ -1551,10 +1558,11 @@ function AppContent() {
             setShowCreateProjectModal(true);
           }}
         />
-      </View>
+      </View >
 
       {/* Modals */}
-      <Modal visible={showCreateProjectModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreateProjectModal(false)}>
+      < Modal visible={showCreateProjectModal} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCreateProjectModal(false)
+      }>
         <SafeAreaProvider>
           {currentUser && (
             <CreateProjectModal
@@ -1568,7 +1576,7 @@ function AppContent() {
             />
           )}
         </SafeAreaProvider>
-      </Modal>
+      </Modal >
       <Modal visible={!!activeChatRoom} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setActiveChatRoom(null)}>
         <SafeAreaProvider>
           {activeChatRoom && (
@@ -1925,7 +1933,7 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   headerContainer: {
-    backgroundColor: 'white',
+    backgroundColor: 'transparent',
     // Remove shadow/elevation for flat look
     shadowColor: "transparent",
     elevation: 0,

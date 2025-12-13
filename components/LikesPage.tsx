@@ -884,7 +884,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             <View style={styles.header}>
                 {/* Gradient Background */}
                 <LinearGradient
-                    colors={['#FFFFFF', '#F9FAFB']}
+                    colors={['#E0F2F1', '#FFFFFF']}
                     style={[styles.headerGradient, { paddingTop: insets.top + 16 }]}
                 >
                     {/* Top Level Tabs: プロジェクト / ユーザー */}

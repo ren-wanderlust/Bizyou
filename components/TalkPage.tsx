@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../lib/supabase';
 import { ChatListSkeleton } from './Skeleton';
 import { SimpleRefreshControl } from './CustomRefreshControl';
@@ -425,29 +426,34 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         return (
             <View style={styles.container}>
                 {/* Header */}
-                <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-                    <View style={styles.tabContainer}>
-                        <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-                            <View style={styles.tabLabelRow}>
-                                <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
-                                {teamUnreadTotal > 0 && (
-                                    <View style={styles.tabBadge}>
-                                        <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
-                                    </View>
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.tabButton}>
-                            <View style={styles.tabLabelRow}>
-                                <Text style={styles.tabText}>個人</Text>
-                                {individualUnreadTotal > 0 && (
-                                    <View style={styles.tabBadge}>
-                                        <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
-                                    </View>
-                                )}
-                            </View>
-                        </TouchableOpacity>
-                    </View>
+                <View style={[styles.header, { paddingBottom: 0 }]}>
+                    <LinearGradient
+                        colors={['#E0F2F1', '#FFFFFF']}
+                        style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center' }}
+                    >
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
+                                <View style={styles.tabLabelRow}>
+                                    <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
+                                    {teamUnreadTotal > 0 && (
+                                        <View style={styles.tabBadge}>
+                                            <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.tabButton}>
+                                <View style={styles.tabLabelRow}>
+                                    <Text style={styles.tabText}>個人</Text>
+                                    {individualUnreadTotal > 0 && (
+                                        <View style={styles.tabBadge}>
+                                            <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            </TouchableOpacity>
+                        </View>
+                    </LinearGradient>
                 </View>
                 <ChatListSkeleton count={6} />
             </View>
@@ -457,41 +463,46 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-                <View style={styles.tabContainer}>
-                    <TouchableOpacity
-                        style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setTalkTab('team');
-                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
-                        }}
-                    >
-                        <View style={styles.tabLabelRow}>
-                            <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
-                            {teamUnreadTotal > 0 && (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
-                        onPress={() => {
-                            setTalkTab('individual');
-                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
-                        }}
-                    >
-                        <View style={styles.tabLabelRow}>
-                            <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
-                            {individualUnreadTotal > 0 && (
-                                <View style={styles.tabBadge}>
-                                    <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
-                                </View>
-                            )}
-                        </View>
-                    </TouchableOpacity>
-                </View>
+            <View style={[styles.header, { paddingBottom: 0 }]}>
+                <LinearGradient
+                    colors={['#E0F2F1', '#FFFFFF']}
+                    style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 0, alignItems: 'center' }}
+                >
+                    <View style={styles.tabContainer}>
+                        <TouchableOpacity
+                            style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
+                            onPress={() => {
+                                setTalkTab('team');
+                                talkListRef.current?.scrollToIndex({ index: 0, animated: true });
+                            }}
+                        >
+                            <View style={styles.tabLabelRow}>
+                                <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                                {teamUnreadTotal > 0 && (
+                                    <View style={styles.tabBadge}>
+                                        <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
+                            onPress={() => {
+                                setTalkTab('individual');
+                                talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            }}
+                        >
+                            <View style={styles.tabLabelRow}>
+                                <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                                {individualUnreadTotal > 0 && (
+                                    <View style={styles.tabBadge}>
+                                        <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                </LinearGradient>
             </View>
 
             {/* Content */}
@@ -530,7 +541,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     header: {
-        backgroundColor: 'white',
+        backgroundColor: 'transparent',
         // paddingTop handled in component
         paddingBottom: 0, // Adjusted for tabs
         borderBottomWidth: 1,
