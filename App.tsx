@@ -1324,7 +1324,7 @@ function AppContent() {
                   style={[styles.filterButton, isFilterActive && styles.filterButtonActive]}
                   onPress={() => setIsFilterOpen(true)}
                 >
-                  <Ionicons name="search" size={20} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
+                  <Ionicons name="search" size={16} color={isFilterActive ? "#FF5252" : "#9CA3AF"} />
                   <Text style={[styles.controlButtonText, isFilterActive && styles.controlButtonTextActive]}>
                     絞り込み
                   </Text>
@@ -1337,7 +1337,7 @@ function AppContent() {
                   <Text style={styles.controlButtonText}>
                     {sortOrder === 'recommended' ? 'おすすめ順' : sortOrder === 'newest' ? '新着順' : '締め切り順'}
                   </Text>
-                  <Ionicons name="chevron-down" size={16} color="#374151" />
+                  <Ionicons name="chevron-down" size={14} color="#374151" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1956,19 +1956,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    marginTop: 8,
-    gap: 12,
+    paddingVertical: 12,
+    marginTop: 0,
+    gap: 10,
+    backgroundColor: '#FAFAFA',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   filterButton: {
     flex: 6, // 60%
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     borderRadius: 100,
-    height: 44,
-    paddingHorizontal: 16,
-    gap: 8,
+    height: 36,
+    paddingHorizontal: 14,
+    gap: 6,
     justifyContent: 'flex-start', // Left aligned content
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   filterButtonActive: {
     backgroundColor: '#FFEBEE',
@@ -1979,15 +1985,17 @@ const styles = StyleSheet.create({
     flex: 4, // 40% (approx 35% requested, adjusted for gap)
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
     borderRadius: 100,
-    height: 44,
-    paddingHorizontal: 16,
+    height: 36,
+    paddingHorizontal: 12,
     gap: 4,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   controlButtonText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#374151',
     fontWeight: '500',
   },
