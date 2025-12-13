@@ -190,7 +190,10 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
                             source={{ uri: project.owner?.image || 'https://via.placeholder.com/50' }}
                             style={styles.authorIcon}
                         />
-                        <Text style={styles.authorName} numberOfLines={1}>{project.owner?.name || '匿名'}</Text>
+                        <Text style={styles.authorName} numberOfLines={1}>
+                            {project.owner?.name || '匿名'}
+                            {project.owner?.university ? ` (${project.owner.university})` : ''}
+                        </Text>
                         <Text style={styles.timeAgo}>{timeAgo}</Text>
                         {deadlineString ? (
                             <View style={styles.deadlineBadge}>
@@ -587,13 +590,14 @@ const styles = StyleSheet.create({
         color: '#111827',
         fontFamily: FONTS.medium,
         marginRight: 8,
-        maxWidth: 100,
+        flexShrink: 1, // Allow shrinking if text is too long
     },
     timeAgo: {
         fontSize: 11,
         fontFamily: FONTS.regular,
         color: '#6B7280',
-        marginRight: 'auto',
+        marginRight: 'auto', // Push subsequent items (badge) to the right? No, removing auto to keep items together
+        flexShrink: 0,
     },
     emptyContainer: {
         alignItems: 'center',
