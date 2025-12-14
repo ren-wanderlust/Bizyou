@@ -885,7 +885,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             {/* Modern Header */}
             <View style={styles.header}>
                 {/* Background */}
-                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, backgroundColor: '#F39800' }]}>
+                <View style={[styles.headerGradient, { paddingTop: insets.top + 16, paddingBottom: 8, backgroundColor: '#F39800' }]}>
                     {/* Top Level Tabs: プロジェクト / ユーザー */}
                     <View style={styles.headerTop}>
                         <View style={styles.headerLeft} />
@@ -935,92 +935,92 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             )}
                         </View>
                     </View>
+                </View>
+            </View>
 
-                    {/* Sub Tabs with Modern Design */}
-                    {mainTab === 'user' ? (
-                        <View style={styles.subTabContainer}>
-                            <TouchableOpacity
-                                style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
+            {/* Sub Tabs with Modern Design */}
+            {mainTab === 'user' ? (
+                <View style={styles.subTabContainer}>
+                    <TouchableOpacity
+                        style={[styles.subTabButton, userTab === 'received' && styles.subTabButtonActive]}
                         onPress={() => {
-                                    setUserTab('received');
-                                    userListRef.current?.scrollToIndex({ index: 0, animated: true });
+                            setUserTab('received');
+                            userListRef.current?.scrollToIndex({ index: 0, animated: true });
                         }}
-                                activeOpacity={0.7}
+                        activeOpacity={0.7}
                     >
-                                <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
-                                    興味あり
+                        <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
+                            興味あり
                         </Text>
-                                {unreadInterestCount > 0 && (
+                        {unreadInterestCount > 0 && (
                             <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{unreadInterestCount}</Text>
+                                <Text style={styles.badgeText}>{unreadInterestCount}</Text>
                             </View>
                         )}
                     </TouchableOpacity>
                     <TouchableOpacity
-                                style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
+                        style={[styles.subTabButton, userTab === 'sent' && styles.subTabButtonActive]}
                         onPress={() => {
-                                    setUserTab('sent');
-                                    userListRef.current?.scrollToIndex({ index: 1, animated: true });
+                            setUserTab('sent');
+                            userListRef.current?.scrollToIndex({ index: 1, animated: true });
                         }}
-                                activeOpacity={0.7}
+                        activeOpacity={0.7}
                     >
-                                <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
-                                    送った
+                        <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
+                            送った
                         </Text>
                     </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
-                                onPress={() => {
-                                    setUserTab('matched');
-                                    userListRef.current?.scrollToIndex({ index: 2, animated: true });
-                                }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={[styles.subTabText, userTab === 'matched' && styles.subTabTextActive]}>
-                                    マッチング
-                                </Text>
-                                {unreadMatchCount > 0 && (
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{unreadMatchCount}</Text>
+                    <TouchableOpacity
+                        style={[styles.subTabButton, userTab === 'matched' && styles.subTabButtonActive]}
+                        onPress={() => {
+                            setUserTab('matched');
+                            userListRef.current?.scrollToIndex({ index: 2, animated: true });
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.subTabText, userTab === 'matched' && styles.subTabTextActive]}>
+                            マッチング
+                        </Text>
+                        {unreadMatchCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{unreadMatchCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
                 </View>
-                                )}
-                            </TouchableOpacity>
-                        </View>
-                    ) : (
-                        <View style={styles.subTabContainer}>
-                            <TouchableOpacity
-                                style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
-                                onPress={() => {
-                                    setProjectTab('recruiting');
-                                    projectListRef.current?.scrollToIndex({ index: 0, animated: true });
-                                }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
-                                    募集
-                                </Text>
-                                {unreadRecruitingCount > 0 && (
-                                    <View style={styles.badge}>
-                                        <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
-                                    </View>
-                                )}
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
-                                onPress={() => {
-                                    setProjectTab('applied');
-                                    projectListRef.current?.scrollToIndex({ index: 1, animated: true });
-                                }}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
-                                    応募
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
+            ) : (
+                <View style={styles.subTabContainer}>
+                    <TouchableOpacity
+                        style={[styles.subTabButton, projectTab === 'recruiting' && styles.subTabButtonActive]}
+                        onPress={() => {
+                            setProjectTab('recruiting');
+                            projectListRef.current?.scrollToIndex({ index: 0, animated: true });
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.subTabText, projectTab === 'recruiting' && styles.subTabTextActive]}>
+                            募集
+                        </Text>
+                        {unreadRecruitingCount > 0 && (
+                            <View style={styles.badge}>
+                                <Text style={styles.badgeText}>{unreadRecruitingCount}</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.subTabButton, projectTab === 'applied' && styles.subTabButtonActive]}
+                        onPress={() => {
+                            setProjectTab('applied');
+                            projectListRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
+                        activeOpacity={0.7}
+                    >
+                        <Text style={[styles.subTabText, projectTab === 'applied' && styles.subTabTextActive]}>
+                            応募
+                        </Text>
+                    </TouchableOpacity>
                 </View>
-            </View>
+            )}
 
             {/* Content */}
             {mainTab === 'user' ? (
@@ -1182,31 +1182,39 @@ const styles = StyleSheet.create({
     subTabContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
-        gap: 32,
-        paddingTop: 12,
-        paddingBottom: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#F3F4F6',
+        gap: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        backgroundColor: '#FFFFFF',
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
     },
     subTabButton: {
-        paddingVertical: 10,
-        paddingHorizontal: 6,
         flexDirection: 'row',
         alignItems: 'center',
-        borderBottomWidth: 3,
-        borderBottomColor: 'transparent',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 100,
+        height: 36,
+        paddingHorizontal: 14,
+        gap: 6,
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: '#F39800',
     },
     subTabButtonActive: {
-        borderBottomColor: '#009688',
+        backgroundColor: '#F39800',
+        borderWidth: 1,
+        borderColor: '#F39800',
     },
     subTabText: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: '#9CA3AF',
-        letterSpacing: 0.3,
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#F39800',
+        fontFamily: FONTS.medium,
     },
     subTabTextActive: {
-        color: '#009688',
+        color: 'white',
+        fontFamily: FONTS.medium,
     },
     badge: {
         backgroundColor: '#FF7F11',
