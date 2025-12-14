@@ -1102,7 +1102,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFE6C2',
+        backgroundColor: '#FFF3E0',
     },
     header: {
         backgroundColor: 'white',

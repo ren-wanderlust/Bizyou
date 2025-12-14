@@ -1908,7 +1908,7 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    backgroundColor: '#FFE6C2',
+    backgroundColor: '#FFF3E0',
     // paddingBottom handled in FlatList contentContainerStyle
   },
   placeholderTitle: {

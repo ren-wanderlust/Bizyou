@@ -528,7 +528,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#FFE6C2',
+        backgroundColor: '#FFF3E0',
     },
     loadingContainer: {
         justifyContent: 'center',
