@@ -61,7 +61,7 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
 
             let query = supabase
                 .from('notifications')
-                .select('*')
+                .select('id, type, title, content, image_url, created_at')
                 .order('created_at', { ascending: false });
 
             if (user) {

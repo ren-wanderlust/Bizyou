@@ -106,7 +106,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
 
             const { data: messages, error: messagesError } = await supabase
                 .from('messages')
-                .select('*')
+                .select('id, content, sender_id, receiver_id, chat_room_id, created_at')
                 .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
                 .order('created_at', { ascending: false });
 
@@ -162,7 +162,10 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             let individualRooms: ChatRoom[] = [];
 
             if (partnerIds.length > 0) {
-                const { data: profiles } = await supabase.from('profiles').select('*').in('id', partnerIds);
+                const { data: profiles } = await supabase
+                    .from('profiles')
+                    .select('id, name, age, image')
+                    .in('id', partnerIds);
                 individualRooms = partnerIds.map(partnerId => {
                     const partnerProfile = profiles?.find(p => p.id === partnerId);
                     const roomData = individualRoomsMap.get(partnerId);

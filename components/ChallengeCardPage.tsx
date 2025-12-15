@@ -61,7 +61,7 @@ export function ChallengeCardPage({ onThemeSelect, hideHeader = false }: Challen
             // Fetch themes
             const { data: themesData, error: themesError } = await supabase
                 .from('themes')
-                .select('*');
+                .select('id, icon, title, image_url');
 
             if (themesError) throw themesError;
 

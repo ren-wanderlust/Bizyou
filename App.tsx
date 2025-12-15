@@ -179,7 +179,7 @@ function AppContent() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -295,7 +295,7 @@ function AppContent() {
       if (newMatches.length > 0) {
         const { data: profilesData } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
           .in('id', newMatches);
 
         const matchProfiles: Profile[] = (profilesData || []).map((profileData: any) => ({
@@ -745,7 +745,7 @@ function AppContent() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
         .eq('id', session.user.id)
         .maybeSingle();
 
@@ -823,7 +823,7 @@ function AppContent() {
         // Check if I have already liked this user
         const { data: myLike } = await supabase
           .from('likes')
-          .select('*')
+          .select('id')
           .eq('sender_id', session.user.id)
           .eq('receiver_id', senderId)
           .maybeSingle();
@@ -835,7 +835,7 @@ function AppContent() {
           // Fetch sender's profile to display modal
           const { data: senderProfile } = await supabase
             .from('profiles')
-            .select('*')
+            .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
             .eq('id', senderId)
             .single();
 
@@ -1013,7 +1013,7 @@ function AppContent() {
       // Check if already liked (shouldn't happen but just in case)
       const { data: existingLike } = await supabase
         .from('likes')
-        .select('*')
+        .select('id')
         .eq('sender_id', session.user.id)
         .eq('receiver_id', profileId)
         .maybeSingle();
@@ -1060,7 +1060,7 @@ function AppContent() {
         // Check for match
         const { data: reverseLike } = await supabase
           .from('likes')
-          .select('*')
+          .select('id')
           .eq('sender_id', profileId)
           .eq('receiver_id', session.user.id)
           .maybeSingle();
@@ -1074,11 +1074,11 @@ function AppContent() {
 
           if (!matchedUser) {
             // Fetch profile from supabase if not in displayProfiles
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', profileId)
-              .single();
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+          .eq('id', profileId)
+          .single();
 
             if (profileData) {
               matchedUser = {
@@ -1494,7 +1494,7 @@ function AppContent() {
                   // Fetch profile if not in local list
                   supabase
                     .from('profiles')
-                    .select('*')
+                    .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                     .eq('id', partnerId)
                     .single()
                     .then(({ data, error }) => {
@@ -1526,7 +1526,7 @@ function AppContent() {
                 // Fetch project and show in UserProjectPage
                 const { data: project, error } = await supabase
                   .from('projects')
-                  .select('*')
+                  .select('id, owner_id')
                   .eq('id', projectId)
                   .single();
 
@@ -1640,7 +1640,7 @@ function AppContent() {
                       // Fetch if not in list
                       supabase
                         .from('profiles')
-                        .select('*')
+                        .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                         .eq('name', activeChatRoom.partnerName)
                         .single()
                         .then(({ data, error }) => {
@@ -1675,7 +1675,7 @@ function AppContent() {
                     } else {
                       supabase
                         .from('profiles')
-                        .select('*')
+                        .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                         .eq('id', memberId)
                         .single()
                         .then(({ data, error }) => {

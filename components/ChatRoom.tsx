@@ -315,7 +315,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         try {
             let query = supabase
                 .from('messages')
-                .select('*')
+                .select('id, content, image_url, sender_id, receiver_id, chat_room_id, created_at, reply_to')
                 .order('created_at', { ascending: true });
 
             if (isGroup) {
