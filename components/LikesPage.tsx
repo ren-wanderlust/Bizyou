@@ -92,9 +92,30 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             }
 
             try {
+                // ✅ Optimized: Single query with JOIN using Supabase relations
                 const { data: likes, error } = await supabase
                     .from('likes')
-                    .select('sender_id, is_read, is_read_as_match')
+                    .select(`
+                        sender_id,
+                        is_read,
+                        is_read_as_match,
+                        sender:profiles!sender_id (
+                            id,
+                            name,
+                            age,
+                            university,
+                            company,
+                            grade,
+                            image,
+                            bio,
+                            skills,
+                            seeking_for,
+                            seeking_roles,
+                            status_tags,
+                            is_student,
+                            created_at
+                        )
+                    `)
                     .eq('receiver_id', session.user.id);
 
                 if (error) {
@@ -103,6 +124,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 }
 
                 if (likes && likes.length > 0) {
+                    // Extract unread IDs
                     const unreadInterest = new Set<string>(
                         likes.filter(l => !l.is_read).map(l => l.sender_id)
                     );
@@ -113,39 +135,29 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     );
                     setUnreadMatchIds(unreadMatch);
 
-                    const senderIds = likes.map(l => l.sender_id);
-                    const { data: profiles, error: profilesError } = await supabase
-                        .from('profiles')
-                        .select('*')
-                        .in('id', senderIds);
-
-                    if (profilesError) {
-                        console.error('Error fetching profiles for received likes:', profilesError);
-                        return;
-                    }
-
-                    if (profiles) {
-                        const mappedProfiles: Profile[] = profiles.map((item: any) => ({
-                            id: item.id,
-                            name: item.name,
-                            age: item.age,
-                            location: item.location || '',
-                            university: item.university,
-                            company: item.company,
-                            grade: item.grade || '',
-                            image: item.image,
-                            challengeTheme: item.challenge_theme || '',
-                            theme: item.theme || '',
-                            bio: item.bio,
-                            skills: item.skills || [],
-                            seekingFor: item.seeking_for || [],
-                            seekingRoles: item.seeking_roles || [],
-                            statusTags: item.status_tags || [],
-                            isStudent: item.is_student,
-                            createdAt: item.created_at,
+                    // Map profiles directly from the joined data
+                    const mappedProfiles: Profile[] = likes
+                        .filter(like => like.sender) // Filter out any likes without sender data
+                        .map((like: any) => ({
+                            id: like.sender.id,
+                            name: like.sender.name,
+                            age: like.sender.age,
+                            university: like.sender.university,
+                            company: like.sender.company,
+                            grade: like.sender.grade || '',
+                            image: like.sender.image,
+                            challengeTheme: like.sender.challenge_theme || '',
+                            theme: like.sender.theme || '',
+                            bio: like.sender.bio,
+                            skills: like.sender.skills || [],
+                            seekingFor: like.sender.seeking_for || [],
+                            seekingRoles: like.sender.seeking_roles || [],
+                            statusTags: like.sender.status_tags || [],
+                            isStudent: like.sender.is_student,
+                            createdAt: like.sender.created_at,
                         }));
-                        setReceivedLikes(mappedProfiles);
-                    }
+
+                    setReceivedLikes(mappedProfiles);
                 } else {
                     setReceivedLikes([]);
                     setUnreadInterestIds(new Set());
@@ -214,7 +226,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                                 id: app.user.id,
                                 name: app.user.name,
                                 age: app.user.age,
-                                location: app.user.location || '',
                                 university: app.user.university,
                                 company: app.user.company,
                                 grade: app.user.grade || '',
@@ -304,7 +315,6 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     id: data.id,
                     name: data.name,
                     age: data.age,
-                    location: data.location || '',
                     university: data.university,
                     company: data.company,
                     grade: data.grade || '',
@@ -890,7 +900,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     <View style={styles.headerTop}>
                         <View style={styles.headerLeft} />
                         <View style={styles.mainTabContainer}>
-                    <TouchableOpacity
+                            <TouchableOpacity
                                 style={[styles.mainTabButton, mainTab === 'project' && styles.mainTabButtonActive]}
                                 onPress={() => setMainTab('project')}
                                 activeOpacity={0.7}
@@ -1024,29 +1034,29 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
             {/* Content */}
             {mainTab === 'user' ? (
-            <FlatList
+                <FlatList
                     ref={userListRef}
                     data={userTabs}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item}
-                onMomentumScrollEnd={(e) => {
-                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    keyExtractor={(item) => item}
+                    onMomentumScrollEnd={(e) => {
+                        const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
                         setUserTab(userTabs[index]);
-                }}
-                getItemLayout={(data, index) => (
-                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-                )}
-                initialScrollIndex={0}
-                renderItem={({ item }) => (
-                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                    }}
+                    getItemLayout={(data, index) => (
+                        { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+                    )}
+                    initialScrollIndex={0}
+                    renderItem={({ item }) => (
+                        <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
                             {item === 'received' && renderReceivedList()}
                             {item === 'sent' && renderSentList()}
                             {item === 'matched' && renderMatchedList()}
-                    </View>
-                )}
-            />
+                        </View>
+                    )}
+                />
             ) : (
                 <FlatList
                     ref={projectListRef}

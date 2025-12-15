@@ -2,7 +2,6 @@ export interface Profile {
     id: string;
     name: string;
     age: number;
-    location: string;
     university?: string;
     grade?: string;
     company?: string;
