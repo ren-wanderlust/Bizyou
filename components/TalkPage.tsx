@@ -14,7 +14,6 @@ interface ChatRoom {
     partnerId: string;
     partnerName: string;
     partnerAge: number;
-    partnerLocation: string;
     partnerImage: string;
     lastMessage: string;
     unreadCount: number;
@@ -182,7 +181,6 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                         partnerId: partnerId,
                         partnerName: partnerProfile?.name || 'Unknown',
                         partnerAge: partnerProfile?.age || 0,
-                        partnerLocation: partnerProfile?.location || '',
                         partnerImage: partnerProfile?.image || 'https://via.placeholder.com/150',
                         lastMessage: roomData.lastMessage,
                         unreadCount: unreadMap.get(partnerId) || 0,
@@ -246,23 +244,34 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     readStatusByRoom.set(status.chat_room_id, status.last_read_at);
                 });
 
-                // ✅ Batch Query 3: Fetch unread counts for all rooms at once
-                // We need to count messages per room where created_at > last_read_at
-                const unreadCountPromises = roomIds.map(async (roomId) => {
-                    const lastReadTime = readStatusByRoom.get(roomId) || '1970-01-01';
-                    const { count } = await supabase
-                        .from('messages')
-                        .select('id', { count: 'exact', head: true })
-                        .eq('chat_room_id', roomId)
-                        .gt('created_at', lastReadTime)
-                        .neq('sender_id', user.id);
-                    return { roomId, count: count || 0 };
-                });
+                // ✅ Batch Query 3: Fetch unread messages for all rooms at once
+                // ルームごとにクエリを投げる代わりに、対象ルーム＋最小既読時刻を使って一括取得し、クライアント側で集計する
+                const allLastReadTimes = Array.from(readStatusByRoom.values());
+                const globalMinLastRead =
+                    allLastReadTimes.length > 0
+                        ? allLastReadTimes.reduce(
+                              (min, current) =>
+                                  new Date(current).getTime() < new Date(min).getTime() ? current : min,
+                              allLastReadTimes[0]
+                          )
+                        : '1970-01-01';
 
-                const unreadCounts = await Promise.all(unreadCountPromises);
+                const { data: unreadMessages } = await supabase
+                    .from('messages')
+                    .select('chat_room_id, created_at, sender_id')
+                    .in('chat_room_id', roomIds)
+                    .gt('created_at', globalMinLastRead)
+                    .neq('sender_id', user.id);
+
                 const unreadCountByRoom = new Map<string, number>();
-                unreadCounts.forEach(({ roomId, count }) => {
-                    unreadCountByRoom.set(roomId, count);
+                unreadMessages?.forEach((msg: any) => {
+                    const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
+                    if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
+                        unreadCountByRoom.set(
+                            msg.chat_room_id,
+                            (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
+                        );
+                    }
                 });
 
                 // ✅ Merge all data on client side
@@ -315,6 +324,7 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
 
     const renderIndividualList = () => {
         const individualRooms = chatRooms.filter(r => r.type === 'individual');
+
         if (individualRooms.length > 0) {
             return (
                 <FlatList
@@ -343,9 +353,6 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 <View style={styles.topRow}>
                                     <View style={styles.nameContainer}>
                                         <Text style={styles.name}>{item.partnerName}</Text>
-                                        <Text style={styles.details}>
-                                            {item.partnerLocation}
-                                        </Text>
                                     </View>
                                     <Text style={styles.timestamp}>{item.timestamp}</Text>
                                 </View>
@@ -362,7 +369,12 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                     <Text style={styles.unreadText}>{item.unreadCount}</Text>
                                 </View>
                             ) : (
-                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={20}
+                                    color="#9ca3af"
+                                    style={styles.chevronIcon}
+                                />
                             )}
                         </TouchableOpacity>
                     )}
@@ -377,128 +389,88 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
         }
     };
 
-    const renderTeamList = () => {
-        const teamRooms = chatRooms.filter(r => r.type === 'group');
+const renderTeamList = () => {
+    const teamRooms = chatRooms.filter(r => r.type === 'group');
 
-        if (teamRooms.length > 0) {
-            return (
-                <FlatList
-                    data={teamRooms}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => (
+    if (teamRooms.length > 0) {
+        return (
+            <FlatList
+                data={teamRooms}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        style={styles.roomItem}
+                        onPress={() => onOpenChat?.(item)}
+                        activeOpacity={0.7}
+                    >
+                        {/* Avatar - Tappable for project detail */}
                         <TouchableOpacity
-                            style={styles.roomItem}
-                            onPress={() => onOpenChat?.(item)}
+                            style={styles.avatarContainer}
+                            onPress={() => item.projectId && onViewProject?.(item.projectId)}
                             activeOpacity={0.7}
                         >
-                            {/* Avatar - Tappable for project detail */}
-                            <TouchableOpacity
-                                style={styles.avatarContainer}
-                                onPress={() => item.projectId && onViewProject?.(item.projectId)}
-                                activeOpacity={0.7}
-                            >
-                                <Image
-                                    source={{ uri: item.partnerImage }}
-                                    style={styles.avatar}
-                                />
-                                <View style={styles.groupBadgeOverlay}>
-                                    <Ionicons name="people" size={12} color="white" />
-                                </View>
-                            </TouchableOpacity>
+                            <Image
+                                source={{ uri: item.partnerImage }}
+                                style={styles.avatar}
+                            />
+                            <View style={styles.groupBadgeOverlay}>
+                                <Ionicons name="people" size={12} color="white" />
+                            </View>
+                        </TouchableOpacity>
 
-                            {/* Content */}
-                            <View style={styles.content}>
-                                <View style={styles.topRow}>
-                                    <View style={styles.nameContainer}>
-                                        <Text style={styles.name}>{item.partnerName}</Text>
-                                    </View>
-                                    <Text style={styles.timestamp}>{item.timestamp}</Text>
+                        {/* Content */}
+                        <View style={styles.content}>
+                            <View style={styles.topRow}>
+                                <View style={styles.nameContainer}>
+                                    <Text style={styles.name}>{item.partnerName}</Text>
                                 </View>
-
-                                <View style={styles.messageRow}>
-                                    <Text style={styles.lastMessage} numberOfLines={1}>
-                                        {item.lastMessage}
-                                    </Text>
-                                </View>
+                                <Text style={styles.timestamp}>{item.timestamp}</Text>
                             </View>
 
-                            {item.unreadCount > 0 ? (
-                                <View style={styles.unreadBadge}>
-                                    <Text style={styles.unreadText}>{item.unreadCount}</Text>
-                                </View>
-                            ) : (
-                                <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
-                            )}
-                        </TouchableOpacity>
-                    )}
-                    contentContainerStyle={styles.listContent}
-                    refreshControl={
-                        <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                    }
-                />
-            );
-        } else {
-            return (
-                <EmptyState
-                    variant="chat"
-                    icon="people-outline"
-                    title="まだチームチャットがありません"
-                    description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
-                />
-            );
-        }
-    };
-
-    if (loading) {
-        return (
-            <View style={styles.container}>
-                {/* Header */}
-                <View style={styles.header}>
-                    <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
-                        <View style={styles.tabContainer}>
-                            <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
-                                <View style={styles.tabLabelRow}>
-                                    <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
-                                    {teamUnreadTotal > 0 && (
-                                        <View style={styles.tabBadge}>
-                                            <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.tabButton}>
-                                <View style={styles.tabLabelRow}>
-                                    <Text style={styles.tabText}>個人</Text>
-                                    {individualUnreadTotal > 0 && (
-                                        <View style={styles.tabBadge}>
-                                            <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            </TouchableOpacity>
+                            <View style={styles.messageRow}>
+                                <Text style={styles.lastMessage} numberOfLines={1}>
+                                    {item.lastMessage}
+                                </Text>
+                            </View>
                         </View>
-                    </View>
-                </View>
-                <ChatListSkeleton count={6} />
-            </View>
+
+                        {item.unreadCount > 0 ? (
+                            <View style={styles.unreadBadge}>
+                                <Text style={styles.unreadText}>{item.unreadCount}</Text>
+                            </View>
+                        ) : (
+                            <Ionicons name="chevron-forward" size={20} color="#9ca3af" style={styles.chevronIcon} />
+                        )}
+                    </TouchableOpacity>
+                )}
+                contentContainerStyle={styles.listContent}
+                refreshControl={
+                    <SimpleRefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
+            />
+        );
+    } else {
+        return (
+            <EmptyState
+                variant="chat"
+                icon="people-outline"
+                title="まだチームチャットがありません"
+                description="2人以上のメンバーが承認されると、自動的にチームチャットが作成されます"
+            />
         );
     }
+};
 
+if (loading) {
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
                     <View style={styles.tabContainer}>
-                        <TouchableOpacity
-                            style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
-                            onPress={() => {
-                                setTalkTab('team');
-                                talkListRef.current?.scrollToIndex({ index: 0, animated: true });
-                            }}
-                        >
+                        <TouchableOpacity style={[styles.tabButton, styles.tabButtonActive]}>
                             <View style={styles.tabLabelRow}>
-                                <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                                <Text style={[styles.tabText, styles.tabTextActive]}>チーム</Text>
                                 {teamUnreadTotal > 0 && (
                                     <View style={styles.tabBadge}>
                                         <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
@@ -506,15 +478,9 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                                 )}
                             </View>
                         </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
-                            onPress={() => {
-                                setTalkTab('individual');
-                                talkListRef.current?.scrollToIndex({ index: 1, animated: true });
-                            }}
-                        >
+                        <TouchableOpacity style={styles.tabButton}>
                             <View style={styles.tabLabelRow}>
-                                <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                                <Text style={styles.tabText}>個人</Text>
                                 {individualUnreadTotal > 0 && (
                                     <View style={styles.tabBadge}>
                                         <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
@@ -525,31 +491,77 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
                     </View>
                 </View>
             </View>
-
-            {/* Content */}
-            <FlatList
-                ref={talkListRef}
-                data={['team', 'individual']}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                keyExtractor={(item) => item}
-                onMomentumScrollEnd={(e) => {
-                    const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
-                    setTalkTab(index === 0 ? 'team' : 'individual');
-                }}
-                getItemLayout={(data, index) => (
-                    { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
-                )}
-                initialScrollIndex={0}
-                renderItem={({ item }) => (
-                    <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
-                        {item === 'team' ? renderTeamList() : renderIndividualList()}
-                    </View>
-                )}
-            />
+            <ChatListSkeleton count={6} />
         </View>
     );
+}
+
+return (
+    <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+            <View style={{ width: '100%', paddingTop: insets.top + 16, paddingBottom: 8, alignItems: 'center', backgroundColor: 'white' }}>
+                <View style={styles.tabContainer}>
+                    <TouchableOpacity
+                        style={[styles.tabButton, talkTab === 'team' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setTalkTab('team');
+                            talkListRef.current?.scrollToIndex({ index: 0, animated: true });
+                        }}
+                    >
+                        <View style={styles.tabLabelRow}>
+                            <Text style={[styles.tabText, talkTab === 'team' && styles.tabTextActive]}>チーム</Text>
+                            {teamUnreadTotal > 0 && (
+                                <View style={styles.tabBadge}>
+                                    <Text style={styles.tabBadgeText}>{teamUnreadTotal}</Text>
+                                </View>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={[styles.tabButton, talkTab === 'individual' && styles.tabButtonActive]}
+                        onPress={() => {
+                            setTalkTab('individual');
+                            talkListRef.current?.scrollToIndex({ index: 1, animated: true });
+                        }}
+                    >
+                        <View style={styles.tabLabelRow}>
+                            <Text style={[styles.tabText, talkTab === 'individual' && styles.tabTextActive]}>個人</Text>
+                            {individualUnreadTotal > 0 && (
+                                <View style={styles.tabBadge}>
+                                    <Text style={styles.tabBadgeText}>{individualUnreadTotal}</Text>
+                                </View>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </View>
+
+        {/* Content */}
+        <FlatList
+            ref={talkListRef}
+            data={['team', 'individual']}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item}
+            onMomentumScrollEnd={(e) => {
+                const index = Math.round(e.nativeEvent.contentOffset.x / Dimensions.get('window').width);
+                setTalkTab(index === 0 ? 'team' : 'individual');
+            }}
+            getItemLayout={(data, index) => (
+                { length: Dimensions.get('window').width, offset: Dimensions.get('window').width * index, index }
+            )}
+            initialScrollIndex={0}
+            renderItem={({ item }) => (
+                <View style={{ width: Dimensions.get('window').width, flex: 1 }}>
+                    {item === 'team' ? renderTeamList() : renderIndividualList()}
+                </View>
+            )}
+        />
+    </View>
+);
 }
 
 const styles = StyleSheet.create({
