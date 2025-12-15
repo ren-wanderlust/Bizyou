@@ -70,15 +70,9 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             })
             .subscribe();
 
-        // Polling fallback for reliability (every 5 seconds)
-        const pollInterval = setInterval(() => {
-            fetchChatRooms();
-        }, 5000);
-
         return () => {
             supabase.removeChannel(messageSubscription);
             supabase.removeChannel(likesSubscription);
-            clearInterval(pollInterval);
         };
     }, []);
 

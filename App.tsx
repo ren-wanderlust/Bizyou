@@ -306,8 +306,8 @@ function AppContent() {
           company: profileData.company,
           grade: profileData.grade || '',
           image: profileData.image,
-          challengeTheme: profileData.theme || '',
-          theme: profileData.theme || '',
+          challengeTheme: '',
+          theme: '',
           bio: profileData.bio,
           skills: profileData.skills || [],
           seekingFor: profileData.seeking_for || [],
@@ -367,13 +367,8 @@ function AppContent() {
       })
       .subscribe();
 
-    const interval = setInterval(() => {
-      fetchPendingApps();
-    }, 5000);
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [session?.user]);
 
@@ -485,11 +480,8 @@ function AppContent() {
       })
       .subscribe();
 
-    const interval = setInterval(fetchUnreadMessages, 3000); // Poll every 3s for responsiveness
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [session?.user]);
 
@@ -588,12 +580,9 @@ function AppContent() {
       })
       .subscribe();
 
-    const interval = setInterval(fetchUnreadLikes, 5000); // Poll every 5s
-
     return () => {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(applicationsChannel);
-      clearInterval(interval);
     };
   }, [session?.user]);
 
@@ -632,11 +621,8 @@ function AppContent() {
       })
       .subscribe();
 
-    const interval = setInterval(fetchUnreadNotifications, 5000); // Poll every 5s
-
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(interval);
     };
   }, [session?.user, fetchUnreadNotifications]);
 
@@ -760,8 +746,8 @@ function AppContent() {
           company: data.company,
           grade: data.grade || '',
           image: data.image,
-          challengeTheme: data.theme || '',
-          theme: data.theme || '',
+          challengeTheme: '',
+          theme: '',
           bio: data.bio,
           skills: data.skills || [],
           seekingFor: data.seeking_for || [],
@@ -848,8 +834,8 @@ function AppContent() {
               company: senderProfile.company,
               grade: senderProfile.grade || '',
               image: senderProfile.image,
-              challengeTheme: senderProfile.theme || '',
-              theme: senderProfile.theme || '',
+              challengeTheme: '',
+              theme: '',
               bio: senderProfile.bio,
               skills: senderProfile.skills || [],
               seekingFor: senderProfile.seeking_for || [],
@@ -1089,8 +1075,8 @@ function AppContent() {
                 company: profileData.company,
                 grade: profileData.grade || '',
                 image: profileData.image,
-                challengeTheme: profileData.theme || '',
-                theme: profileData.theme || '',
+                challengeTheme: '',
+                theme: '',
                 bio: profileData.bio,
                 skills: profileData.skills || [],
                 seekingFor: profileData.seeking_for || [],
@@ -1507,8 +1493,8 @@ function AppContent() {
                           company: data.company,
                           grade: data.grade || '',
                           image: data.image,
-                          challengeTheme: data.theme || '',
-                          theme: data.theme || '',
+                          challengeTheme: '',
+                          theme: '',
                           bio: data.bio,
                           skills: data.skills || [],
                           seekingFor: data.seeking_for || [],
@@ -1653,8 +1639,8 @@ function AppContent() {
                               company: data.company,
                               grade: data.grade || '',
                               image: data.image,
-                              challengeTheme: data.theme || '',
-                              theme: data.theme || '',
+                              challengeTheme: '',
+                              theme: '',
                               bio: data.bio,
                               skills: data.skills || [],
                               seekingFor: data.seeking_for || [],
@@ -1688,8 +1674,8 @@ function AppContent() {
                               company: data.company,
                               grade: data.grade || '',
                               image: data.image,
-                              challengeTheme: data.theme || '',
-                              theme: data.theme || '',
+                              challengeTheme: '',
+                              theme: '',
                               bio: data.bio,
                               skills: data.skills || [],
                               seekingFor: data.seeking_for || [],
