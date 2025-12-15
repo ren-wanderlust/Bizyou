@@ -291,38 +291,31 @@ function AppContent() {
         }
       });
 
-      // Fetch ALL unviewed matches
+      // Fetch ALL unviewed matches (✅ Optimized: Single batch query instead of N+1)
       if (newMatches.length > 0) {
-        const matchProfiles: Profile[] = [];
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', newMatches);
 
-        for (const matchId of newMatches) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', matchId)
-            .single();
-
-          if (profileData) {
-            matchProfiles.push({
-              id: profileData.id,
-              name: profileData.name,
-              age: profileData.age,
-              university: profileData.university,
-              company: profileData.company,
-              grade: profileData.grade || '',
-              image: profileData.image,
-              challengeTheme: profileData.challenge_theme || '',
-              theme: profileData.theme || '',
-              bio: profileData.bio,
-              skills: profileData.skills || [],
-              seekingFor: profileData.seeking_for || [],
-              seekingRoles: profileData.seeking_roles || [],
-              statusTags: profileData.status_tags || [],
-              isStudent: profileData.is_student,
-              createdAt: profileData.created_at,
-            });
-          }
-        }
+        const matchProfiles: Profile[] = (profilesData || []).map((profileData: any) => ({
+          id: profileData.id,
+          name: profileData.name,
+          age: profileData.age,
+          university: profileData.university,
+          company: profileData.company,
+          grade: profileData.grade || '',
+          image: profileData.image,
+          challengeTheme: profileData.challenge_theme || '',
+          theme: profileData.theme || '',
+          bio: profileData.bio,
+          skills: profileData.skills || [],
+          seekingFor: profileData.seeking_for || [],
+          seekingRoles: profileData.seeking_roles || [],
+          statusTags: profileData.status_tags || [],
+          isStudent: profileData.is_student,
+          createdAt: profileData.created_at,
+        }));
 
         // Add all matches to the pending queue
         if (matchProfiles.length > 0) {
@@ -424,27 +417,51 @@ function AppContent() {
             .in('project_id', Array.from(memberProjectIds));
 
           if (groups && groups.length > 0) {
-            const groupPromises = groups.map(async (group: any) => {
-              // Get last read time from database
-              const { data: readStatus } = await supabase
-                .from('chat_room_read_status')
-                .select('last_read_at')
-                .eq('user_id', session.user.id)
-                .eq('chat_room_id', group.id)
-                .single();
+            const groupIds = groups.map((g: any) => g.id);
 
-              const lastReadTime = readStatus?.last_read_at || '1970-01-01';
+            // ✅ Batch Query 1: Fetch read statuses for all groups at once
+            const { data: readStatuses } = await supabase
+              .from('chat_room_read_status')
+              .select('chat_room_id, last_read_at')
+              .eq('user_id', session.user.id)
+              .in('chat_room_id', groupIds);
 
-              const { count } = await supabase
-                .from('messages')
-                .select('id', { count: 'exact', head: true })
-                .eq('chat_room_id', group.id)
-                .gt('created_at', lastReadTime)
-                .neq('sender_id', session.user.id);
-              return count || 0;
+            const readStatusByRoom = new Map<string, string>();
+            readStatuses?.forEach((status: any) => {
+              readStatusByRoom.set(status.chat_room_id, status.last_read_at);
             });
-            const counts = await Promise.all(groupPromises);
-            groupCount = counts.reduce((a, b) => a + b, 0);
+
+            // ✅ Batch Query 2: Fetch unread messages for all groups at once
+            const allLastReadTimes = Array.from(readStatusByRoom.values());
+            const globalMinLastRead =
+              allLastReadTimes.length > 0
+                ? allLastReadTimes.reduce(
+                    (min, current) =>
+                      new Date(current).getTime() < new Date(min).getTime() ? current : min,
+                    allLastReadTimes[0]
+                  )
+                : '1970-01-01';
+
+            const { data: unreadMessages } = await supabase
+              .from('messages')
+              .select('chat_room_id, created_at, sender_id')
+              .in('chat_room_id', groupIds)
+              .gt('created_at', globalMinLastRead)
+              .neq('sender_id', session.user.id);
+
+            // Count unread messages per room on client side
+            const unreadCountByRoom = new Map<string, number>();
+            unreadMessages?.forEach((msg: any) => {
+              const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
+              if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
+                unreadCountByRoom.set(
+                  msg.chat_room_id,
+                  (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
+                );
+              }
+            });
+
+            groupCount = Array.from(unreadCountByRoom.values()).reduce((a, b) => a + b, 0);
           }
         }
 
@@ -663,27 +680,51 @@ function AppContent() {
               .in('project_id', Array.from(memberProjectIds));
 
             if (groups && groups.length > 0) {
-              const groupPromises = groups.map(async (group: any) => {
-                // Get last read time from database
-                const { data: readStatus } = await supabase
-                  .from('chat_room_read_status')
-                  .select('last_read_at')
-                  .eq('user_id', session.user.id)
-                  .eq('chat_room_id', group.id)
-                  .single();
+              const groupIds = groups.map((g: any) => g.id);
 
-                const lastReadTime = readStatus?.last_read_at || '1970-01-01';
+              // ✅ Batch Query 1: Fetch read statuses for all groups at once
+              const { data: readStatuses } = await supabase
+                .from('chat_room_read_status')
+                .select('chat_room_id, last_read_at')
+                .eq('user_id', session.user.id)
+                .in('chat_room_id', groupIds);
 
-                const { count } = await supabase
-                  .from('messages')
-                  .select('id', { count: 'exact', head: true })
-                  .eq('chat_room_id', group.id)
-                  .gt('created_at', lastReadTime)
-                  .neq('sender_id', session.user.id);
-                return count || 0;
+              const readStatusByRoom = new Map<string, string>();
+              readStatuses?.forEach((status: any) => {
+                readStatusByRoom.set(status.chat_room_id, status.last_read_at);
               });
-              const counts = await Promise.all(groupPromises);
-              groupCount = counts.reduce((a, b) => a + b, 0);
+
+              // ✅ Batch Query 2: Fetch unread messages for all groups at once
+              const allLastReadTimes = Array.from(readStatusByRoom.values());
+              const globalMinLastRead =
+                allLastReadTimes.length > 0
+                  ? allLastReadTimes.reduce(
+                      (min, current) =>
+                        new Date(current).getTime() < new Date(min).getTime() ? current : min,
+                      allLastReadTimes[0]
+                    )
+                  : '1970-01-01';
+
+              const { data: unreadMessages } = await supabase
+                .from('messages')
+                .select('chat_room_id, created_at, sender_id')
+                .in('chat_room_id', groupIds)
+                .gt('created_at', globalMinLastRead)
+                .neq('sender_id', session.user.id);
+
+              // Count unread messages per room on client side
+              const unreadCountByRoom = new Map<string, number>();
+              unreadMessages?.forEach((msg: any) => {
+                const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
+                if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
+                  unreadCountByRoom.set(
+                    msg.chat_room_id,
+                    (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
+                  );
+                }
+              });
+
+              groupCount = Array.from(unreadCountByRoom.values()).reduce((a, b) => a + b, 0);
             }
           }
 
