@@ -236,26 +236,25 @@ function AppContent() {
   const fetchMatches = async () => {
     if (!session?.user) return;
     try {
+      // 1. 相互いいねの相手IDを RPC で取得
+      const { data: matchRows, error: matchError } = await supabase.rpc('get_my_matches', {
+        p_user_id: session.user.id,
+      });
+      if (matchError) throw matchError;
+
+      const matchIds = new Set<string>(
+        (matchRows || []).map((row: { match_id: string }) => row.match_id)
+      );
+      setMatchedProfileIds(matchIds);
+
+      // 2. 「自分が送ったいいね」の一覧（LikedProfiles）は1クエリで取得
       const { data: myLikes } = await supabase
         .from('likes')
         .select('receiver_id')
         .eq('sender_id', session.user.id);
 
-      const { data: receivedLikes } = await supabase
-        .from('likes')
-        .select('sender_id')
-        .eq('receiver_id', session.user.id);
-
       const myLikedIdsSet = new Set(myLikes?.map(l => l.receiver_id) || []);
       setLikedProfiles(myLikedIdsSet);
-
-      const matches = new Set<string>();
-      receivedLikes?.forEach(l => {
-        if (myLikedIdsSet.has(l.sender_id)) {
-          matches.add(l.sender_id);
-        }
-      });
-      setMatchedProfileIds(matches);
     } catch (error) {
       console.error('Error fetching matches:', error);
     }
