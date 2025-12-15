@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Profile } from '../types';
+import { mapProfileRowToProfile } from '../utils/profileMapper';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -138,24 +139,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     // Map profiles directly from the joined data
                     const mappedProfiles: Profile[] = likes
                         .filter(like => like.sender) // Filter out any likes without sender data
-                        .map((like: any) => ({
-                            id: like.sender.id,
-                            name: like.sender.name,
-                            age: like.sender.age,
-                            university: like.sender.university,
-                            company: like.sender.company,
-                            grade: like.sender.grade || '',
-                            image: like.sender.image,
-                            challengeTheme: like.sender.challenge_theme || '',
-                            theme: like.sender.theme || '',
-                            bio: like.sender.bio,
-                            skills: like.sender.skills || [],
-                            seekingFor: like.sender.seeking_for || [],
-                            seekingRoles: like.sender.seeking_roles || [],
-                            statusTags: like.sender.status_tags || [],
-                            isStudent: like.sender.is_student,
-                            createdAt: like.sender.created_at,
-                        }));
+                        .map((like: any) => mapProfileRowToProfile(like.sender));
 
                     setReceivedLikes(mappedProfiles);
                 } else {
@@ -311,24 +295,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .single();
 
             if (data && !error) {
-                setCurrentUserProfile({
-                    id: data.id,
-                    name: data.name,
-                    age: data.age,
-                    university: data.university,
-                    company: data.company,
-                    grade: data.grade || '',
-                    image: data.image,
-                    challengeTheme: data.theme || '',
-                    theme: data.theme || '',
-                    bio: data.bio,
-                    skills: data.skills || [],
-                    seekingFor: data.seeking_for || [],
-                    seekingRoles: data.seeking_roles || [],
-                    statusTags: data.status_tags || [],
-                    isStudent: data.is_student,
-                    createdAt: data.created_at,
-                });
+                setCurrentUserProfile(mapProfileRowToProfile(data));
             }
         };
 

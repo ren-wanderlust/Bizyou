@@ -34,6 +34,7 @@ import { MatchingModal } from './components/MatchingModal';
 import { UserProjectPage } from './components/UserProjectPage';
 import { UsersEmptyState } from './components/EmptyState';
 import { Profile } from './types';
+import { mapProfileRowToProfile } from './utils/profileMapper';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';
 import { Alert } from 'react-native';
@@ -186,24 +187,9 @@ function AppContent() {
       if (error) throw error;
 
       if (data) {
-        const mappedProfiles: Profile[] = data.map((item: any) => ({
-          id: item.id,
-          name: item.name,
-          age: item.age,
-          university: item.university,
-          company: item.company,
-          grade: item.grade || '',
-          image: item.image,
-          challengeTheme: item.challenge_theme || '',
-          theme: item.theme || '',
-          bio: item.bio,
-          skills: item.skills || [],
-          seekingFor: item.seeking_for || [],
-          seekingRoles: item.seeking_roles || [],
-          statusTags: item.status_tags || [],
-          isStudent: item.is_student,
-          createdAt: item.created_at,
-        }));
+        const mappedProfiles: Profile[] = data.map((item: any) =>
+          mapProfileRowToProfile(item)
+        );
 
         if (shouldRefresh) {
           setDisplayProfiles(mappedProfiles);
@@ -297,24 +283,9 @@ function AppContent() {
           .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
           .in('id', newMatches);
 
-        const matchProfiles: Profile[] = (profilesData || []).map((profileData: any) => ({
-          id: profileData.id,
-          name: profileData.name,
-          age: profileData.age,
-          university: profileData.university,
-          company: profileData.company,
-          grade: profileData.grade || '',
-          image: profileData.image,
-          challengeTheme: '',
-          theme: '',
-          bio: profileData.bio,
-          skills: profileData.skills || [],
-          seekingFor: profileData.seeking_for || [],
-          seekingRoles: profileData.seeking_roles || [],
-          statusTags: profileData.status_tags || [],
-          isStudent: profileData.is_student,
-          createdAt: profileData.created_at,
-        }));
+        const matchProfiles: Profile[] = (profilesData || []).map((profileData: any) =>
+          mapProfileRowToProfile(profileData)
+        );
 
         // Add all matches to the pending queue
         if (matchProfiles.length > 0) {
