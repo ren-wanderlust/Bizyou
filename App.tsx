@@ -372,112 +372,47 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  // Fetch unread messages count (Individual + Group)
+  // Fetch unread messages count (Individual + Group) via RPC
   React.useEffect(() => {
     if (!session?.user) return;
+
     const fetchUnreadMessages = async () => {
       try {
-        // 1. Individual Chats (DB is_read) - only DMs (not group messages)
-        const { count: dmCount, error: dmError } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('receiver_id', session.user.id)
-          .is('chat_room_id', null)  // Exclude group messages
-          .or('is_read.is.null,is_read.eq.false');  // Unread messages
+        const { data, error } = await supabase.rpc('get_unread_message_count', {
+          p_user_id: session.user.id,
+        });
 
-        // 2. Group Chats (Local Storage Time) - only count groups where user is a member
-        // First, get groups where user is owner or approved member
-        const { data: ownedProjects } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('owner_id', session.user.id);
-
-        const { data: approvedApps } = await supabase
-          .from('project_applications')
-          .select('project_id')
-          .eq('user_id', session.user.id)
-          .eq('status', 'approved');
-
-        const memberProjectIds = new Set<string>();
-        ownedProjects?.forEach((p: any) => memberProjectIds.add(p.id));
-        approvedApps?.forEach((a: any) => memberProjectIds.add(a.project_id));
-
-        // Get group chat rooms for these projects
-        let groupCount = 0;
-        if (memberProjectIds.size > 0) {
-          const { data: groups } = await supabase
-            .from('chat_rooms')
-            .select('id, project_id')
-            .eq('type', 'group')
-            .in('project_id', Array.from(memberProjectIds));
-
-          if (groups && groups.length > 0) {
-            const groupIds = groups.map((g: any) => g.id);
-
-            // ✅ Batch Query 1: Fetch read statuses for all groups at once
-            const { data: readStatuses } = await supabase
-              .from('chat_room_read_status')
-              .select('chat_room_id, last_read_at')
-              .eq('user_id', session.user.id)
-              .in('chat_room_id', groupIds);
-
-            const readStatusByRoom = new Map<string, string>();
-            readStatuses?.forEach((status: any) => {
-              readStatusByRoom.set(status.chat_room_id, status.last_read_at);
-            });
-
-            // ✅ Batch Query 2: Fetch unread messages for all groups at once
-            const allLastReadTimes = Array.from(readStatusByRoom.values());
-            const globalMinLastRead =
-              allLastReadTimes.length > 0
-                ? allLastReadTimes.reduce(
-                    (min, current) =>
-                      new Date(current).getTime() < new Date(min).getTime() ? current : min,
-                    allLastReadTimes[0]
-                  )
-                : '1970-01-01';
-
-            const { data: unreadMessages } = await supabase
-              .from('messages')
-              .select('chat_room_id, created_at, sender_id')
-              .in('chat_room_id', groupIds)
-              .gt('created_at', globalMinLastRead)
-              .neq('sender_id', session.user.id);
-
-            // Count unread messages per room on client side
-            const unreadCountByRoom = new Map<string, number>();
-            unreadMessages?.forEach((msg: any) => {
-              const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
-              if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
-                unreadCountByRoom.set(
-                  msg.chat_room_id,
-                  (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
-                );
-              }
-            });
-
-            groupCount = Array.from(unreadCountByRoom.values()).reduce((a, b) => a + b, 0);
-          }
+        if (error) {
+          console.log('Error fetching unread messages via RPC:', error);
+          return;
         }
 
-        if (!dmError) {
-          setUnreadMessagesCount((dmCount || 0) + groupCount);
-        }
+        setUnreadMessagesCount(data ?? 0);
       } catch (e) {
-        console.log('Error fetching unread messages:', e);
+        console.log('Error fetching unread messages via RPC:', e);
       }
     };
 
+    // 初回取得
     fetchUnreadMessages();
 
-    // Subscribe to messages (Insert and Update)
-    const channel = supabase.channel('unread_messages_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => {
-        fetchUnreadMessages();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, () => {
-        fetchUnreadMessages(); // Listen for ALL updates (including is_read changes)
-      })
+    // Subscribe to messages (Insert and Update) and refresh via RPC
+    const channel = supabase
+      .channel(`unread_messages_${session.user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadMessages();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        () => {
+          fetchUnreadMessages(); // is_read 変更も含めて同期
+        }
+      )
       .subscribe();
 
     return () => {
