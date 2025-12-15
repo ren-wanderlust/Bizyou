@@ -306,7 +306,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
             const { data, error } = await supabase
                 .from('profiles')
-                .select('id, name, age, university, company, grade, image, challenge_theme, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
+                .select('id, name, age, university, company, grade, image, theme, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at')
                 .eq('id', session.user.id)
                 .single();
 
@@ -319,7 +319,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     company: data.company,
                     grade: data.grade || '',
                     image: data.image,
-                    challengeTheme: data.challenge_theme || '',
+                    challengeTheme: data.theme || '',
                     theme: data.theme || '',
                     bio: data.bio,
                     skills: data.skills || [],
