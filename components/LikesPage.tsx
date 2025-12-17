@@ -8,40 +8,18 @@ import { mapProfileRowToProfile } from '../utils/profileMapper';
 import { ProfileCard } from './ProfileCard';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { useReceivedLikes } from '../data/hooks/useReceivedLikes';
+import { useProjectApplications } from '../data/hooks/useProjectApplications';
+import { queryKeys } from '../data/queryKeys';
 import { ProfileListSkeleton, ProjectListSkeleton } from './Skeleton';
 import { LikesEmptyState } from './EmptyState';
 import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 
-interface Project {
-    id: string;
-    title: string;
-    description: string;
-    image_url: string | null;
-    owner_id: string;
-    created_at: string;
-    deadline?: string | null;
-    required_roles?: string[];
-    tags?: string[];
-    owner?: {
-        id: string;
-        name: string;
-        image: string;
-        university: string;
-    };
-}
-
-interface Application {
-    id: string;
-    user_id: string;
-    project_id: string;
-    status: 'pending' | 'approved' | 'rejected';
-    created_at: string;
-    is_read?: boolean;
-    user?: Profile;
-    project?: Project;
-}
+// Project型とApplication型はdata/apiからインポート
+import { Application } from '../data/api/applications';
 
 interface LikesPageProps {
     likedProfileIds: Set<string>;
@@ -65,223 +43,29 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
     // Project sub-tabs
     const [projectTab, setProjectTab] = useState<'recruiting' | 'applied'>('recruiting');
 
-    // User data
-    const [receivedLikes, setReceivedLikes] = useState<Profile[]>([]);
-    const [unreadInterestIds, setUnreadInterestIds] = useState<Set<string>>(new Set());
-    const [unreadMatchIds, setUnreadMatchIds] = useState<Set<string>>(new Set());
-    const [loadingUser, setLoadingUser] = useState(true);
-
-    // Project data
-    const [recruitingApplications, setRecruitingApplications] = useState<Application[]>([]);
-    const [appliedApplications, setAppliedApplications] = useState<Application[]>([]);
-    const [unreadRecruitingIds, setUnreadRecruitingIds] = useState<Set<string>>(new Set()); // Track unread applications by id
-    const [loadingProject, setLoadingProject] = useState(true);
-
     // Selected project for detail view
     const [selectedProject, setSelectedProject] = useState<any>(null);
     const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
+    const queryClient = useQueryClient();
 
     const userListRef = useRef<FlatList>(null);
     const projectListRef = useRef<FlatList>(null);
 
-    // Fetch user likes data
-    useEffect(() => {
-        const fetchReceivedLikes = async () => {
-            if (!session?.user) {
-                setLoadingUser(false);
-                return;
-            }
+    // React Query hooks
+    const receivedLikesQuery = useReceivedLikes(session?.user?.id);
+    const projectApplicationsQuery = useProjectApplications(session?.user?.id);
 
-            try {
-                // ✅ Optimized: Single query with JOIN using Supabase relations
-                const { data: likes, error } = await supabase
-                    .from('likes')
-                    .select(`
-                        sender_id,
-                        is_read,
-                        is_read_as_match,
-                        sender:profiles!sender_id (
-                            id,
-                            name,
-                            age,
-                            university,
-                            company,
-                            grade,
-                            image,
-                            bio,
-                            skills,
-                            seeking_for,
-                            seeking_roles,
-                            status_tags,
-                            is_student,
-                            created_at
-                        )
-                    `)
-                    .eq('receiver_id', session.user.id);
+    // User data from React Query
+    const receivedLikes: Profile[] = receivedLikesQuery.data?.profiles || [];
+    const unreadInterestIds: Set<string> = receivedLikesQuery.data?.unreadInterestIds || new Set();
+    const unreadMatchIds: Set<string> = receivedLikesQuery.data?.unreadMatchIds || new Set();
+    const loadingUser = receivedLikesQuery.isLoading;
 
-                if (error) {
-                    console.error('Error fetching received likes:', error);
-                    return;
-                }
-
-                if (likes && likes.length > 0) {
-                    // Extract unread IDs
-                    const unreadInterest = new Set<string>(
-                        likes.filter(l => !l.is_read).map(l => l.sender_id)
-                    );
-                    setUnreadInterestIds(unreadInterest);
-
-                    const unreadMatch = new Set<string>(
-                        likes.filter(l => !l.is_read_as_match).map(l => l.sender_id)
-                    );
-                    setUnreadMatchIds(unreadMatch);
-
-                    // Map profiles directly from the joined data
-                    const mappedProfiles: Profile[] = likes
-                        .filter(like => like.sender) // Filter out any likes without sender data
-                        .map((like: any) => mapProfileRowToProfile(like.sender));
-
-                    setReceivedLikes(mappedProfiles);
-                } else {
-                    setReceivedLikes([]);
-                    setUnreadInterestIds(new Set());
-                    setUnreadMatchIds(new Set());
-                }
-            } catch (error) {
-                console.error('Error in fetchReceivedLikes:', error);
-            } finally {
-                setLoadingUser(false);
-            }
-        };
-
-        fetchReceivedLikes();
-    }, [session]);
-
-    // Fetch project applications data
-    useEffect(() => {
-        const fetchProjectApplications = async () => {
-            if (!session?.user) {
-                setLoadingProject(false);
-                return;
-            }
-
-            try {
-                // 1. Fetch applications to my projects (募集)
-                const { data: myProjects } = await supabase
-                    .from('projects')
-                    .select('id')
-                    .eq('owner_id', session.user.id);
-
-                const myProjectIds = myProjects?.map(p => p.id) || [];
-
-                if (myProjectIds.length > 0) {
-                    const { data: recruiting, error: recruitingError } = await supabase
-                        .from('project_applications')
-                        .select(`
-                            *,
-                            user:profiles!user_id (*),
-                            project:projects!project_id (
-                                id,
-                                title
-                            )
-                        `)
-                        .in('project_id', myProjectIds)
-                        .order('created_at', { ascending: false });
-
-                    if (recruitingError) {
-                        console.error('Error fetching recruiting applications:', recruitingError);
-                    } else if (recruiting) {
-                        // Track unread applications (pending only)
-                        const unreadIds = new Set<string>(
-                            recruiting
-                                .filter((app: any) => app.status === 'pending' && !app.is_read)
-                                .map((app: any) => app.id)
-                        );
-                        setUnreadRecruitingIds(unreadIds);
-
-                        const mappedRecruiting = recruiting.map((app: any) => ({
-                            id: app.id,
-                            user_id: app.user_id,
-                            project_id: app.project_id,
-                            status: app.status,
-                            created_at: app.created_at,
-                            is_read: app.is_read,
-                            user: app.user ? {
-                                id: app.user.id,
-                                name: app.user.name,
-                                age: app.user.age,
-                                university: app.user.university,
-                                company: app.user.company,
-                                grade: app.user.grade || '',
-                                image: app.user.image,
-                                challengeTheme: app.user.challenge_theme || '',
-                                theme: app.user.theme || '',
-                                bio: app.user.bio,
-                                skills: app.user.skills || [],
-                                seekingFor: app.user.seeking_for || [],
-                                seekingRoles: app.user.seeking_roles || [],
-                                statusTags: app.user.status_tags || [],
-                                isStudent: app.user.is_student,
-                                createdAt: app.user.created_at,
-                            } : undefined,
-                            project: app.project,
-                        }));
-                        setRecruitingApplications(mappedRecruiting);
-                    }
-                }
-
-                // 2. Fetch my applications (応募)
-                const { data: applied, error: appliedError } = await supabase
-                    .from('project_applications')
-                    .select(`
-                        id,
-                        user_id,
-                        project_id,
-                        status,
-                        created_at,
-                        project:projects!project_id (
-                            id,
-                            title,
-                            description,
-                            image_url,
-                            owner_id,
-                            created_at,
-                            deadline,
-                            required_roles,
-                            tags,
-                            owner:profiles!owner_id (
-                                id,
-                                name,
-                                image,
-                                university
-                            )
-                        )
-                    `)
-                    .eq('user_id', session.user.id)
-                    .order('created_at', { ascending: false });
-
-                if (appliedError) {
-                    console.error('Error fetching applied applications:', appliedError);
-                } else if (applied) {
-                    const mappedApplied = applied.map((app: any) => ({
-                        id: app.id,
-                        user_id: app.user_id,
-                        project_id: app.project_id,
-                        status: app.status,
-                        created_at: app.created_at,
-                        project: app.project,
-                    }));
-                    setAppliedApplications(mappedApplied);
-                }
-            } catch (error) {
-                console.error('Error fetching project applications:', error);
-            } finally {
-                setLoadingProject(false);
-            }
-        };
-
-        fetchProjectApplications();
-    }, [session]);
+    // Project data from React Query
+    const recruitingApplications: Application[] = projectApplicationsQuery.data?.recruiting || [];
+    const appliedApplications: Application[] = projectApplicationsQuery.data?.applied || [];
+    const unreadRecruitingIds: Set<string> = projectApplicationsQuery.data?.unreadRecruitingIds || new Set();
+    const loadingProject = projectApplicationsQuery.isLoading;
 
     // Fetch current user profile
     useEffect(() => {
@@ -338,11 +122,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .eq('receiver_id', session.user.id)
                 .eq('sender_id', senderId);
 
-            setUnreadInterestIds(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(senderId);
-                return newSet;
-            });
+            queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
         } catch (error) {
             console.error('Error marking interest as read:', error);
         }
@@ -359,11 +139,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .eq('receiver_id', session.user.id)
                 .eq('sender_id', senderId);
 
-            setUnreadMatchIds(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(senderId);
-                return newSet;
-            });
+            queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
         } catch (error) {
             console.error('Error marking match as read:', error);
         }
@@ -379,11 +155,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                 .update({ is_read: true })
                 .eq('id', applicationId);
 
-            setUnreadRecruitingIds(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(applicationId);
-                return newSet;
-            });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
         } catch (error) {
             console.error('Error marking recruiting application as read:', error);
         }
@@ -409,6 +181,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     // Update applicant status (approve/reject)
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
+        if (!session?.user) return;
+
         try {
             const { error } = await supabase
                 .from('project_applications')
@@ -417,12 +191,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
             if (error) throw error;
 
-            // Update local state
-            setRecruitingApplications(prev =>
-                prev.map(app =>
-                    app.id === applicationId ? { ...app, status: newStatus } : app
-                )
-            );
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
+            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id) });
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '見送り'}しました`);
         } catch (error) {
@@ -483,7 +256,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
             : '';
 
-        const createdDate = new Date(project.created_at);
+        const createdDate = project.created_at ? new Date(project.created_at) : new Date();
+        if (!project.created_at) return null; // created_atがない場合はスキップ
         const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
         const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
 
@@ -1066,6 +840,8 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                             setSelectedProject(null);
                         }}
                         onProjectUpdated={() => {
+                            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session?.user?.id || '') });
+                            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session?.user?.id || '') });
                             // Refresh applied projects
                             setSelectedProject(null);
                         }}

@@ -3,6 +3,9 @@ import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { useQueryClient } from '@tanstack/react-query';
+import { useProjectsList } from '../data/hooks/useProjectsList';
+import { queryKeys } from '../data/queryKeys';
 import { CreateProjectModal } from './CreateProjectModal';
 import { FilterCriteria } from './FilterModal';
 import { ProjectDetail } from './ProjectDetail';
@@ -209,59 +212,21 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
 };
 
 export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended', filterCriteria }: UserProjectPageProps) {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+    const queryClient = useQueryClient();
 
-    const fetchProjects = async () => {
-        try {
-            let query = supabase
-                .from('projects')
-                .select(`
-                    *,
-                    owner:profiles!owner_id (
-                        id,
-                        name,
-                        image,
-                        university
-                    )
-                `)
-                .neq('status', 'closed');
+    // React Query hook
+    const projectsQuery = useProjectsList(sortOrder);
+    const projects: Project[] = projectsQuery.data || [];
+    const loading = projectsQuery.isLoading;
 
-            if (sortOrder === 'deadline') {
-                query = query.order('deadline', { ascending: true });
-            } else {
-                query = query.order('created_at', { ascending: false });
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-
-            if (data) {
-                // Map the data to match the Project interface if necessary
-                // Supabase returns owner as an object or array depending on relation type
-                // Assuming one-to-one or many-to-one, it returns object.
-                setProjects(data as any);
-            }
-        } catch (error) {
-            console.error('Error fetching projects:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchProjects();
-    }, [sortOrder]);
-
-    const onRefresh = useCallback(() => {
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        fetchProjects();
-    }, []);
+        await projectsQuery.refetch();
+        setRefreshing(false);
+    }, [projectsQuery]);
 
     const handleCreatePress = () => {
         if (!currentUser) {
@@ -381,7 +346,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         onClose={() => setShowCreateModal(false)}
                         onCreated={() => {
                             setShowCreateModal(false);
-                            onRefresh();
+                            queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
                         }}
                     />
                 )}
@@ -405,7 +370,7 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                         }}
                         onProjectUpdated={() => {
                             setSelectedProject(null);
-                            onRefresh();
+                            queryClient.invalidateQueries({ queryKey: queryKeys.projects.list(sortOrder) });
                         }}
                     />
                 )}
