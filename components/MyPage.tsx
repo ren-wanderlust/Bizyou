@@ -3,6 +3,9 @@ import { StyleSheet, Text, View, Image, TouchableOpacity, ScrollView, SafeAreaVi
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMyProjects, useParticipatingProjects } from '../data/hooks/useMyProjects';
+import { queryKeys } from '../data/queryKeys';
 import { ProjectDetail } from './ProjectDetail';
 import { HapticTouchable, triggerHaptic } from './HapticButton';
 import { SHADOWS, FONTS } from '../constants/DesignSystem';
@@ -216,113 +219,48 @@ const ProjectCard = ({ project, ownerProfile, onPress }: { project: any; ownerPr
 };
 
 export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, onSettingsPress, onHelpPress, onChat, onBadgeUpdate, onShowOnboarding }: MyPageProps) {
-    const [projects, setProjects] = useState<any[]>([]);
-    const [participatingProjects, setParticipatingProjects] = useState<any[]>([]);
     const [isMenuVisible, setIsMenuVisible] = useState(false);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
-    const [loadingProjects, setLoadingProjects] = useState(true);
-    const [loadingParticipating, setLoadingParticipating] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const [activeTab, setActiveTab] = useState<'myProjects' | 'participatingProjects'>('myProjects');
+    const queryClient = useQueryClient();
 
+    // React Query hooks
+    const myProjectsQuery = useMyProjects(profile.id);
+    const participatingProjectsQuery = useParticipatingProjects(profile.id);
+
+    const projects: any[] = myProjectsQuery.data || [];
+    const participatingProjects: any[] = participatingProjectsQuery.data || [];
+    const loadingProjects = myProjectsQuery.isLoading;
+    const loadingParticipating = participatingProjectsQuery.isLoading;
+
+    // Update badge when projects data changes
     useEffect(() => {
-        fetchMyProjects();
-        fetchParticipatingProjects();
-    }, [profile.id]);
-
-    const fetchMyProjects = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('projects')
-                .select('*')
-                .eq('owner_id', profile.id)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            if (data) {
-                // Fetch pending application counts
-                const projectIds = data.map((p: any) => p.id);
-                if (projectIds.length > 0) {
-                    const { data: apps } = await supabase
-                        .from('project_applications')
-                        .select('project_id')
-                        .in('project_id', projectIds)
-                        .eq('status', 'pending');
-
-                    const counts: { [key: string]: number } = {};
-                    apps?.forEach((app: any) => {
-                        counts[app.project_id] = (counts[app.project_id] || 0) + 1;
-                    });
-
-                    const projectsWithCounts = data.map((p: any) => ({
-                        ...p,
-                        pendingCount: counts[p.id] || 0
-                    }));
-
-                    // Sort by pending count (descending) - projects with more pending apps first
-                    projectsWithCounts.sort((a: any, b: any) => (b.pendingCount || 0) - (a.pendingCount || 0));
-
-                    const totalPending = projectsWithCounts.reduce((sum: number, p: any) => sum + (p.pendingCount || 0), 0);
-                    if (onBadgeUpdate) onBadgeUpdate(totalPending);
-
-                    setProjects(projectsWithCounts);
-                } else {
-                    setProjects(data);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching my projects:', error);
-        } finally {
-            setLoadingProjects(false);
+        if (projects.length > 0 && onBadgeUpdate) {
+            const totalPending = projects.reduce((sum: number, p: any) => sum + (p.pendingCount || 0), 0);
+            onBadgeUpdate(totalPending);
         }
-    };
+    }, [projects, onBadgeUpdate]);
 
-    const fetchParticipatingProjects = async () => {
-        try {
-            // 自分が参加中のプロジェクト（承認済みのみ）を取得
-            const { data, error } = await supabase
-                .from('project_applications')
-                .select(`
-                    id,
-                    status,
-                    project:projects!project_id (
-                        id,
-                        title,
-                        description,
-                        image_url,
-                        owner_id,
-                        created_at,
-                        deadline,
-                        owner:profiles!owner_id (
-                            id,
-                            name,
-                            image,
-                            university
-                        )
-                    )
-                `)
-                .eq('user_id', profile.id)
-                .eq('status', 'approved')  // 承認済みのみ
-                .order('created_at', { ascending: false });
+    // Realtime subscription for projects and project_applications changes
+    useEffect(() => {
+        if (!profile.id) return;
 
-            if (error) throw error;
-            if (data) {
-                // プロジェクト情報を抽出してフラット化
-                const projectsWithStatus = data
-                    .filter((item: any) => item.project)
-                    .map((item: any) => ({
-                        ...item.project,
-                        applicationStatus: item.status,
-                        applicationId: item.id
-                    }));
-                setParticipatingProjects(projectsWithStatus);
-            }
-        } catch (error) {
-            console.error('Error fetching participating projects:', error);
-        } finally {
-            setLoadingParticipating(false);
-        }
-    };
+        const projectsChannel = supabase
+            .channel(`my_projects_${profile.id}`)
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'projects', filter: `owner_id=eq.${profile.id}` }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(profile.id) });
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(profile.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(profile.id) });
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(projectsChannel);
+        };
+    }, [profile.id, queryClient]);
 
     const handleDeleteAccount = async () => {
         setIsDeleting(true);
@@ -577,7 +515,7 @@ export function MyPage({ profile, onLogout, onEditProfile, onOpenNotifications, 
                         }}
                         onProjectUpdated={() => {
                             setSelectedProject(null);
-                            fetchMyProjects();
+                            queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(profile.id) });
                         }}
                     />
                 )}
