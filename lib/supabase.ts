@@ -12,6 +12,14 @@ const extra = Constants.expoConfig?.extra as {
 const SUPABASE_URL = extra?.supabaseUrl;
 const SUPABASE_ANON_KEY = extra?.supabaseAnonKey;
 
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('Supabase URL and Anon Key must be set in app.config.ts');
+}
+
+// TypeScriptの型チェックを通過させるため、ここで型を確定させる
+const SUPABASE_URL_FINAL: string = SUPABASE_URL;
+const SUPABASE_ANON_KEY_FINAL: string = SUPABASE_ANON_KEY;
+
 // セッションの永続化にSecureStoreを使用するアダプター
 const ExpoSecureStoreAdapter = {
     getItem: (key: string) => {
@@ -25,7 +33,7 @@ const ExpoSecureStoreAdapter = {
     },
 };
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+export const supabase = createClient(SUPABASE_URL_FINAL, SUPABASE_ANON_KEY_FINAL, {
     auth: {
         storage: Platform.OS === 'web' ? undefined : ExpoSecureStoreAdapter, // Webの場合はデフォルト(localStorage)を使用
         autoRefreshToken: true,
