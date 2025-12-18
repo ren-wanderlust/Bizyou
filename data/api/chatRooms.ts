@@ -22,6 +22,7 @@ export interface ChatRoom {
  * @returns チャットルーム配列
  */
 export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
+
   // --- Individual Chats (Existing Logic) ---
   const { data: myLikes } = await supabase
     .from('likes')

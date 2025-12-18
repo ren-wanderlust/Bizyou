@@ -298,25 +298,37 @@ function AppContent() {
     };
   }, [session?.user]);
 
-  // Realtime subscription for unread messages count (invalidateQueries使用)
+  // Realtime subscription for unread messages count and chat rooms list (invalidateQueries使用)
   React.useEffect(() => {
     if (!session?.user) return;
 
-    // Subscribe to messages (Insert and Update) and invalidate query
+    // Subscribe to messages (Insert and Update) and invalidate queries
     const channel = supabase
       .channel(`unread_messages_${session.user.id}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => {
+        (payload) => {
+
+          // (1) Realtimeイベント受信 - ログ出力済み
+
+          // (2) invalidate / refetch 実行
           queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
+          queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+          queryClient.refetchQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
         }
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'messages' },
-        () => {
+        (payload) => {
+
+          // (1) Realtimeイベント受信 - ログ出力済み
+
+          // (2) invalidate / refetch 実行
           queryClient.invalidateQueries({ queryKey: queryKeys.unreadCount.detail(session.user.id) });
+          queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
+          queryClient.refetchQueries({ queryKey: queryKeys.chatRooms.list(session.user.id) });
         }
       )
       .subscribe();
