@@ -7,6 +7,8 @@ import { CreateProjectModal } from './CreateProjectModal';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../data/queryKeys';
 
 interface Project {
     id: string;
@@ -48,6 +50,7 @@ interface Applicant {
 }
 
 export function ProjectDetail({ project, currentUser, onClose, onChat, onProjectUpdated }: ProjectDetailProps) {
+    const queryClient = useQueryClient();
     const [owner, setOwner] = useState<any>(project.owner || null);
     const [loading, setLoading] = useState(!project.owner);
     const [applying, setApplying] = useState(false);
@@ -287,6 +290,10 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             });
 
                         if (!createRoomError) {
+                            // Invalidate chat rooms query to refresh the list in TalkPage
+                            if (currentUser?.id) {
+                                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(currentUser.id) });
+                            }
                             Alert.alert('チームチャット作成', 'メンバーが2名以上になったため、チームチャットが自動作成されました！「トーク」タブから確認できます。');
                         } else {
                             console.error('Error creating chat room:', createRoomError);

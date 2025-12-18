@@ -73,9 +73,21 @@ export function TalkPage({ onOpenChat, onViewProfile, onViewProject }: TalkPageP
             })
             .subscribe();
 
+        // Subscribe to chat_rooms changes (team chat creation/updates)
+        const chatRoomsSubscription = supabase
+            .channel('public:chat_rooms')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_rooms' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_rooms' }, () => {
+                queryClient.invalidateQueries({ queryKey: queryKeys.chatRooms.list(userId) });
+            })
+            .subscribe();
+
         return () => {
             supabase.removeChannel(messageSubscription);
             supabase.removeChannel(likesSubscription);
+            supabase.removeChannel(chatRoomsSubscription);
         };
     }, [userId, queryClient]);
 
