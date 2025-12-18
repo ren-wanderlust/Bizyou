@@ -191,6 +191,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 .insert({
                     user_id: project.owner_id,
                     sender_id: currentUser.id,
+                    project_id: project.id,  // プロジェクトID
                     type: 'application',
                     title: 'プロジェクトへの応募',
                     content: `${currentUser.name}さんが「${project.title}」に応募しました！`,
@@ -242,6 +243,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                     .insert({
                         user_id: applicant.user_id,
                         sender_id: currentUser?.id,
+                        project_id: project.id,  // プロジェクトID
                         type: 'application_status',
                         title: newStatus === 'approved' ? 'プロジェクト参加承認' : 'プロジェクト参加見送り',
                         content: newStatus === 'approved'

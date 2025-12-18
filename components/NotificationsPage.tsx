@@ -23,6 +23,13 @@ export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, 
     const notifications: Notification[] = notificationsQuery.data || [];
     const loading = notificationsQuery.isLoading;
 
+    // Force refresh on mount to ensure latest data
+    useEffect(() => {
+        if (userId) {
+            notificationsQuery.refetch();
+        }
+    }, []);
+
     // Mark user-specific notifications as read when page is opened
     useEffect(() => {
         const markAllAsRead = async () => {

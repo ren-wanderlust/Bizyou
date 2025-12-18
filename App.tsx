@@ -878,6 +878,7 @@ function AppContent() {
           await supabase.from('notifications').insert({
             user_id: profileId,
             sender_id: session.user.id,
+            related_user_id: session.user.id,  // いいねを送った人のID
             type: 'like',
             title: 'いいねが届きました！',
             content: `${currentUser.name}さんからいいねが届きました。`,
@@ -982,6 +983,7 @@ function AppContent() {
                   await supabase.from('notifications').insert({
                     user_id: profileId,
                     sender_id: session.user.id,
+                    related_user_id: session.user.id,  // マッチング相手のID
                     type: 'match',
                     title: 'マッチング成立！',
                     content: `${currentUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
@@ -992,6 +994,7 @@ function AppContent() {
                   await supabase.from('notifications').insert({
                     user_id: session.user.id,
                     sender_id: profileId,
+                    related_user_id: profileId,  // マッチング相手のID
                     type: 'match',
                     title: 'マッチング成立！',
                     content: `${matchedUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
