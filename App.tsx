@@ -1449,9 +1449,14 @@ function AppContent() {
               onCreated={() => {
                 setShowCreateProjectModal(false);
                 // Refresh projects list immediately
-                queryClient.invalidateQueries({ queryKey: queryKeys.projects.lists() });
-                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(currentUser.id) });
-                setActiveTab('search');
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.projects.lists(),
+                  refetchType: 'all' // マウントされていなくても再取得
+                });
+                queryClient.invalidateQueries({
+                  queryKey: queryKeys.myProjects.detail(currentUser.id),
+                  refetchType: 'all' // マウントされていなくても再取得
+                });
               }}
             />
           )}
