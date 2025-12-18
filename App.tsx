@@ -1606,6 +1606,43 @@ function AppContent() {
           <NotificationsPage
             onBack={() => setShowNotifications(false)}
             onNotificationsRead={fetchUnreadNotifications}
+            onViewProject={async (projectId) => {
+              setShowNotifications(false);
+              // Fetch project and show owner's profile
+              const { data: project, error } = await supabase
+                .from('projects')
+                .select('id, owner_id')
+                .eq('id', projectId)
+                .single();
+
+              if (project && !error) {
+                // Fetch owner profile
+                const { data: ownerProfile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('*')
+                  .eq('id', project.owner_id)
+                  .single();
+
+                if (ownerProfile && !profileError) {
+                  setSelectedProfile(ownerProfile);
+                  setActiveTab('search');
+                }
+              }
+            }}
+            onViewProfile={async (userId) => {
+              setShowNotifications(false);
+              // Fetch profile and show
+              const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+
+              if (profile && !error) {
+                setSelectedProfile(profile);
+                setActiveTab('search');
+              }
+            }}
           />
         </SafeAreaProvider>
       </Modal>

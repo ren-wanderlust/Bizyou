@@ -9,9 +9,11 @@ import { useAuth } from '../contexts/AuthContext';
 interface NotificationsPageProps {
     onBack: () => void;
     onNotificationsRead?: () => void;
+    onViewProject?: (projectId: string) => void;
+    onViewProfile?: (userId: string) => void;
 }
 
-export function NotificationsPage({ onBack, onNotificationsRead }: NotificationsPageProps) {
+export function NotificationsPage({ onBack, onNotificationsRead, onViewProject, onViewProfile }: NotificationsPageProps) {
     const { session } = useAuth();
     const userId = session?.user?.id;
     const [refreshing, setRefreshing] = useState(false);
@@ -76,7 +78,31 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
     };
 
     const handleNotificationPress = (item: Notification) => {
-        Alert.alert(item.title, item.content || "詳細情報はここに表示されます。");
+        console.log('Notification tapped:', {
+            title: item.title,
+            type: item.type,
+            projectId: item.projectId,
+            relatedUserId: item.relatedUserId,
+            senderId: item.senderId
+        });
+
+        // プロジェクト関連の通知（応募など）
+        if (item.projectId && onViewProject) {
+            console.log('Navigating to project:', item.projectId);
+            onBack(); // 通知ページを閉じる
+            onViewProject(item.projectId);
+        }
+        // ユーザー関連の通知（いいね、マッチング）
+        else if (item.relatedUserId && onViewProfile) {
+            console.log('Navigating to profile:', item.relatedUserId);
+            onBack(); // 通知ページを閉じる
+            onViewProfile(item.relatedUserId);
+        }
+        // その他の通知
+        else {
+            console.log('No navigation data, showing alert');
+            Alert.alert(item.title, item.content || "詳細情報はここに表示されます。");
+        }
     };
 
     const renderItem = ({ item }: { item: Notification }) => {
@@ -86,18 +112,18 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
             item.type === 'like' ||
             item.type === 'match' ||
             item.type === 'application_status';
-        
+
         return (
             <TouchableOpacity style={styles.itemContainer} onPress={() => handleNotificationPress(item)}>
                 {/* Icon/Image */}
                 <View style={styles.iconContainer}>
                     {item.imageUrl ? (
-                        <Image 
-                            source={{ uri: item.imageUrl }} 
+                        <Image
+                            source={{ uri: item.imageUrl }}
                             style={[
-                                styles.iconImage, 
+                                styles.iconImage,
                                 (isUserNotification || true) && styles.iconImageRound
-                            ]} 
+                            ]}
                         />
                     ) : (
                         <View style={[
