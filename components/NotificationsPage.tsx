@@ -1,18 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, Image, SafeAreaView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../lib/supabase';
-
-export interface Notification {
-    id: string;
-    // application_status を追加（プロジェクト応募関連）
-    type: 'important' | 'update' | 'psychology' | 'other' | 'like' | 'match' | 'application_status';
-    title: string;
-    content?: string;
-    date: string;
-    imageUrl?: string;
-    created_at: string;
-}
+import { useNotifications } from '../data/hooks/useNotifications';
+import { markNotificationsAsRead } from '../data/api/notifications';
+import type { FormattedNotification as Notification } from '../data/api/notifications';
+import { useAuth } from '../contexts/AuthContext';
 
 interface NotificationsPageProps {
     onBack: () => void;
@@ -20,28 +12,25 @@ interface NotificationsPageProps {
 }
 
 export function NotificationsPage({ onBack, onNotificationsRead }: NotificationsPageProps) {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { session } = useAuth();
+    const userId = session?.user?.id;
+    const [refreshing, setRefreshing] = useState(false);
 
-    useEffect(() => {
-        fetchNotifications();
-    }, []);
+    // React Query hook
+    const notificationsQuery = useNotifications(userId);
+    const notifications: Notification[] = notificationsQuery.data || [];
+    const loading = notificationsQuery.isLoading;
 
     // Mark user-specific notifications as read when page is opened
     useEffect(() => {
         const markAllAsRead = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+            if (!userId) return;
 
+            try {
                 // Mark user-specific notifications as read (いいね, マッチング etc.)
                 // Public notifications (user_id is null) are shared across all users,
                 // so we only mark user-specific ones as read
-                await supabase
-                    .from('notifications')
-                    .update({ is_read: true })
-                    .eq('user_id', user.id)
-                    .eq('is_read', false);
+                await markNotificationsAsRead(userId);
 
                 // Notify parent to refresh count
                 if (onNotificationsRead) {
@@ -53,50 +42,21 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
         };
 
         markAllAsRead();
-    }, [onNotificationsRead]);
+    }, [userId, onNotificationsRead]);
 
-    const fetchNotifications = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            let query = supabase
-                .from('notifications')
-                .select('id, type, title, content, image_url, created_at')
-                .order('created_at', { ascending: false });
-
-            if (user) {
-                query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
-            } else {
-                query = query.is('user_id', null);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-
-            if (data) {
-                const formattedNotifications: Notification[] = data.map((item: any) => ({
-                    id: item.id,
-                    type: item.type,
-                    title: item.title,
-                    content: item.content,
-                    imageUrl: item.image_url,
-                    created_at: item.created_at,
-                    date: new Date(item.created_at).toLocaleDateString('ja-JP', {
-                        month: 'numeric',
-                        day: 'numeric',
-                        weekday: 'short',
-                    }),
-                }));
-                setNotifications(formattedNotifications);
-            }
-        } catch (error) {
-            console.error('Error fetching notifications:', error);
+    // Handle fetch errors
+    useEffect(() => {
+        if (notificationsQuery.error) {
+            console.error('Error fetching notifications:', notificationsQuery.error);
             Alert.alert('エラー', 'お知らせの取得に失敗しました');
-        } finally {
-            setLoading(false);
         }
-    };
+    }, [notificationsQuery.error]);
+
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        await notificationsQuery.refetch();
+        setRefreshing(false);
+    }, [notificationsQuery]);
 
     const getBadgeStyle = (type: string) => {
         switch (type) {
@@ -206,8 +166,8 @@ export function NotificationsPage({ onBack, onNotificationsRead }: Notifications
                     notifications.length === 0 && styles.flexGrow
                 ]}
                 ListEmptyComponent={renderEmpty}
-                refreshing={loading}
-                onRefresh={fetchNotifications}
+                refreshing={refreshing}
+                onRefresh={onRefresh}
             />
         </SafeAreaView>
     );

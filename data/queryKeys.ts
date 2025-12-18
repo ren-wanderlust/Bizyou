@@ -63,4 +63,11 @@ export const queryKeys = {
     all: ['matches'] as const,
     detail: (userId: string) => [...queryKeys.matches.all, userId] as const,
   },
+
+  // 通知一覧（ユーザー単位）
+  notifications: {
+    all: ['notifications'] as const,
+    lists: () => [...queryKeys.notifications.all, 'list'] as const,
+    list: (userId: string) => [...queryKeys.notifications.lists(), userId] as const,
+  },
 };

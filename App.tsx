@@ -876,6 +876,9 @@ function AppContent() {
             image_url: currentUser.image
           });
 
+          // Invalidate notifications query for the recipient
+          queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(profileId) });
+
           // Send push notification for like
           try {
             const tokens = await getUserPushTokens(profileId);
@@ -986,6 +989,10 @@ function AppContent() {
                     content: `${matchedUserCopy.name}さんとマッチングしました！メッセージを送ってみましょう。`,
                     image_url: matchedUserCopy.image
                   });
+
+                  // Invalidate notifications queries for both users
+                  queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(profileId) });
+                  queryClient.invalidateQueries({ queryKey: queryKeys.notifications.list(session.user.id) });
 
                   // Send push notification for match
                   const tokens = await getUserPushTokens(profileId);
