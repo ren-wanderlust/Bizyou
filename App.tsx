@@ -2133,7 +2133,7 @@ export default function App() {
           maxAge: 30 * 60 * 1000, // 30分
         }}
       >
-        <AuthProvider>
+        <AuthProvider queryClient={queryClient}>
           <AppContent />
         </AuthProvider>
       </PersistQueryClientProvider>

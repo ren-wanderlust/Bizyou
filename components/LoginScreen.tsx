@@ -149,11 +149,18 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) throw error;
+
+      // デバッグ用：ログインしたユーザーIDを確認
+      console.log('=== Login successful ===');
+      console.log('Email:', email);
+      console.log('User ID:', data.user?.id);
+      console.log('Session:', data.session?.user.id);
+
       // ログイン成功時はAuthContextが状態変化を検知して自動的に画面遷移する
     } catch (error: any) {
       Alert.alert('ログインエラー', error.message || 'ログインに失敗しました');
