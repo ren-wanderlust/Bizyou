@@ -64,7 +64,7 @@ export function ContactPage({ onBack }: ContactPageProps) {
         Linking.openURL('https://x.com/pogg_official');
     };
 
-    const handleSendInquiry = () => {
+    const handleSendInquiry = async () => {
         if (!inquiryType) {
             Alert.alert('エラー', 'お問い合わせの種類を選択してください。');
             return;
@@ -74,12 +74,26 @@ export function ContactPage({ onBack }: ContactPageProps) {
             return;
         }
 
-        // In a real app, this would send to a backend API
-        Alert.alert(
-            '送信完了',
-            'お問い合わせを受け付けました。\n3営業日以内にご返信いたします。',
-            [{ text: 'OK', onPress: onBack }]
-        );
+        // メールで送信
+        const typeLabel = inquiryTypes.find(t => t.id === inquiryType)?.label || 'お問い合わせ';
+        const subject = `【${typeLabel}】Poggアプリについて`;
+        const body = `【お問い合わせ種類】\n${typeLabel}\n\n【お問い合わせ内容】\n${message}\n\n---\n※このメールはPoggアプリのお問い合わせフォームから送信されました。`;
+
+        const mailtoUrl = `mailto:pogg.contact@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+        const canOpen = await Linking.canOpenURL(mailtoUrl);
+        if (canOpen) {
+            await Linking.openURL(mailtoUrl);
+            // フォームをリセット
+            setInquiryType('');
+            setMessage('');
+        } else {
+            Alert.alert(
+                'メールアプリが見つかりません',
+                'メールアプリを設定するか、直接 pogg.contact@gmail.com までお問い合わせください。',
+                [{ text: 'OK' }]
+            );
+        }
     };
 
     return (
