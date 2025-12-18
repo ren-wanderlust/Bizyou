@@ -22,6 +22,8 @@ import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../data/queryKeys';
 
 interface Message {
     id: string;
@@ -248,6 +250,7 @@ const MessageBubble = ({
 };
 
 export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock }: ChatRoomProps) {
+    const queryClient = useQueryClient();
     const [messages, setMessages] = useState<Message[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
@@ -292,6 +295,14 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                     }, {
                         onConflict: 'user_id,chat_room_id'
                     });
+            }
+
+            // Invalidate chat rooms query to update unread count in TalkPage
+            if (user.id) {
+                queryClient.invalidateQueries({
+                    queryKey: queryKeys.chatRooms.list(user.id),
+                    refetchType: 'active',
+                });
             }
         };
 
@@ -540,6 +551,14 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                 setTimeout(() => {
                     flatListRef.current?.scrollToEnd({ animated: true });
                 }, 100);
+
+                // Invalidate chat rooms query to update chat list in TalkPage immediately
+                if (currentUserId) {
+                    queryClient.invalidateQueries({
+                        queryKey: queryKeys.chatRooms.list(currentUserId),
+                        refetchType: 'active',
+                    });
+                }
 
                 // Send push notification to recipient(s)
                 try {
