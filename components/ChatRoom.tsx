@@ -178,51 +178,73 @@ const MessageBubble = ({
                             )}
 
                             {isMe ? (
-                                <LinearGradient
-                                    colors={['#0d9488', '#2563eb']}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 0 }}
-                                    style={styles.bubbleGradient}
-                                >
-                                    {message.replyTo && (
-                                        <View style={styles.replyContainerMe}>
-                                            <View style={styles.replyBarMe} />
-                                            <View style={styles.replyContent}>
-                                                <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
-                                                <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
-                                            </View>
-                                        </View>
-                                    )}
-                                    {message.image_url && (
+                                <>
+                                    {/* Image only - no bubble */}
+                                    {message.image_url && !message.text && !message.replyTo && (
                                         <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
                                             <Image source={{ uri: message.image_url }} style={styles.messageImageMe} />
                                         </TouchableOpacity>
                                     )}
-                                    {message.text ? <Text style={styles.messageTextMe}>{message.text}</Text> : null}
-                                </LinearGradient>
-                            ) : (
-                                <TouchableOpacity
-                                    onLongPress={handleLongPress}
-                                    activeOpacity={0.8}
-                                >
-                                    <View style={styles.bubbleOther}>
-                                        {message.replyTo && (
-                                            <View style={styles.replyContainerOther}>
-                                                <View style={styles.replyBarOther} />
-                                                <View style={styles.replyContent}>
-                                                    <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
-                                                    <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                    {/* Has text or reply - show bubble */}
+                                    {(message.text || message.replyTo) && (
+                                        <LinearGradient
+                                            colors={['#0d9488', '#2563eb']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.bubbleGradient}
+                                        >
+                                            {message.replyTo && (
+                                                <View style={styles.replyContainerMe}>
+                                                    <View style={styles.replyBarMe} />
+                                                    <View style={styles.replyContent}>
+                                                        <Text style={styles.replySenderMe}>{message.replyTo.senderName}</Text>
+                                                        <Text style={styles.replyTextMe} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                    </View>
                                                 </View>
+                                            )}
+                                            {message.image_url && (
+                                                <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                    <Image source={{ uri: message.image_url }} style={styles.messageImageMe} />
+                                                </TouchableOpacity>
+                                            )}
+                                            {message.text ? <Text style={styles.messageTextMe}>{message.text}</Text> : null}
+                                        </LinearGradient>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {/* Image only - no bubble */}
+                                    {message.image_url && !message.text && !message.replyTo && (
+                                        <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                            <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
+                                        </TouchableOpacity>
+                                    )}
+                                    {/* Has text or reply - show bubble */}
+                                    {(message.text || message.replyTo) && (
+                                        <TouchableOpacity
+                                            onLongPress={handleLongPress}
+                                            activeOpacity={0.8}
+                                        >
+                                            <View style={styles.bubbleOther}>
+                                                {message.replyTo && (
+                                                    <View style={styles.replyContainerOther}>
+                                                        <View style={styles.replyBarOther} />
+                                                        <View style={styles.replyContent}>
+                                                            <Text style={styles.replySenderOther}>{message.replyTo.senderName}</Text>
+                                                            <Text style={styles.replyTextOther} numberOfLines={1}>{message.replyTo.text}</Text>
+                                                        </View>
+                                                    </View>
+                                                )}
+                                                {message.image_url && (
+                                                    <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
+                                                        <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
+                                                    </TouchableOpacity>
+                                                )}
+                                                {message.text ? <Text style={styles.messageTextOther}>{message.text}</Text> : null}
                                             </View>
-                                        )}
-                                        {message.image_url && (
-                                            <TouchableOpacity onPress={() => setImageModalVisible(true)} activeOpacity={0.9}>
-                                                <Image source={{ uri: message.image_url }} style={styles.messageImageOther} />
-                                            </TouchableOpacity>
-                                        )}
-                                        {message.text ? <Text style={styles.messageTextOther}>{message.text}</Text> : null}
-                                    </View>
-                                </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    )}
+                                </>
                             )}
 
                             {/* Timestamp for partner messages (right side) */}
@@ -272,7 +294,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
         const markAsRead = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            
+
             if (!isGroup) {
                 // For individual chats, update is_read flag
                 await supabase
