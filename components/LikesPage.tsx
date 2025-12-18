@@ -58,14 +58,22 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
 
     // User data from React Query
     const receivedLikes: Profile[] = receivedLikesQuery.data?.profiles || [];
-    const unreadInterestIds: Set<string> = receivedLikesQuery.data?.unreadInterestIds || new Set();
-    const unreadMatchIds: Set<string> = receivedLikesQuery.data?.unreadMatchIds || new Set();
+    // AsyncStorageから復元されたSetは通常のオブジェクトになる可能性があるため、instanceofチェックを追加
+    const unreadInterestIds: Set<string> = (receivedLikesQuery.data?.unreadInterestIds instanceof Set)
+        ? receivedLikesQuery.data.unreadInterestIds
+        : new Set();
+    const unreadMatchIds: Set<string> = (receivedLikesQuery.data?.unreadMatchIds instanceof Set)
+        ? receivedLikesQuery.data.unreadMatchIds
+        : new Set();
     const loadingUser = receivedLikesQuery.isLoading;
 
     // Project data from React Query
     const recruitingApplications: Application[] = projectApplicationsQuery.data?.recruiting || [];
     const appliedApplications: Application[] = projectApplicationsQuery.data?.applied || [];
-    const unreadRecruitingIds: Set<string> = projectApplicationsQuery.data?.unreadRecruitingIds || new Set();
+    // AsyncStorageから復元されたSetは通常のオブジェクトになる可能性があるため、instanceofチェックを追加
+    const unreadRecruitingIds: Set<string> = (projectApplicationsQuery.data?.unreadRecruitingIds instanceof Set)
+        ? projectApplicationsQuery.data.unreadRecruitingIds
+        : new Set();
     const loadingProject = projectApplicationsQuery.isLoading;
 
     // Fetch current user profile
