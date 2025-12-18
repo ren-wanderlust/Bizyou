@@ -36,7 +36,7 @@ const { width } = Dimensions.get('window');
 
 // Role to icon mapping (matching UserProjectPage)
 const ROLE_ICONS: { [key: string]: string } = {
-    'エンジニア': 'code-slash',
+    'エンジニア': 'laptop',
     'デザイナー': 'color-palette',
     'マーケター': 'megaphone',
     'アイディアマン': 'bulb',

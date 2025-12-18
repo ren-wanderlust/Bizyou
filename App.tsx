@@ -45,6 +45,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useProfilesList } from './data/hooks/useProfilesList';
 import { useUnreadCount } from './data/hooks/useUnreadCount';
 import { useMatches } from './data/hooks/useMatches';
+import { useReceivedLikes } from './data/hooks/useReceivedLikes';
+import { useProjectApplications } from './data/hooks/useProjectApplications';
 import { queryKeys } from './data/queryKeys';
 import { registerForPushNotificationsAsync, savePushToken, setupNotificationListeners, getUserPushTokens, sendPushNotification } from './lib/notifications';
 import { FullPageSkeleton, ProfileListSkeleton } from './components/Skeleton';
@@ -128,7 +130,6 @@ function AppContent() {
   const [matchedProfile, setMatchedProfile] = useState<Profile | null>(null);
   const [pendingMatches, setPendingMatches] = useState<Profile[]>([]); // Queue of unviewed matches
   const [pendingAppsCount, setPendingAppsCount] = useState(0);
-  const [unreadLikesCount, setUnreadLikesCount] = useState(0);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
@@ -138,6 +139,8 @@ function AppContent() {
   const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline');
   const unreadCountQuery = useUnreadCount(session?.user?.id);
   const matchesQuery = useMatches(session?.user?.id);
+  const receivedLikesQuery = useReceivedLikes(session?.user?.id);
+  const projectApplicationsQuery = useProjectApplications(session?.user?.id);
   const unreadMessagesCount = unreadCountQuery.data ?? 0;
 
   // Matches data from React Query
@@ -147,6 +150,25 @@ function AppContent() {
   const likedProfiles: Set<string> = (matchesQuery.data?.myLikedIds instanceof Set)
     ? matchesQuery.data.myLikedIds
     : new Set();
+
+  // Calculate unread likes count from React Query data (same as LikesPage)
+  const unreadLikesCount = React.useMemo(() => {
+    const receivedLikesData = receivedLikesQuery.data;
+    const projectApplicationsData = projectApplicationsQuery.data;
+
+    if (!receivedLikesData || !projectApplicationsData) return 0;
+
+    // Unread interest count (未マッチの未読)
+    const unreadInterestCount = receivedLikesData.unreadInterestIds?.size || 0;
+
+    // Unread match count (マッチ済みの未読)
+    const unreadMatchCount = receivedLikesData.unreadMatchIds?.size || 0;
+
+    // Unread recruiting count (募集への応募の未読)
+    const unreadRecruitingCount = projectApplicationsData.unreadRecruitingIds?.size || 0;
+
+    return unreadInterestCount + unreadMatchCount + unreadRecruitingCount;
+  }, [receivedLikesQuery.data, projectApplicationsQuery.data]);
 
   // Initialize push notifications
   React.useEffect(() => {
@@ -326,120 +348,28 @@ function AppContent() {
     };
   }, [session?.user, queryClient]);
 
-  // Fetch unread likes count ("興味あり" + "未確認マッチング" + "未読募集" badge)
+  // Realtime subscription for likes and applications (only invalidate queries)
   React.useEffect(() => {
     if (!session?.user) return;
 
-    const fetchUnreadLikes = async () => {
-      try {
-        // Get my likes (to determine matches)
-        const { data: myLikes } = await supabase
-          .from('likes')
-          .select('receiver_id')
-          .eq('sender_id', session.user.id);
-
-        const myLikedIds = new Set(myLikes?.map(l => l.receiver_id) || []);
-
-        // Get blocked users
-        const { data: blocks } = await supabase
-          .from('blocks')
-          .select('blocked_id')
-          .eq('blocker_id', session.user.id);
-
-        const blockedIds = new Set(blocks?.map(b => b.blocked_id) || []);
-
-        // Get all received likes with both read statuses
-        const { data: receivedLikes } = await supabase
-          .from('likes')
-          .select('sender_id, is_read, is_read_as_match')
-          .eq('receiver_id', session.user.id);
-
-        // Count unread likes:
-        // - 興味あり: is_read = false AND not matched (I haven't liked them back)
-        // - マッチング: is_read_as_match = false AND matched (I have liked them back)
-        const unreadLikesCount = receivedLikes?.filter(l => {
-          if (blockedIds.has(l.sender_id)) return false;
-
-          const isMatched = myLikedIds.has(l.sender_id);
-          if (isMatched) {
-            // Matched: count if is_read_as_match is false
-            return !l.is_read_as_match;
-          } else {
-            // Interest only: count if is_read is false
-            return !l.is_read;
-          }
-        }).length || 0;
-
-        // Count unread recruiting applications (自分のプロジェクトへの未読応募)
-        const { data: myProjects } = await supabase
-          .from('projects')
-          .select('id')
-          .eq('owner_id', session.user.id);
-
-        const myProjectIds = myProjects?.map(p => p.id) || [];
-        let unreadRecruitingCount = 0;
-
-        if (myProjectIds.length > 0) {
-          const { count } = await supabase
-            .from('project_applications')
-            .select('id', { count: 'exact', head: true })
-            .in('project_id', myProjectIds)
-            .eq('is_read', false);
-
-          unreadRecruitingCount = count || 0;
-        }
-
-        // Total: unread likes + unread recruiting
-        setUnreadLikesCount(unreadLikesCount + unreadRecruitingCount);
-      } catch (e) {
-        console.log('Error fetching unread likes:', e);
-      }
-    };
-
-    fetchUnreadLikes();
-
     // Subscribe to likes changes
-    const likesChannel = supabase.channel('unread_likes_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'likes' }, () => {
+    const likesChannel = supabase.channel('unread_likes_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, () => {
         if (session?.user) {
           queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
         }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'likes' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'likes' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.matches.detail(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.receivedLikes.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
       })
       .subscribe();
 
     // Subscribe to project_applications changes
-    const applicationsChannel = supabase.channel('unread_applications_count')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'project_applications' }, () => {
+    const applicationsChannel = supabase.channel('unread_applications_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
         if (session?.user) {
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
         }
-        fetchUnreadLikes();
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'project_applications' }, () => {
-        if (session?.user) {
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
-          queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
-        }
-        fetchUnreadLikes();
       })
       .subscribe();
 
@@ -447,7 +377,7 @@ function AppContent() {
       supabase.removeChannel(likesChannel);
       supabase.removeChannel(applicationsChannel);
     };
-  }, [session?.user]);
+  }, [session?.user, queryClient]);
 
   // Fetch unread notifications count (user-specific notifications only)
   const fetchUnreadNotifications = useCallback(async () => {
