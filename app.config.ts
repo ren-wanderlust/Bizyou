@@ -79,7 +79,7 @@ export default ({ config }: ConfigContext) => {
     extra: {
       router: {},
       eas: {
-        projectId: '6d305de9-2af6-46c8-b06e-d59ed8dbc10e',
+        projectId: '474b31b1-e514-49d6-8d96-d8030c053b88',
       },
       supabaseUrl: 'https://qexnfdidlqewfxskkqow.supabase.co',
       supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFleG5mZGlkbHFld2Z4c2trcW93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4OTQzODQsImV4cCI6MjA3OTQ3MDM4NH0.TvdCyQyR2aETsG6E-D8pLNrLK1CantCvz6N26loTtaQ',
