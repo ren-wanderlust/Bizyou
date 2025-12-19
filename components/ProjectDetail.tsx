@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
 import { CreateProjectModal } from './CreateProjectModal';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { getRoleColors, getRoleIcon } from '../constants/RoleConstants';
 import { getImageSource } from '../constants/DefaultImages';
+import { queryKeys } from '../data/queryKeys';
 
 interface Project {
     id: string;
@@ -130,12 +132,6 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     };
 
     const handleApply = async () => {
-        console.log('handleApply called');
-        console.log('currentUser:', currentUser?.id);
-        console.log('hasApplied:', hasApplied);
-        console.log('applicationStatus:', applicationStatus);
-        console.log('currentStatus:', currentStatus);
-
         if (!currentUser) {
             Alert.alert('エラー', 'ログインが必要です');
             return;
@@ -171,15 +167,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             if (hasApplied && applicationStatus === 'rejected') {
                 // Re-apply: update existing application status to pending
-                console.log('Re-applying: updating status to pending');
-                const { error: updateError, data: updateData } = await supabase
+                const { error: updateError } = await supabase
                     .from('project_applications')
                     .update({ status: 'pending', created_at: new Date().toISOString() })
                     .eq('project_id', project.id)
-                    .eq('user_id', currentUser.id)
-                    .select();
+                    .eq('user_id', currentUser.id);
 
-                console.log('Update result:', { updateError, updateData });
                 if (updateError) throw updateError;
             } else {
                 // Create new application record
@@ -234,6 +227,9 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             setApplying(false);
         }
     };
+
+    // React Query client for cache invalidation
+    const queryClient = useQueryClient();
 
     const updateApplicantStatus = async (applicationId: string, newStatus: 'approved' | 'rejected', userName: string) => {
         try {
@@ -317,6 +313,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                         }
                     }
                 }
+            }
+
+            // Invalidate React Query caches to sync with LikesPage
+            if (currentUser?.id) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(currentUser.id) });
+                queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(currentUser.id) });
             }
 
             fetchApplicants();
