@@ -130,6 +130,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     };
 
     const handleApply = async () => {
+        console.log('handleApply called');
+        console.log('currentUser:', currentUser?.id);
+        console.log('hasApplied:', hasApplied);
+        console.log('applicationStatus:', applicationStatus);
+        console.log('currentStatus:', currentStatus);
+
         if (!currentUser) {
             Alert.alert('エラー', 'ログインが必要です');
             return;
@@ -165,12 +171,15 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             if (hasApplied && applicationStatus === 'rejected') {
                 // Re-apply: update existing application status to pending
-                const { error: updateError } = await supabase
+                console.log('Re-applying: updating status to pending');
+                const { error: updateError, data: updateData } = await supabase
                     .from('project_applications')
                     .update({ status: 'pending', created_at: new Date().toISOString() })
                     .eq('project_id', project.id)
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', currentUser.id)
+                    .select();
 
+                console.log('Update result:', { updateError, updateData });
                 if (updateError) throw updateError;
             } else {
                 // Create new application record
