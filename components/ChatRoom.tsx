@@ -414,6 +414,34 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         : (payload.new.sender_id === partnerId);
 
                     if (isRelevant) {
+                        // 新しいメッセージを受信したら即座に既読化
+                        if (!isGroup) {
+                            // 個人チャット: 受信したメッセージを既読にする
+                            await supabase
+                                .from('messages')
+                                .update({ is_read: true })
+                                .eq('id', payload.new.id)
+                                .eq('receiver_id', userId)
+                                .eq('is_read', false);
+                        } else {
+                            // グループチャット: last_read_atを更新
+                            await supabase
+                                .from('chat_room_read_status')
+                                .upsert({
+                                    user_id: userId,
+                                    chat_room_id: partnerId,
+                                    last_read_at: new Date().toISOString(),
+                                }, {
+                                    onConflict: 'user_id,chat_room_id'
+                                });
+                        }
+
+                        // チャット一覧の未読数を更新
+                        queryClient.invalidateQueries({
+                            queryKey: queryKeys.chatRooms.list(userId),
+                            refetchType: 'active',
+                        });
+
                         let senderName = '';
                         if (isGroup) {
                             const { data } = await supabase.from('profiles').select('name').eq('id', payload.new.sender_id).single();
