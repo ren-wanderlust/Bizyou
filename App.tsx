@@ -280,33 +280,39 @@ function AppContent() {
     }
   };
 
-  // Fetch pending applications count
+  // Fetch pending applications count function (extracted for reuse)
+  const fetchPendingApps = React.useCallback(async () => {
+    if (!session?.user) return;
+
+    // Step 1: Get my project IDs
+    const { data: myProjects } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('owner_id', session.user.id);
+
+    const projectIds = myProjects?.map((p: any) => p.id) || [];
+
+    if (projectIds.length === 0) {
+      setPendingAppsCount(0);
+      return;
+    }
+
+    // Step 2: Count pending applications for these projects
+    const { count } = await supabase
+      .from('project_applications')
+      .select('id', { count: 'exact', head: true })
+      .in('project_id', projectIds)
+      .eq('status', 'pending');
+
+    setPendingAppsCount(count || 0);
+  }, [session?.user]);
+
+  // Fetch pending applications count on mount and subscribe to changes
   React.useEffect(() => {
     if (!session?.user) return;
-    const fetchPendingApps = async () => {
-      // Step 1: Get my project IDs
-      const { data: myProjects } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('owner_id', session.user.id);
 
-      const projectIds = myProjects?.map((p: any) => p.id) || [];
-
-      if (projectIds.length === 0) {
-        setPendingAppsCount(0);
-        return;
-      }
-
-      // Step 2: Count pending applications for these projects
-      const { count } = await supabase
-        .from('project_applications')
-        .select('id', { count: 'exact', head: true })
-        .in('project_id', projectIds)
-        .eq('status', 'pending');
-
-      setPendingAppsCount(count || 0);
-    };
     fetchPendingApps();
+
     // Subscribe to changes
     const channel = supabase.channel('pending_apps_count')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
@@ -318,7 +324,7 @@ function AppContent() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [session?.user]);
+  }, [session?.user, fetchPendingApps]);
 
   // Realtime subscription for unread messages count (invalidateQueries使用)
   React.useEffect(() => {
@@ -1257,6 +1263,7 @@ function AppContent() {
               onLike={handleLike}
               onOpenNotifications={() => setShowNotifications(true)}
               unreadNotificationsCount={unreadNotificationsCount}
+              onApplicantStatusChange={fetchPendingApps}
             />
           </FadeTabContent>
           <FadeTabContent activeTab={activeTab} tabId="talk">

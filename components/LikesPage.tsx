@@ -29,9 +29,10 @@ interface LikesPageProps {
     onLike: (profileId: string) => void;
     onOpenNotifications?: () => void;
     unreadNotificationsCount?: number;
+    onApplicantStatusChange?: () => void;
 }
 
-export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike, onOpenNotifications, unreadNotificationsCount = 0 }: LikesPageProps) {
+export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLike, onOpenNotifications, unreadNotificationsCount = 0, onApplicantStatusChange }: LikesPageProps) {
     const { session } = useAuth();
     const insets = useSafeAreaInsets();
 
@@ -245,6 +246,11 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
             queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(session.user.id) });
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '見送り'}しました`);
+
+            // Notify parent to update badge count
+            if (onApplicantStatusChange) {
+                onApplicantStatusChange();
+            }
         } catch (error) {
             console.error('Error updating applicant status:', error);
             Alert.alert('エラー', 'ステータスの更新に失敗しました');
