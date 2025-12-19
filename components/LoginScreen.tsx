@@ -198,24 +198,11 @@ export function LoginScreen({ onCreateAccount }: LoginScreenProps) {
 
       {/* Background with Gradient and Network Pattern */}
       <View style={styles.backgroundContainer}>
-        {/* アニメーションする背景画像 */}
-        <Animated.Image
-          source={{ uri: 'https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1080&q=80&fm=jpg&crop=entropy&cs=tinysrgb' }}
-          style={[
-            styles.backgroundImage,
-            {
-              transform: [
-                { scale: scaleAnimation },
-                {
-                  rotate: rotateAnimation.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: ['0deg', '2deg'],
-                  }),
-                },
-              ],
-            },
-          ]}
-          resizeMode="cover"
+        {/* ベースグラデーション背景（リモート画像の代わり） */}
+        <LinearGradient
+          colors={['#0F172A', '#1E3A8A', '#0F172A']}
+          locations={[0, 0.5, 1]}
+          style={StyleSheet.absoluteFillObject}
         />
 
         {/* 動的グラデーションオーバーレイ1 */}
