@@ -787,7 +787,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         activeOpacity={0.7}
                     >
                         <Text style={[styles.subTabText, userTab === 'received' && styles.subTabTextActive]}>
-                            興味あり
+                            もらったいいね
                         </Text>
                         {unreadInterestCount > 0 && (
                             <View style={styles.badge}>
@@ -804,7 +804,7 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                         activeOpacity={0.7}
                     >
                         <Text style={[styles.subTabText, userTab === 'sent' && styles.subTabTextActive]}>
-                            送った
+                            おくったいいね
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity

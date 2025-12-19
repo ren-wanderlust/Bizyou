@@ -22,6 +22,7 @@ export interface ChatRoom {
  * @returns チャットルーム配列
  */
 export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
+
   // --- Individual Chats (Existing Logic) ---
   const { data: myLikes } = await supabase
     .from('likes')
@@ -131,115 +132,49 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
     });
   }
 
-  // --- Team Chats (Optimized - No N+1) ---
-  const { data: teamRoomsData } = await supabase
-    .from('chat_rooms')
-    .select(`
-      id,
-      project_id,
-      created_at,
-      project:projects (
-        id,
-        title,
-        image_url,
-        owner:profiles!owner_id (
-          image
-        )
-      )
-    `)
-    .eq('type', 'group');
+  // --- Team Chats (Server-side aggregation via RPC) ---
+  // 個人チャットと同じ思想: サーバー側で最新メッセージ・未読数を確定させる
+  const { data: teamRoomsData, error: teamRoomsError } = await supabase.rpc('get_team_chat_rooms', {
+    p_user_id: userId,
+  });
+
+  if (teamRoomsError) {
+    console.error('Error fetching team chat rooms:', teamRoomsError);
+    throw teamRoomsError;
+  }
 
   let teamRooms: ChatRoom[] = [];
   if (teamRoomsData && teamRoomsData.length > 0) {
-    const roomIds = teamRoomsData.map(room => room.id);
-
-    // Batch Query 1: Fetch latest messages for all rooms at once
-    const { data: latestMessages } = await supabase
-      .from('messages')
-      .select('chat_room_id, content, created_at, sender_id')
-      .in('chat_room_id', roomIds)
-      .order('chat_room_id', { ascending: true })
-      .order('created_at', { ascending: false });
-
-    // Group messages by room_id (get the first/latest one per room)
-    const messagesByRoom = new Map<string, any>();
-    latestMessages?.forEach(msg => {
-      if (!messagesByRoom.has(msg.chat_room_id)) {
-        messagesByRoom.set(msg.chat_room_id, msg);
-      }
-    });
-
-    // Batch Query 2: Fetch read status for all rooms at once
-    const { data: readStatuses } = await supabase
-      .from('chat_room_read_status')
-      .select('chat_room_id, last_read_at')
-      .eq('user_id', userId)
-      .in('chat_room_id', roomIds);
-
-    const readStatusByRoom = new Map<string, string>();
-    readStatuses?.forEach(status => {
-      readStatusByRoom.set(status.chat_room_id, status.last_read_at);
-    });
-
-    // Batch Query 3: Fetch unread messages for all rooms at once
-    const allLastReadTimes = Array.from(readStatusByRoom.values());
-    const globalMinLastRead =
-      allLastReadTimes.length > 0
-        ? allLastReadTimes.reduce(
-          (min, current) =>
-            new Date(current).getTime() < new Date(min).getTime() ? current : min,
-          allLastReadTimes[0]
-        )
-        : '1970-01-01';
-
-    const { data: unreadMessages } = await supabase
-      .from('messages')
-      .select('chat_room_id, created_at, sender_id')
-      .in('chat_room_id', roomIds)
-      .gt('created_at', globalMinLastRead)
-      .neq('sender_id', userId);
-
-    const unreadCountByRoom = new Map<string, number>();
-    unreadMessages?.forEach((msg: any) => {
-      const lastReadTime = readStatusByRoom.get(msg.chat_room_id) || '1970-01-01';
-      if (new Date(msg.created_at).getTime() > new Date(lastReadTime).getTime()) {
-        unreadCountByRoom.set(
-          msg.chat_room_id,
-          (unreadCountByRoom.get(msg.chat_room_id) || 0) + 1
-        );
-      }
-    });
-
-    // Merge all data on client side
     teamRooms = teamRoomsData.map((room: any) => {
-      const lastMsg = messagesByRoom.get(room.id);
+      const lastMsgDate = room.last_message_created_at
+        ? new Date(room.last_message_created_at)
+        : room.room_created_at
+          ? new Date(room.room_created_at)
+          : new Date();
 
+      const now = new Date();
+      const diff = now.getTime() - lastMsgDate.getTime();
       let timestamp = '';
-      if (lastMsg) {
-        const lastMsgDate = new Date(lastMsg.created_at);
-        const now = new Date();
-        const diff = now.getTime() - lastMsgDate.getTime();
-        if (diff < 24 * 60 * 60 * 1000) {
-          timestamp = lastMsgDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-        } else {
-          timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
-        }
+      if (diff < 24 * 60 * 60 * 1000) {
+        timestamp = lastMsgDate.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+      } else {
+        timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
       }
 
       return {
-        id: room.id,
-        partnerId: room.id,
-        partnerName: room.project?.title || 'Team Chat',
+        id: room.chat_room_id,
+        partnerId: room.chat_room_id,
+        partnerName: room.project_title || 'Team Chat',
         partnerAge: 0,
-        partnerImage: room.project?.owner?.image || room.project?.image_url || '',
-        lastMessage: lastMsg?.content || 'チームチャットが作成されました',
-        unreadCount: unreadCountByRoom.get(room.id) || 0,
+        partnerImage: room.owner_image || room.project_image_url || '',
+        lastMessage: room.last_message_content || 'チームチャットが作成されました',
+        unreadCount: Number(room.unread_count) || 0,
         timestamp: timestamp,
-        rawTimestamp: lastMsg?.created_at || room.created_at || '1970-01-01T00:00:00.000Z',
+        rawTimestamp: room.last_message_created_at || room.room_created_at || '1970-01-01T00:00:00.000Z',
         isOnline: false,
         isUnreplied: false,
         type: 'group' as const,
-        projectId: room.project_id || room.project?.id,
+        projectId: room.project_id,
       };
     });
   }
