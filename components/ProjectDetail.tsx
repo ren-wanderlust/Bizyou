@@ -539,6 +539,11 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                 <View style={styles.infoContainer}>
                     <Text style={styles.title}>{project.title}</Text>
 
+                    {/* Tagline */}
+                    {project.tagline && (
+                        <Text style={styles.tagline}>{project.tagline}</Text>
+                    )}
+
                     <View style={styles.metaRow}>
                         <View style={styles.ownerRow}>
                             <Image
@@ -795,8 +800,14 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
-        marginBottom: 16,
+        marginBottom: 8,
         lineHeight: 32,
+    },
+    tagline: {
+        fontSize: 16,
+        color: '#6B7280',
+        lineHeight: 24,
+        marginBottom: 16,
     },
     metaRow: {
         flexDirection: 'row',
