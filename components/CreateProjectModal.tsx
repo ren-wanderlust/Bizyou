@@ -765,9 +765,12 @@ const styles = StyleSheet.create({
     chip: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 14,
-        paddingVertical: 10,
-        borderRadius: 20,
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 0, // 高さを固定するためパディングは削除
+        height: 48, // 固定高さ
+        minWidth: 80, // 最小幅を設定してバランスをとる
+        borderRadius: 24,
         backgroundColor: '#F9FAFB',
         borderWidth: 1.5,
         borderColor: '#E5E7EB',
@@ -780,6 +783,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#374151',
         fontWeight: '500',
+        lineHeight: 20,
     },
     chipTextActive: {
         color: '#009688',
@@ -852,19 +856,21 @@ const styles = StyleSheet.create({
     selectedTagText: {
         fontSize: 13,
         color: '#009688',
-        fontWeight: '500',
+        fontWeight: '600',
     },
     contentTagChip: {
+        height: 40, // 内容タグは少し小さめ
+        justifyContent: 'center',
+        paddingHorizontal: 14,
+        paddingVertical: 0,
         backgroundColor: '#F3F4F6',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderRadius: 16,
+        borderRadius: 20,
         borderWidth: 1,
         borderColor: '#E5E7EB',
     },
     contentTagText: {
         fontSize: 13,
-        color: '#6B7280',
+        color: '#4B5563',
         fontWeight: '500',
     },
     customTagInputContainer: {
