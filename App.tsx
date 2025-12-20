@@ -2070,7 +2070,27 @@ export default function App() {
     Inter_700Bold,
   });
 
-  if (!fontsLoaded) {
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
+
+  // プリロードするアセット（ログイン画面で使用する画像）
+  useEffect(() => {
+    const loadAssets = async () => {
+      try {
+        const { Asset } = await import('expo-asset');
+        await Asset.loadAsync([
+          require('./assets/pogg_logo.png'),
+          require('./assets/network-pattern.png'),
+        ]);
+        setAssetsLoaded(true);
+      } catch (error) {
+        console.error('Error loading assets:', error);
+        setAssetsLoaded(true); // エラーでも続行
+      }
+    };
+    loadAssets();
+  }, []);
+
+  if (!fontsLoaded || !assetsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator size="large" color="#009688" />
