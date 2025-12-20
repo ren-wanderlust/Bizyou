@@ -464,25 +464,25 @@ const styles = StyleSheet.create({
     },
     card: {
         width: '100%',
-        height: 120, // 固定高さを増加
-        borderRadius: 16,
+        height: 105, // 高さを少し減らす
+        borderRadius: 14,
         overflow: 'hidden',
         ...SHADOWS.lg,
     },
     cardInner: {
         flexDirection: 'row',
-        padding: 14,
-        paddingVertical: 12,
-        alignItems: 'center', // 中央揃えに戻す
-        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 14,
         backgroundColor: 'white',
         height: '100%',
-        gap: 12, // アイコンとコンテンツの間隔
+        gap: 10, // アイコンとコンテンツの間隔を調整
     },
     iconsContainer: {
-        width: 70,
-        height: 70,
-        borderRadius: 12,
+        width: 60,
+        height: 60,
+        borderRadius: 10,
         backgroundColor: 'transparent',
         flexDirection: 'row',
         flexWrap: 'wrap',
@@ -518,16 +518,16 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     iconCircle: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: 28,
+        height: 28,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     iconCircleLarge: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
