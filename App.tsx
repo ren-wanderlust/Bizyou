@@ -1216,7 +1216,7 @@ function AppContent() {
                   {item === 'users' ? (
                     <FlatList
                       data={sortedProfiles}
-                      renderItem={({ item }) => (
+                      renderItem={({ item, index }) => (
                         <View style={styles.gridItem}>
                           <ProfileCard
                             profile={item}
@@ -1224,6 +1224,7 @@ function AppContent() {
                             onLike={() => handleLike(item.id)}
                             onSelect={() => setSelectedProfile(item)}
                             animateOnLike={true}
+                            index={index}
                           />
                         </View>
                       )}

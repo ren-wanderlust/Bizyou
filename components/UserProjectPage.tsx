@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Dimensions, Image, Modal, Alert, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { Profile } from '../types';
@@ -60,7 +60,7 @@ const ROLE_COLORS: { [key: string]: { bg: string; icon: string } } = {
     '誰でも': { bg: '#E8F5E9', icon: '#388E3C' },        // Green
 };
 
-const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => void }) => {
+const ProjectCard = ({ project, onPress, index = 0 }: { project: Project; onPress: () => void; index?: number }) => {
     const deadlineDate = project.deadline ? new Date(project.deadline) : null;
     const deadlineString = deadlineDate
         ? `${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}まで`
@@ -68,6 +68,32 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     const createdDate = new Date(project.created_at);
     const daysAgo = Math.floor((Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
     const timeAgo = daysAgo === 0 ? '今日' : daysAgo === 1 ? '昨日' : `${daysAgo}日前`;
+
+    // 登場アニメーション用
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(20)).current;
+
+    useEffect(() => {
+        // インデックスに応じた遅延で登場アニメーション
+        const delay = Math.min(index * 80, 400); // 最大400msの遅延
+
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.ease),
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 400,
+                delay,
+                easing: Easing.out(Easing.back(1.2)),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [index]);
 
     // Get roles with icons and colors, limit to 4
     const rolesWithIcons = project.required_roles
@@ -177,39 +203,44 @@ const ProjectCard = ({ project, onPress }: { project: Project; onPress: () => vo
     };
 
     return (
-        <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
-            <View style={styles.cardInner}>
-                {/* Role Icons Container */}
-                {getIconLayout()}
+        <Animated.View style={{
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }]
+        }}>
+            <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+                <View style={styles.cardInner}>
+                    {/* Role Icons Container */}
+                    {getIconLayout()}
 
-                {/* Card Content */}
-                <View style={styles.cardContent}>
-                    {/* Title */}
-                    <View style={styles.cardTitleContainer}>
-                        <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
-                    </View>
+                    {/* Card Content */}
+                    <View style={styles.cardContent}>
+                        {/* Title */}
+                        <View style={styles.cardTitleContainer}>
+                            <Text style={styles.cardTitle} numberOfLines={2}>{project.title}</Text>
+                        </View>
 
-                    {/* Author Info */}
-                    <View style={styles.authorRow}>
-                        <Image
-                            source={getImageSource(project.owner?.image)}
-                            style={styles.authorIcon}
-                        />
-                        <Text style={styles.authorName} numberOfLines={1}>
-                            {project.owner?.name || '匿名'}
-                            {project.owner?.university ? ` (${project.owner.university})` : ''}
-                        </Text>
-                        <Text style={styles.timeAgo}>{timeAgo}</Text>
-                        {deadlineString ? (
-                            <View style={styles.deadlineBadge}>
-                                <Ionicons name="time-outline" size={12} color="#FF6B6B" />
-                                <Text style={styles.deadlineText}>{deadlineString}</Text>
-                            </View>
-                        ) : null}
+                        {/* Author Info */}
+                        <View style={styles.authorRow}>
+                            <Image
+                                source={getImageSource(project.owner?.image)}
+                                style={styles.authorIcon}
+                            />
+                            <Text style={styles.authorName} numberOfLines={1}>
+                                {project.owner?.name || '匿名'}
+                                {project.owner?.university ? ` (${project.owner.university})` : ''}
+                            </Text>
+                            <Text style={styles.timeAgo}>{timeAgo}</Text>
+                            {deadlineString ? (
+                                <View style={styles.deadlineBadge}>
+                                    <Ionicons name="time-outline" size={12} color="#FF6B6B" />
+                                    <Text style={styles.deadlineText}>{deadlineString}</Text>
+                                </View>
+                            ) : null}
+                        </View>
                     </View>
                 </View>
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
+        </Animated.View>
     );
 };
 
@@ -339,10 +370,11 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
                 <View style={styles.gridContainer}>
                     {filteredProjects.length > 0 ? (
                         <View style={styles.grid}>
-                            {filteredProjects.map((item) => (
+                            {filteredProjects.map((item, index) => (
                                 <ProjectCard
                                     key={item.id}
                                     project={item}
+                                    index={index}
                                     onPress={() => {
                                         setSelectedProject(item);
                                     }}
