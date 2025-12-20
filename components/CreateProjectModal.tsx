@@ -87,20 +87,11 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
     ];
 
     const toggleRole = (role: string) => {
-        if (role === '誰でも') {
-            // If "誰でも" is selected, clear all others and toggle "誰でも"
-            if (selectedRoles.includes('誰でも')) {
-                setSelectedRoles([]);
-            } else {
-                setSelectedRoles(['誰でも']);
-            }
+        // 単純なトグル: 全てのロールを自由に選択可能
+        if (selectedRoles.includes(role)) {
+            setSelectedRoles(selectedRoles.filter(r => r !== role));
         } else {
-            // If other role is selected, remove "誰でも" if present
-            if (selectedRoles.includes(role)) {
-                setSelectedRoles(selectedRoles.filter(r => r !== role));
-            } else {
-                setSelectedRoles([...selectedRoles.filter(r => r !== '誰でも'), role]);
-            }
+            setSelectedRoles([...selectedRoles, role]);
         }
     };
 
@@ -317,7 +308,6 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                             ]}
                                             onPress={() => toggleRole(role.id)}
                                             hapticType="selection"
-                                            disabled={isAnyoneSelected}
                                         >
                                             <View style={[
                                                 styles.roleIconContainer,
@@ -326,13 +316,12 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                                 <Ionicons
                                                     name={role.icon as any}
                                                     size={20}
-                                                    color={isSelected ? colors.icon : (isAnyoneSelected ? '#D1D5DB' : '#6B7280')}
+                                                    color={isSelected ? colors.icon : '#6B7280'}
                                                 />
                                             </View>
                                             <Text style={[
                                                 styles.roleText,
-                                                isSelected && { color: colors.icon, fontWeight: '600' },
-                                                isAnyoneSelected && !isSelected && { color: '#D1D5DB' }
+                                                isSelected && { color: colors.icon, fontWeight: '600' }
                                             ]}>{role.id}</Text>
                                             {isSelected && (
                                                 <View style={styles.checkBadge}>
@@ -342,11 +331,7 @@ export function CreateProjectModal({ currentUser, onClose, onCreated, project }:
                                         </HapticTouchable>
                                     );
                                 })}
-                            </View>
-                            <View style={styles.orContainer}>
-                                <Text style={styles.orText}>or</Text>
-                            </View>
-                            <View style={styles.anyoneCardContainer}>
+                                {/* 誰でもを同じグリッドに追加 */}
                                 <HapticTouchable
                                     style={[
                                         styles.roleCard,
