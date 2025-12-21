@@ -42,7 +42,7 @@ export function useMessagesInfinite({
         initialPageParam: undefined as string | undefined,
         getNextPageParam: (lastPage) => lastPage.nextCursor,
         enabled,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: Infinity, // Offline-first: Always use cache first, update via Realtime/Background Refetch
         gcTime: 1000 * 60 * 60 * 24, // 24 hours (persist cache)
     });
 
@@ -157,6 +157,11 @@ export function useMessagesInfinite({
 
                         // Add to the first page (newest)
                         const firstPage = oldData.pages[0];
+
+                        // Check for duplicates
+                        const exists = firstPage.data.some((m: Message) => m.id === formattedMessage.id);
+                        if (exists) return oldData;
+
                         const updatedFirstPage = {
                             ...firstPage,
                             data: [formattedMessage, ...firstPage.data],
