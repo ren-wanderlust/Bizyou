@@ -230,6 +230,30 @@ export function ProfileDetail({ profile, onBack, onLike, onChat, isLiked, onBloc
                     </View>
                 </View>
 
+                {/* GitHub Link */}
+                {profile.githubUrl && (
+                    <View style={styles.section}>
+                        <TouchableOpacity
+                            style={styles.githubButton}
+                            onPress={() => {
+                                const url = profile.githubUrl!.startsWith('http')
+                                    ? profile.githubUrl!
+                                    : `https://${profile.githubUrl}`;
+                                import('react-native').then(({ Linking }) => {
+                                    Linking.openURL(url);
+                                });
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.githubIconContainer}>
+                                <Ionicons name="logo-github" size={20} color="white" />
+                            </View>
+                            <Text style={styles.githubButtonText}>GitHubを見る</Text>
+                            <Ionicons name="open-outline" size={16} color="#6B7280" />
+                        </TouchableOpacity>
+                    </View>
+                )}
+
                 {/* 4. Skills */}
                 {
                     skills.length > 0 && (
@@ -519,6 +543,31 @@ const styles = StyleSheet.create({
         fontSize: 15,
         color: '#374151',
         lineHeight: 24,
+    },
+    githubButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#F9FAFB',
+        paddingVertical: 14,
+        paddingHorizontal: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        gap: 12,
+    },
+    githubIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 10,
+        backgroundColor: '#1F2937',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    githubButtonText: {
+        flex: 1,
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111827',
     },
     skillTag: {
         paddingHorizontal: 12,

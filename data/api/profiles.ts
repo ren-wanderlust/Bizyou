@@ -27,7 +27,7 @@ export async function fetchProfiles({
 
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at, last_active_at')
+    .select('id, name, age, university, company, grade, image, bio, skills, seeking_for, seeking_roles, status_tags, is_student, created_at, last_active_at, github_url')
     .order('last_active_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 

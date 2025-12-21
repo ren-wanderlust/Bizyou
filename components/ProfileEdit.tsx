@@ -38,6 +38,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
     const [skills, setSkills] = useState<string[]>(initialProfile.skills || []);
     const [seekingRoles, setSeekingRoles] = useState<string[]>(initialProfile.seekingRoles || []);
     const [image, setImage] = useState(initialProfile.image || '');
+    const [githubUrl, setGithubUrl] = useState(initialProfile.githubUrl || '');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Modal states
@@ -203,6 +204,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                     skills: finalSkills,
                     seeking_roles: finalSeekingRoles,
                     image: uploadedImageUrl,
+                    github_url: githubUrl.trim() || null,
                 })
                 .eq('id', initialProfile.id);
 
@@ -219,6 +221,7 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                 skills: finalSkills,
                 seekingRoles: finalSeekingRoles,
                 image: uploadedImageUrl,
+                githubUrl: githubUrl.trim() || undefined,
             });
         } catch (error: any) {
             Alert.alert('エラー', 'プロフィールの保存に失敗しました: ' + error.message);
@@ -379,6 +382,30 @@ export function ProfileEdit({ initialProfile, onSave, onCancel }: ProfileEditPro
                                 <Text style={styles.characterCount}>
                                     {bioLength} / {maxBioLength}
                                 </Text>
+                            </View>
+
+                            {/* GitHub URL Card */}
+                            <View style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View style={[styles.cardIconContainer, { backgroundColor: '#1F2937' }]}>
+                                        <Ionicons name="logo-github" size={18} color="white" />
+                                    </View>
+                                    <Text style={styles.cardTitle}>GitHub</Text>
+                                    <View style={styles.optionalBadge}>
+                                        <Text style={styles.optionalText}>任意</Text>
+                                    </View>
+                                </View>
+
+                                <TextInput
+                                    value={githubUrl}
+                                    onChangeText={setGithubUrl}
+                                    placeholder="https://github.com/username"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.input}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="url"
+                                />
                             </View>
 
                             {/* Your Role Card */}

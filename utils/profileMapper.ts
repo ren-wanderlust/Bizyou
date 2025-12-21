@@ -46,5 +46,6 @@ export function mapProfileRowToProfile(row: any): Profile {
     isStudent: row.is_student ?? row.isStudent ?? false,
     createdAt: row.created_at ?? row.createdAt ?? '',
     lastActiveAt: row.last_active_at ?? row.lastActiveAt ?? '',
+    githubUrl: row.github_url ?? row.githubUrl ?? '',
   };
 }

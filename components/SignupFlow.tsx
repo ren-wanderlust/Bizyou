@@ -964,8 +964,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     const renderStep4 = () => {
         const roleOptions = [
             { id: 'エンジニア', label: 'エンジニア' },
-            { id: 'アイディアマン', label: 'アイディアマン' },
+            { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
+            { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
             { id: 'その他', label: 'その他' },
         ];
@@ -1053,6 +1054,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             { id: 'エンジニア', label: 'エンジニア' },
             { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
+            { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
             { id: 'その他', label: 'その他' },
         ];
@@ -1173,7 +1175,10 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         </Text>
                     </View>
                     <Text style={styles.optionalText}>
-                        ※記入は任意です。後から設定することもできます。
+                        ※ 記入は任意です。後から設定することもできます。
+                    </Text>
+                    <Text style={styles.optionalText}>
+                        💡 GitHubアカウントはプロフィール編集から追加できます
                     </Text>
                 </View>
 
