@@ -18,6 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
@@ -66,6 +67,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
     // Step 7: Bio
     const [bio, setBio] = useState('');
+
+    // GitHub URL (optional, shown when engineer is selected)
+    const [githubUrl, setGithubUrl] = useState('');
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showEmailExistsModal, setShowEmailExistsModal] = useState(false);
@@ -171,11 +175,22 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [1, 1],
-            quality: 0.8,
+            quality: 1, // 最初は高品質で取得、後でリサイズ
         });
 
         if (!result.canceled) {
-            setImageUri(result.assets[0].uri);
+            try {
+                // プロフィール画像は800x800にリサイズ（アバター用に最適化）
+                const manipulated = await ImageManipulator.manipulateAsync(
+                    result.assets[0].uri,
+                    [{ resize: { width: 800, height: 800 } }],
+                    { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+                );
+                setImageUri(manipulated.uri);
+            } catch (error) {
+                console.error('Image resize error:', error);
+                setImageUri(result.assets[0].uri);
+            }
             if (errors.image) setErrors({ ...errors, image: false });
         }
     };
@@ -607,12 +622,9 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                             grade: grade,
                             bio: bio,
                             image: uploadedImageUrl,
-                            skills: skills.includes('other') && otherRoleText.trim()
-                                ? [...skills.filter(s => s !== 'other'), otherRoleText.trim()]
-                                : skills,
-                            seeking_roles: seekingRoles.includes('other') && otherSeekingText.trim()
-                                ? [...seekingRoles.filter(s => s !== 'other'), otherSeekingText.trim()]
-                                : seekingRoles,
+                            skills: skills,
+                            seeking_roles: seekingRoles,
+                            github_url: githubUrl.trim() || null,
                             is_student: true,
                             created_at: new Date().toISOString(),
                         }
@@ -962,21 +974,18 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     );
 
     const renderStep4 = () => {
+        // 5つの選択肢: デザイナー, マーケター, アイディアマン, クリエイター, エンジニア（最後に中央配置）
         const roleOptions = [
-            { id: 'エンジニア', label: 'エンジニア' },
             { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
             { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
-            { id: 'その他', label: 'その他' },
+            { id: 'エンジニア', label: 'エンジニア' }, // 最後に配置（5つ目で中央に表示される）
         ];
 
         const handleRoleToggle = (roleId: string) => {
             if (skills.includes(roleId)) {
                 setSkills(skills.filter(s => s !== roleId));
-                if (roleId === 'その他') {
-                    setOtherRoleText('');
-                }
             } else {
                 setSkills([...skills, roleId]);
             }
@@ -985,7 +994,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
             }
         };
 
-        const isOtherSelected = skills.includes('その他');
+        const isEngineerSelected = skills.includes('エンジニア');
 
         return (
             <View style={styles.stepContainer}>
@@ -1025,20 +1034,30 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                     })}
                 </View>
 
-                {isOtherSelected && (
-                    <View style={styles.formGroup}>
-                        <ModernInput
-                            label="その他の内容を記入"
-                            value={otherRoleText}
-                            onChangeText={(text) => {
-                                setOtherRoleText(text);
-                            }}
-                            placeholder="例: 財務、法務、PMなど"
-                            multiline
-                            numberOfLines={3}
-                            textAlignVertical="top"
-                            style={{ height: 100, paddingTop: 12 }}
-                        />
+                {/* エンジニア選択時にGitHub URL入力欄を表示 */}
+                {isEngineerSelected && (
+                    <View style={[styles.formGroup, { marginBottom: 100 }]}>
+                        <View style={styles.githubInputContainer}>
+                            <View style={styles.githubIconContainer}>
+                                <Ionicons name="logo-github" size={20} color="white" />
+                            </View>
+                            <View style={styles.githubInputWrapper}>
+                                <Text style={styles.githubLabel}>GitHub URL（任意）</Text>
+                                <TextInput
+                                    value={githubUrl}
+                                    onChangeText={setGithubUrl}
+                                    placeholder="https://github.com/username"
+                                    placeholderTextColor="#9CA3AF"
+                                    style={styles.githubInput}
+                                    autoCapitalize="none"
+                                    autoCorrect={false}
+                                    keyboardType="url"
+                                />
+                            </View>
+                        </View>
+                        <Text style={styles.optionalText}>
+                            💡 後からプロフィール編集で追加することもできます
+                        </Text>
                     </View>
                 )}
 
@@ -1050,21 +1069,18 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
     };
 
     const renderStep5 = () => {
+        // 5つの選択肢: デザイナー, マーケター, アイディアマン, クリエイター, エンジニア（最後に中央配置）
         const seekingOptions = [
-            { id: 'エンジニア', label: 'エンジニア' },
             { id: 'デザイナー', label: 'デザイナー' },
             { id: 'マーケター', label: 'マーケター' },
             { id: 'アイディアマン', label: 'アイディアマン' },
             { id: 'クリエイター', label: 'クリエイター' },
-            { id: 'その他', label: 'その他' },
+            { id: 'エンジニア', label: 'エンジニア' }, // 最後に配置
         ];
 
         const handleSeekingToggle = (optionId: string) => {
             if (seekingRoles.includes(optionId)) {
                 setSeekingRoles(seekingRoles.filter(s => s !== optionId));
-                if (optionId === 'その他') {
-                    setOtherSeekingText('');
-                }
             } else {
                 setSeekingRoles([...seekingRoles, optionId]);
             }
@@ -1072,8 +1088,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 setErrors({ ...errors, seekingRoles: false });
             }
         };
-
-        const isOtherSelected = seekingRoles.includes('その他');
 
         return (
             <View style={styles.stepContainer}>
@@ -1112,24 +1126,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                         );
                     })}
                 </View>
-
-
-                {isOtherSelected && (
-                    <View style={styles.formGroup}>
-                        <ModernInput
-                            label="その他の内容を記入"
-                            value={otherSeekingText}
-                            onChangeText={(text) => {
-                                setOtherSeekingText(text);
-                            }}
-                            placeholder="例: PM、財務、法務など"
-                            multiline
-                            numberOfLines={3}
-                            textAlignVertical="top"
-                            style={{ height: 100, paddingTop: 12 }}
-                        />
-                    </View>
-                )}
 
                 {errors.seekingRoles && (
                     <Text style={styles.errorText}>少なくとも1つの仲間を選択してください</Text>
@@ -1220,22 +1216,29 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                keyboardShouldPersistTaps="handled"
-                keyboardDismissMode="none"
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
             >
-                <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-                    <View>
-                        {step === 1 && renderStep1()}
-                        {step === 2 && renderStep2()}
-                        {step === 3 && renderStep3()}
-                        {step === 4 && renderStep4()}
-                        {step === 5 && renderStep5()}
-                        {step === 6 && renderStep6()}
-                    </View>
-                </TouchableWithoutFeedback>
-            </ScrollView>
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="none"
+                    showsVerticalScrollIndicator={false}
+                >
+                    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                        <View>
+                            {step === 1 && renderStep1()}
+                            {step === 2 && renderStep2()}
+                            {step === 3 && renderStep3()}
+                            {step === 4 && renderStep4()}
+                            {step === 5 && renderStep5()}
+                            {step === 6 && renderStep6()}
+                        </View>
+                    </TouchableWithoutFeedback>
+                </ScrollView>
+            </KeyboardAvoidingView>
 
             {/* Email Exists Modal */}
             <Modal
@@ -1687,5 +1690,38 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 2,
         borderColor: '#e5e7eb',
+    },
+    // GitHub URL input styles
+    githubInputContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ffffff',
+        borderWidth: 2,
+        borderColor: '#24292e',
+        borderRadius: 16,
+        overflow: 'hidden',
+        marginTop: 16,
+    },
+    githubIconContainer: {
+        backgroundColor: '#24292e',
+        padding: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    githubInputWrapper: {
+        flex: 1,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    githubLabel: {
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: '500',
+        marginBottom: 4,
+    },
+    githubInput: {
+        fontSize: 14,
+        color: '#111827',
+        padding: 0,
     },
 });
