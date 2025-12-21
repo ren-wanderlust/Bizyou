@@ -16,6 +16,7 @@ export interface Profile {
     isStudent: boolean;
     createdAt: string;
     lastActiveAt?: string;
+    githubUrl?: string;
 }
 
 export interface Theme {
