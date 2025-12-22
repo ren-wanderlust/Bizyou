@@ -22,7 +22,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import Swipeable from 'react-native-gesture-handler/Swipeable';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '../data/queryKeys';
@@ -511,6 +510,10 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 
         if (!result.canceled) {
             try {
+                // `expo-image-manipulator` はネイティブモジュールのため、
+                // dev client が再ビルドされていないと起動時クラッシュする。
+                // ここでは動的importにして、未導入/未ビルド時はフォールバックする。
+                const ImageManipulator = await import('expo-image-manipulator');
                 // 画像をリサイズ・圧縮（最大幅1200px、JPEG 70%品質）
                 const manipulated = await ImageManipulator.manipulateAsync(
                     result.assets[0].uri,

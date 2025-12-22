@@ -8,8 +8,8 @@ export const queryKeys = {
   profiles: {
     all: ['profiles'] as const,
     lists: () => [...queryKeys.profiles.all, 'list'] as const,
-    list: (pageSize: number, sort: 'newest' | 'recommended' | 'deadline') =>
-      [...queryKeys.profiles.lists(), { pageSize, sort }] as const,
+    list: (pageSize: number, sort: 'newest' | 'recommended' | 'deadline', userId?: string) =>
+      [...queryKeys.profiles.lists(), { pageSize, sort, userId }] as const,
   },
 
   // チャット一覧（ユーザー単位）
@@ -32,12 +32,12 @@ export const queryKeys = {
     detail: (userId: string) => [...queryKeys.unreadCount.all, userId] as const,
   },
 
-  // プロジェクト一覧（ソート順対応）
+  // プロジェクト一覧（ソート順対応、ブロックフィルタ用userId含む）
   projects: {
     all: ['projects'] as const,
     lists: () => [...queryKeys.projects.all, 'list'] as const,
-    list: (sort: 'recommended' | 'newest' | 'deadline') =>
-      [...queryKeys.projects.lists(), { sort }] as const,
+    list: (sort: 'recommended' | 'newest' | 'deadline', userId?: string) =>
+      [...queryKeys.projects.lists(), { sort, userId }] as const,
   },
 
   // マイプロジェクト（ユーザー単位）

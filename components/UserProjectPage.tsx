@@ -259,8 +259,8 @@ export function UserProjectPage({ currentUser, onChat, sortOrder = 'recommended'
     const queryClient = useQueryClient();
     const { session } = useAuth();
 
-    // React Query hook
-    const projectsQuery = useProjectsList(sortOrder);
+    // React Query hook - ブロックユーザーのプロジェクトを除外
+    const projectsQuery = useProjectsList(sortOrder, session?.user?.id);
     const projects: Project[] = projectsQuery.data || [];
     const loading = projectsQuery.isLoading;
 

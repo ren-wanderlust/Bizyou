@@ -4,13 +4,17 @@ import { queryKeys } from '../queryKeys';
 
 const PAGE_SIZE = 20;
 
-export function useProfilesList(sort: 'newest' | 'recommended' | 'deadline' = 'newest') {
+export function useProfilesList(
+  sort: 'newest' | 'recommended' | 'deadline' = 'newest',
+  userId?: string
+) {
   return useInfiniteQuery({
-    queryKey: queryKeys.profiles.list(PAGE_SIZE, sort),
+    queryKey: queryKeys.profiles.list(PAGE_SIZE, sort, userId), // userId含めてブロック状態変更時にキャッシュ更新
     queryFn: ({ pageParam = 0 }) =>
       fetchProfiles({
         pageNumber: pageParam,
         pageSize: PAGE_SIZE,
+        userId, // ブロックフィルタ用
       }),
     getNextPageParam: (lastPage, allPages) => {
       // 次ページがある場合は次のページ番号を返す

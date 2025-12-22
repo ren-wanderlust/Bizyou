@@ -137,7 +137,7 @@ function AppContent() {
 
   // React Query hooks
   const queryClient = useQueryClient();
-  const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline');
+  const profilesQuery = useProfilesList(sortOrder === 'newest' ? 'newest' : sortOrder === 'recommended' ? 'recommended' : 'deadline', session?.user?.id);
   const unreadCountQuery = useUnreadCount(session?.user?.id);
   const matchesQuery = useMatches(session?.user?.id);
   const receivedLikesQuery = useReceivedLikes(session?.user?.id);

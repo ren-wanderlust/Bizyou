@@ -18,7 +18,6 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as ImageManipulator from 'expo-image-manipulator';
 import { Session } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import { supabase } from '../lib/supabase';
@@ -180,6 +179,7 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
 
         if (!result.canceled) {
             try {
+                const ImageManipulator = await import('expo-image-manipulator');
                 // プロフィール画像は800x800にリサイズ（アバター用に最適化）
                 const manipulated = await ImageManipulator.manipulateAsync(
                     result.assets[0].uri,
