@@ -831,7 +831,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                             reporter_id: currentUserId,
                             reported_id: partnerId,
                             reason: 'chat_report',
-                            description: 'Reported from chat'
+                            details: 'Reported from chat'
                         });
 
                         if (error) throw error;
