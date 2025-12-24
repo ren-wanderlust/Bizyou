@@ -123,7 +123,7 @@ const MessageBubble = ({
         ? requiredWidth
         : defaultMaxWidth;
 
-    const renderLeftActions = (_progress: any, dragX: any) => {
+    const renderRightActions = (_progress: any, dragX: any) => {
         return (
             <View style={styles.replyActionContainer}>
                 <Ionicons name="arrow-undo" size={24} color="#0d9488" />
@@ -170,11 +170,11 @@ const MessageBubble = ({
         <>
             <Swipeable
                 ref={swipeableRef}
-                renderLeftActions={renderLeftActions}
+                renderRightActions={renderRightActions}
                 onSwipeableOpen={handleSwipeOpen}
                 friction={2}
                 enableTrackpadTwoFingerGesture
-                leftThreshold={40}
+                rightThreshold={40}
                 containerStyle={styles.swipeableContainer}
             >
                 <View style={[styles.messageRow, isMe ? styles.messageRowMe : styles.messageRowOther]}>
