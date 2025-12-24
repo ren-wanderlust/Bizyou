@@ -21,6 +21,7 @@ import { MyPage } from './components/MyPage';
 import { LikesPage } from './components/LikesPage';
 import { TalkPage } from './components/TalkPage';
 import { ChatRoom } from './components/ChatRoom';
+import { ProjectDetail } from './components/ProjectDetail';
 import { CreateProjectModal } from './components/CreateProjectModal';
 import { NotificationsPage } from './components/NotificationsPage';
 import { SignupFlow } from './components/SignupFlow';
@@ -111,6 +112,7 @@ function AppContent() {
     partnerName: string;
     partnerImage: string;
     isGroup?: boolean;
+    projectId?: string;
   } | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [filterCriteria, setFilterCriteria] = useState<FilterCriteria | null>(null);
@@ -134,6 +136,7 @@ function AppContent() {
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false); // テスト用: falseで開始
+  const [chatProjectDetail, setChatProjectDetail] = useState<any | null>(null); // プロジェクト詳細（チャットから）
 
   // React Query hooks
   const queryClient = useQueryClient();
@@ -1492,6 +1495,7 @@ function AppContent() {
                 partnerName: room.partnerName,
                 partnerImage: room.partnerImage,
                 isGroup: room.type === 'group',
+                projectId: room.projectId,
               })}
               onViewProfile={(partnerId) => {
                 // Find the profile from displayProfiles or fetch it
@@ -1645,8 +1649,26 @@ function AppContent() {
                   partnerName={activeChatRoom.partnerName}
                   partnerImage={activeChatRoom.partnerImage}
                   isGroup={activeChatRoom.isGroup}
+                  projectId={activeChatRoom.projectId}
                   onBack={() => setActiveChatRoom(null)}
                   onBlock={() => handleBlockUser(activeChatRoom.partnerId)}
+                  onViewProjectDetail={async (projectId) => {
+                    // Fetch project details and show in modal
+                    try {
+                      const { data: project, error } = await supabase
+                        .from('projects')
+                        .select('*')
+                        .eq('id', projectId)
+                        .single();
+
+                      if (error) throw error;
+                      if (project) {
+                        setChatProjectDetail(project);
+                      }
+                    } catch (error) {
+                      console.error('Error fetching project:', error);
+                    }
+                  }}
                   onPartnerProfilePress={() => {
                     const partner = displayProfiles.find(p => p.name === activeChatRoom.partnerName);
                     if (partner) {
@@ -1720,6 +1742,24 @@ function AppContent() {
                   }}
                 />
               )}
+
+              {/* Project Detail Modal (shown when tapping group chat header) */}
+              <Modal
+                visible={!!chatProjectDetail}
+                animationType="slide"
+                presentationStyle="pageSheet"
+                onRequestClose={() => setChatProjectDetail(null)}
+              >
+                {chatProjectDetail && currentUser && (
+                  <ProjectDetail
+                    project={chatProjectDetail}
+                    currentUser={currentUser}
+                    onClose={() => setChatProjectDetail(null)}
+                    onChat={() => setChatProjectDetail(null)}
+                    onProjectUpdated={() => setChatProjectDetail(null)}
+                  />
+                )}
+              </Modal>
             </>
           )}
         </SafeAreaProvider>
