@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, Dimensions, Alert, ActivityIndicator, SafeAreaView, FlatList, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -61,6 +61,12 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
     const [hasApplied, setHasApplied] = useState(false);
     const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
 
+    // ProjectDetailが開いている間の外部更新を即時反映するための Realtime 管理
+    const applicationsChannelRef = useRef<any>(null);
+    const applicantsDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isFetchingApplicantsRef = useRef(false);
+    const pendingApplicantsRefetchRef = useRef(false);
+
     // 募集状態を判定する関数
     // statusは進捗状況（idea, planning, developing等）または募集状態（recruiting, closed）を含む可能性がある
     // 'closed'のみを停止状態として扱い、それ以外は全て募集中とする
@@ -90,7 +96,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             fetchOwner();
         }
         fetchApplicants();
-    }, []);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [project.id]);
 
     const fetchOwner = async () => {
         try {
@@ -154,7 +161,14 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
         }
     };
 
-    const fetchApplicants = async () => {
+    const fetchApplicants = useCallback(async () => {
+        // 多重実行防止（Realtime連打・画面内操作連打を想定）
+        if (isFetchingApplicantsRef.current) {
+            pendingApplicantsRefetchRef.current = true;
+            return;
+        }
+
+        isFetchingApplicantsRef.current = true;
         try {
             const { data, error } = await supabase
                 .from('project_applications')
@@ -191,8 +205,56 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
             }
         } catch (error) {
             console.error('Error fetching applicants:', error);
+        } finally {
+            isFetchingApplicantsRef.current = false;
+            if (pendingApplicantsRefetchRef.current) {
+                pendingApplicantsRefetchRef.current = false;
+                // 直後にもう一度だけ追いかける（最新化の取りこぼし防止）
+                void fetchApplicants();
+            }
         }
-    };
+    }, [project.id, currentUser]);
+
+    // project_applications の Realtime購読（project_id限定）→ applicants を即時更新
+    useEffect(() => {
+        if (!project?.id) return;
+
+        // 念のため前回チャンネルが残っていたら掃除
+        if (applicationsChannelRef.current) {
+            supabase.removeChannel(applicationsChannelRef.current);
+            applicationsChannelRef.current = null;
+        }
+
+        const channel = supabase
+            .channel(`project_detail_applications_${project.id}`)
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'project_applications', filter: `project_id=eq.${project.id}` },
+                () => {
+                    // 200msデバウンス（短時間に複数イベントが来ても1回にまとめる）
+                    if (applicantsDebounceTimerRef.current) {
+                        clearTimeout(applicantsDebounceTimerRef.current);
+                    }
+                    applicantsDebounceTimerRef.current = setTimeout(() => {
+                        void fetchApplicants();
+                    }, 200);
+                }
+            )
+            .subscribe();
+
+        applicationsChannelRef.current = channel;
+
+        return () => {
+            if (applicantsDebounceTimerRef.current) {
+                clearTimeout(applicantsDebounceTimerRef.current);
+                applicantsDebounceTimerRef.current = null;
+            }
+            supabase.removeChannel(channel);
+            if (applicationsChannelRef.current === channel) {
+                applicationsChannelRef.current = null;
+            }
+        };
+    }, [project.id, fetchApplicants]);
 
     const handleApply = async () => {
         if (!currentUser) {
@@ -282,6 +344,8 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             Alert.alert('完了', '応募が完了しました！オーナーからの連絡をお待ちください。');
             setHasApplied(true);
+            // 応募直後に「応募」一覧（LikesPage等）を即時更新
+            queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(currentUser.id) });
             fetchApplicants(); // Refresh list
         } catch (error) {
             console.error('Error applying:', error);
@@ -340,7 +404,17 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
 
             Alert.alert('完了', `${userName}さんを${newStatus === 'approved' ? '承認' : '棄却'}しました`);
 
+            // 承認/棄却直後に、対象ユーザー側の「応募」一覧を最新化（画面非表示でも次回表示で古いキャッシュが残らない）
+            if (applicant?.user_id) {
+                queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(applicant.user_id) });
+            }
+
             if (newStatus === 'approved') {
+                // 承認されたユーザーの「参加中」を即時更新（実行者ではなく対象ユーザー）
+                if (applicant?.user_id) {
+                    queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(applicant.user_id) });
+                }
+
                 // Check if total members >= 2 (Owner + at least 1 approved applicant)
                 const { count } = await supabase
                     .from('project_applications')

@@ -1,10 +1,12 @@
 import { supabase } from '../../lib/supabase';
 import { Profile } from '../../types';
 import { mapProfileRowToProfile } from '../../utils/profileMapper';
+import { fetchBlockedUserIds } from './blocks';
 
 export interface FetchProfilesParams {
   pageNumber: number;
   pageSize: number;
+  userId?: string; // 現在のユーザーID（ブロックフィルタ用）
 }
 
 export interface FetchProfilesResult {
@@ -16,12 +18,20 @@ export interface FetchProfilesResult {
  * プロフィール一覧を取得（ページネーション対応）
  * @param pageNumber ページ番号（0始まり）
  * @param pageSize 1ページあたりの件数
+ * @param userId 現在のユーザーID（ブロックフィルタ用）
  * @returns プロフィール配列と次ページ有無
  */
 export async function fetchProfiles({
   pageNumber,
   pageSize,
+  userId,
 }: FetchProfilesParams): Promise<FetchProfilesResult> {
+  // ブロックユーザー取得
+  let blockedIds = new Set<string>();
+  if (userId) {
+    blockedIds = await fetchBlockedUserIds(userId);
+  }
+
   const from = pageNumber * pageSize;
   const to = from + pageSize - 1;
 
@@ -33,7 +43,14 @@ export async function fetchProfiles({
 
   if (error) throw error;
 
-  const mappedProfiles: Profile[] = (data || []).map((item: any) =>
+  // ブロックユーザーを除外 + 自分自身も除外
+  const filteredData = (data || []).filter((item: any) => {
+    if (userId && item.id === userId) return false; // 自分自身を除外
+    if (blockedIds.has(item.id)) return false; // ブロック相手を除外
+    return true;
+  });
+
+  const mappedProfiles: Profile[] = filteredData.map((item: any) =>
     mapProfileRowToProfile(item)
   );
 

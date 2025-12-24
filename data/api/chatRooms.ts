@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { fetchBlockedUserIds } from './blocks';
 
 export interface ChatRoom {
   id: string;
@@ -22,6 +23,8 @@ export interface ChatRoom {
  * @returns チャットルーム配列
  */
 export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
+  // ブロックユーザー取得（双方向）
+  const blockedIds = await fetchBlockedUserIds(userId);
 
   // --- Individual Chats (Existing Logic) ---
   const { data: myLikes } = await supabase
@@ -93,16 +96,19 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
     unreadMap.set(m.sender_id, (unreadMap.get(m.sender_id) || 0) + 1);
   });
 
-  const partnerIds = Array.from(individualRoomsMap.keys());
+  // ブロックユーザーを除外した partnerIds を取得
+  const filteredPartnerIds = Array.from(individualRoomsMap.keys()).filter(
+    partnerId => !blockedIds.has(partnerId)
+  );
   let individualRooms: ChatRoom[] = [];
 
-  if (partnerIds.length > 0) {
+  if (filteredPartnerIds.length > 0) {
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, name, age, image')
-      .in('id', partnerIds);
+      .in('id', filteredPartnerIds);
 
-    individualRooms = partnerIds.map(partnerId => {
+    individualRooms = filteredPartnerIds.map(partnerId => {
       const partnerProfile = profiles?.find(p => p.id === partnerId);
       const roomData = individualRoomsMap.get(partnerId);
       const lastMsgDate = new Date(roomData.timestamp);
@@ -133,6 +139,7 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
   }
 
   // --- Team Chats (Server-side aggregation via RPC) ---
+  // 注意: チームチャットはブロックの影響を受けない（仕様#4）
   // 個人チャットと同じ思想: サーバー側で最新メッセージ・未読数を確定させる
   const { data: teamRoomsData, error: teamRoomsError } = await supabase.rpc('get_team_chat_rooms', {
     p_user_id: userId,

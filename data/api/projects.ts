@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase';
+import { fetchBlockedUserIds } from './blocks';
 
 export interface Project {
   id: string;
@@ -23,14 +24,22 @@ export interface Project {
 
 export interface FetchProjectsParams {
   sort: 'recommended' | 'newest' | 'deadline';
+  userId?: string; // 現在のユーザーID（ブロックフィルタ用）
 }
 
 /**
  * プロジェクト一覧を取得
  * @param sort ソート順
+ * @param userId 現在のユーザーID（ブロックフィルタ用）
  * @returns プロジェクト配列
  */
-export async function fetchProjects({ sort }: FetchProjectsParams): Promise<Project[]> {
+export async function fetchProjects({ sort, userId }: FetchProjectsParams): Promise<Project[]> {
+  // ブロックユーザー取得
+  let blockedIds = new Set<string>();
+  if (userId) {
+    blockedIds = await fetchBlockedUserIds(userId);
+  }
+
   let query = supabase
     .from('projects')
     .select(`
@@ -54,5 +63,11 @@ export async function fetchProjects({ sort }: FetchProjectsParams): Promise<Proj
 
   if (error) throw error;
 
-  return (data || []) as Project[];
+  // ブロックユーザーのプロジェクトを除外
+  const filteredData = (data || []).filter((project: any) => {
+    if (blockedIds.has(project.owner_id)) return false;
+    return true;
+  });
+
+  return filteredData as Project[];
 }
