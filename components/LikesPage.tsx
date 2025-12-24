@@ -18,6 +18,7 @@ import { translateTag } from '../constants/TagConstants';
 import { FONTS } from '../constants/DesignSystem';
 import { ProjectDetail } from './ProjectDetail';
 import { getImageSource } from '../constants/DefaultImages';
+import { getUserPushTokens, sendPushNotification } from '../lib/notifications';
 
 // Project型とApplication型はdata/apiからインポート
 import { Application } from '../data/api/applications';
@@ -270,6 +271,23 @@ export function LikesPage({ likedProfileIds, allProfiles, onProfileSelect, onLik
                     });
 
                 if (notifError) console.error('Notification error:', notifError);
+
+                // Send push notification to applicant
+                try {
+                    const tokens = await getUserPushTokens(applicantUserId);
+                    for (const token of tokens) {
+                        await sendPushNotification(
+                            token,
+                            newStatus === 'approved' ? 'プロジェクト参加承認 🎉' : 'プロジェクト参加見送り',
+                            newStatus === 'approved'
+                                ? `「${(projectInfo as any).title}」への参加が承認されました！`
+                                : `「${(projectInfo as any).title}」への参加は見送られました。`,
+                            { type: 'application_status', status: newStatus, projectId }
+                        );
+                    }
+                } catch (pushError) {
+                    console.log('Push notification error:', pushError);
+                }
             }
 
             // Handle team chat creation when approved

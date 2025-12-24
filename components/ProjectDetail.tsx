@@ -798,7 +798,7 @@ export function ProjectDetail({ project, currentUser, onClose, onChat, onProject
                             {currentUser?.id === project.owner_id
                                 ? (currentStatus === 'recruiting' ? '募集を停止する' : '募集を再開する')
                                 : (hasApplied
-                                    ? (applicationStatus === 'rejected' ? '再応募する' : '応募済み')
+                                    ? (applicationStatus === 'rejected' ? '再応募する' : (applicationStatus === 'approved' ? '参加中' : '承認待ち'))
                                     : '応募する')}
                         </Text>
                     )}
