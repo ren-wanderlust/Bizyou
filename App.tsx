@@ -468,11 +468,29 @@ function AppContent() {
 
     // Subscribe to project_applications changes
     const applicationsChannel = supabase.channel('unread_applications_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, () => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_applications' }, (payload) => {
         if (session?.user) {
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.recruiting(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.projectApplications.applied(session.user.id) });
           queryClient.invalidateQueries({ queryKey: queryKeys.myProjects.detail(session.user.id) });
+        }
+
+        // 承認(approved) になったユーザーの「参加中」を確実に更新する
+        // NOTE: session.user.id ではなく payload の user_id を使う（別ユーザーの承認でも正しくinvalidate）
+        try {
+          const newRow: any = (payload as any)?.new;
+          const oldRow: any = (payload as any)?.old;
+
+          const targetUserId: string | undefined = newRow?.user_id ?? oldRow?.user_id;
+          const newStatus: string | undefined = newRow?.status;
+          const oldStatus: string | undefined = oldRow?.status;
+
+          const becameApproved = newStatus === 'approved' && oldStatus !== 'approved';
+          if (becameApproved && targetUserId) {
+            queryClient.invalidateQueries({ queryKey: queryKeys.participatingProjects.detail(targetUserId) });
+          }
+        } catch (e) {
+          console.log('[realtime] project_applications payload parse error:', e);
         }
       })
       .subscribe();
