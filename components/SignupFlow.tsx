@@ -156,7 +156,6 @@ export function SignupFlow({ onComplete, onCancel }: SignupFlowProps) {
         '1️⃣ PM / ディレクター',
         '💰 財務 / 専門職',
         '🌏 その他 / 語学',
-        '🗣️ 壁打ち相手',
         '🤔 まだ分からない',
     ];
 
