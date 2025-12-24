@@ -45,12 +45,13 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
 
   const { data: messages, error: messagesError } = await supabase
     .from('messages')
-    .select('id, content, sender_id, receiver_id, chat_room_id, created_at')
+    .select('id, content, image_url, sender_id, receiver_id, chat_room_id, created_at')
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
     .order('created_at', { ascending: false });
 
   if (messagesError) throw messagesError;
 
+  // パートナー名を後で取得するため、画像メッセージの情報を保持
   const individualRoomsMap = new Map<string, any>();
   if (messages) {
     for (const msg of messages) {
@@ -59,12 +60,18 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
       const partnerId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
       if (matchedIds.has(partnerId)) {
         if (!individualRoomsMap.has(partnerId)) {
+          // 画像メッセージかどうかを判定
+          const isImageMessage = !!msg.image_url && (!msg.content || msg.content.trim() === '');
+          const isSentByMe = msg.sender_id === userId;
+
           individualRoomsMap.set(partnerId, {
             lastMessage: msg.content,
             timestamp: msg.created_at,
             unreadCount: 0,
             lastSenderId: msg.sender_id,
             type: 'individual',
+            isImageMessage,
+            isSentByMe,
           });
         }
       }
@@ -121,13 +128,24 @@ export async function fetchChatRooms(userId: string): Promise<ChatRoom[]> {
         timestamp = `${lastMsgDate.getMonth() + 1}/${lastMsgDate.getDate()}`;
       }
 
+      // 画像メッセージの場合のテキスト生成
+      let lastMessage = roomData.lastMessage;
+      if (roomData.isImageMessage) {
+        if (roomData.isSentByMe) {
+          lastMessage = '写真を送信しました';
+        } else {
+          const partnerName = partnerProfile?.name || 'Unknown';
+          lastMessage = `${partnerName}が写真を送信しました`;
+        }
+      }
+
       return {
         id: partnerId,
         partnerId: partnerId,
         partnerName: partnerProfile?.name || 'Unknown',
         partnerAge: partnerProfile?.age || 0,
         partnerImage: partnerProfile?.image || '',
-        lastMessage: roomData.lastMessage,
+        lastMessage: lastMessage,
         unreadCount: unreadMap.get(partnerId) || 0,
         timestamp: timestamp,
         rawTimestamp: roomData.timestamp,
