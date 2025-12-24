@@ -1131,7 +1131,7 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: 'white',
+        backgroundColor: '#F5F5F5',
     },
     loadingContainer: {
         justifyContent: 'center',
