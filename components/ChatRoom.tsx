@@ -45,6 +45,8 @@ interface ChatRoomProps {
     onMemberProfilePress?: (memberId: string) => void; // For group chat member profile
     isGroup?: boolean; // New prop
     onBlock?: () => void;
+    projectId?: string; // For group chats, the project ID
+    onViewProjectDetail?: (projectId: string) => void; // Callback to view project detail
 }
 
 // Helper function to get date label
@@ -392,7 +394,7 @@ const MessageBubble = ({
     );
 };
 
-export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock }: ChatRoomProps) {
+export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartnerProfilePress, onMemberProfilePress, isGroup = false, onBlock, projectId, onViewProjectDetail }: ChatRoomProps) {
     const queryClient = useQueryClient();
     const [inputText, setInputText] = useState('');
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -886,29 +888,50 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
     };
 
     const handleMenuPress = () => {
-        Alert.alert(
-            'メニュー',
-            '',
-            [
-                { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
-                {
-                    text: '報告する',
-                    onPress: handleReport
-                },
-                {
-                    text: 'ブロックする',
-                    style: 'destructive',
-                    onPress: handleBlock
-                },
-                {
-                    text: 'マッチング解除',
-                    style: 'destructive',
-                    onPress: handleUnmatch
-                },
-                { text: 'キャンセル', style: 'cancel' },
-            ],
-            { cancelable: true }
-        );
+        if (isGroup) {
+            // Group chat menu - simplified
+            Alert.alert(
+                'メニュー',
+                '',
+                [
+                    {
+                        text: 'プロジェクト詳細を見る',
+                        onPress: () => {
+                            if (projectId && onViewProjectDetail) {
+                                onViewProjectDetail(projectId);
+                            }
+                        }
+                    },
+                    { text: 'キャンセル', style: 'cancel' },
+                ],
+                { cancelable: true }
+            );
+        } else {
+            // Individual chat menu
+            Alert.alert(
+                'メニュー',
+                '',
+                [
+                    { text: '相手のプロフィールを見る', onPress: onPartnerProfilePress },
+                    {
+                        text: '報告する',
+                        onPress: handleReport
+                    },
+                    {
+                        text: 'ブロックする',
+                        style: 'destructive',
+                        onPress: handleBlock
+                    },
+                    {
+                        text: 'マッチング解除',
+                        style: 'destructive',
+                        onPress: handleUnmatch
+                    },
+                    { text: 'キャンセル', style: 'cancel' },
+                ],
+                { cancelable: true }
+            );
+        }
     };
 
     if (isMessagesLoading && !data) {
@@ -928,15 +951,33 @@ export function ChatRoom({ onBack, partnerId, partnerName, partnerImage, onPartn
                         <Ionicons name="chevron-back" size={28} color="#374151" />
                     </TouchableOpacity>
 
-                    <View style={styles.headerInfo}>
-                        <Image
-                            source={{ uri: partnerImage }}
-                            style={styles.headerAvatar}
-                            contentFit="cover"
-                            cachePolicy="memory-disk"
-                        />
-                        <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
-                    </View>
+                    {/* Header Info - Tappable for group chats to view project detail */}
+                    {isGroup && projectId && onViewProjectDetail ? (
+                        <TouchableOpacity
+                            style={styles.headerInfo}
+                            onPress={() => onViewProjectDetail(projectId)}
+                            activeOpacity={0.7}
+                        >
+                            <Image
+                                source={{ uri: partnerImage }}
+                                style={styles.headerAvatar}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                            />
+                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                            <Ionicons name="chevron-forward" size={18} color="#9CA3AF" style={{ marginLeft: 4 }} />
+                        </TouchableOpacity>
+                    ) : (
+                        <View style={styles.headerInfo}>
+                            <Image
+                                source={{ uri: partnerImage }}
+                                style={styles.headerAvatar}
+                                contentFit="cover"
+                                cachePolicy="memory-disk"
+                            />
+                            <Text style={styles.headerName} numberOfLines={2} ellipsizeMode="tail">{partnerName}</Text>
+                        </View>
+                    )}
 
                     <TouchableOpacity onPress={handleMenuPress} style={styles.menuButton}>
                         <Ionicons name="ellipsis-horizontal" size={24} color="#374151" />
